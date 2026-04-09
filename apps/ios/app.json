@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "Orbit",
+    "slug": "orbit",
+    "scheme": "orbit",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "platforms": ["ios"],
+    "userInterfaceStyle": "dark"
+  }
+}

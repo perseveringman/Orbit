@@ -1,0 +1,34 @@
+{
+  "name": "orbit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Orbit monorepo：本地优先的个人认知工作台",
+  "packageManager": "pnpm@10.25.0",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "clean": "turbo run clean --continue && rm -rf node_modules .turbo",
+    "dev": "turbo run dev --parallel",
+    "dev:desktop": "pnpm --filter @orbit/desktop dev",
+    "dev:ios": "pnpm --filter @orbit/ios dev",
+    "dev:server": "pnpm --filter @orbit/server dev",
+    "dev:web": "pnpm --filter @orbit/web dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.17",
+    "@typescript-eslint/eslint-plugin": "^8.30.1",
+    "@typescript-eslint/parser": "^8.30.1",
+    "eslint": "^8.57.1",
+    "eslint-plugin-import": "^2.31.0",
+    "prettier": "^3.5.3",
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": false,
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    "baseUrl": ".",
+    "paths": {
+      "@orbit/domain": [
+        "../domain/dist/index.d.ts"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts"
+  ]
+}

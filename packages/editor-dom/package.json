@@ -1,0 +1,22 @@
+{
+  "name": "@orbit/editor-dom",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/packages/editor-dom/src/index.js",
+  "types": "./dist/packages/editor-dom/src/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "npx -y -p typescript tsc -p tsconfig.json",
+    "typecheck": "npx -y -p typescript tsc -p tsconfig.json --noEmit",
+    "lint": "npx -y -p eslint@8.57.1 -p @typescript-eslint/parser@8.30.1 -p @typescript-eslint/eslint-plugin@8.30.1 -p eslint-plugin-import@2.31.0 eslint \"src/**/*.ts\" \"tests/**/*.ts\" \"test-loader.mjs\"",
+    "test": "node --test --experimental-strip-types --loader ./test-loader.mjs tests/index.test.ts",
+    "clean": "rm -rf dist coverage"
+  },
+  "dependencies": {
+    "@orbit/app-viewmodels": "workspace:*",
+    "@orbit/ui-dom": "workspace:*"
+  }
+}

@@ -1,0 +1,14 @@
+node_modules
+.pnpm-store
+.turbo
+dist
+coverage
+.DS_Store
+.env
+.env.*
+!.env.example
+apps/ios/.expo
+apps/ios/.next
+apps/ios/ios
+apps/ios/android
+*.tsbuildinfo

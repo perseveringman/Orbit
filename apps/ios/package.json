@@ -1,0 +1,29 @@
+{
+  "name": "@orbit/ios",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Orbit iOS Expo / React Native 宿主，负责挂载共享业务内核与移动端特性层",
+  "main": "expo-router/entry",
+  "scripts": {
+    "dev": "expo start --clear",
+    "build": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint app types --ext .ts,.tsx,.d.ts --no-error-on-unmatched-pattern",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rm -rf .expo .expo-shared dist coverage"
+  },
+  "dependencies": {
+    "@orbit/feature-mobile": "workspace:*",
+    "@orbit/platform-ios": "workspace:*",
+    "expo": "^52.0.33",
+    "expo-router": "^4.0.17",
+    "react": "^18.3.1",
+    "react-native": "^0.76.9"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "eslint": "^8.57.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
+  }
+}

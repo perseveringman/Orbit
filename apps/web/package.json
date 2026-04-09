@@ -1,0 +1,30 @@
+{
+  "name": "@orbit/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Orbit Web Browser host，负责挂载共享 DOM workbench 与浏览器平台适配层",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" \"vite.config.ts\" --no-error-on-unmatched-pattern",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rm -rf dist coverage .vite"
+  },
+  "dependencies": {
+    "@orbit/feature-workbench": "workspace:*",
+    "@orbit/platform-web": "workspace:*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^8.57.1",
+    "typescript": "^5.8.3",
+    "vite": "^5.4.19",
+    "vitest": "^3.1.1"
+  }
+}

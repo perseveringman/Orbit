@@ -1,0 +1,102 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@orbit/agent-core": [
+        "packages/agent-core/src/index.ts"
+      ],
+      "@orbit/api-types": [
+        "packages/api-types/src/index.ts"
+      ],
+      "@orbit/app-viewmodels": [
+        "packages/app-viewmodels/src/index.ts"
+      ],
+      "@orbit/capability-core": [
+        "packages/capability-core/src/index.ts"
+      ],
+      "@orbit/data-protocol": [
+        "packages/data-protocol/src/index.ts"
+      ],
+      "@orbit/db-schema": [
+        "packages/db-schema/src/index.ts"
+      ],
+      "@orbit/domain": [
+        "packages/domain/src/index.ts"
+      ],
+      "@orbit/editor-dom": [
+        "packages/editor-dom/src/index.ts"
+      ],
+      "@orbit/feature-mobile": [
+        "packages/feature-mobile/src/index.ts"
+      ],
+      "@orbit/feature-workbench": [
+        "packages/feature-workbench/src/index.ts"
+      ],
+      "@orbit/i18n": [
+        "packages/i18n/src/index.ts"
+      ],
+      "@orbit/object-graph": [
+        "packages/object-graph/src/index.ts"
+      ],
+      "@orbit/platform-contracts": [
+        "packages/platform-contracts/src/index.ts"
+      ],
+      "@orbit/platform-electron": [
+        "packages/platform-electron/src/index.ts"
+      ],
+      "@orbit/platform-ios": [
+        "packages/platform-ios/src/index.ts"
+      ],
+      "@orbit/platform-web": [
+        "packages/platform-web/src/index.ts"
+      ],
+      "@orbit/server-core": [
+        "packages/server-core/src/index.ts"
+      ],
+      "@orbit/server-db-schema": [
+        "packages/server-db-schema/src/index.ts"
+      ],
+      "@orbit/server-infra": [
+        "packages/server-infra/src/index.ts"
+      ],
+      "@orbit/sync-core": [
+        "packages/sync-core/src/index.ts"
+      ],
+      "@orbit/test-kit": [
+        "packages/test-kit/src/index.ts"
+      ],
+      "@orbit/tooling": [
+        "packages/tooling/src/index.ts"
+      ],
+      "@orbit/ui-dom": [
+        "packages/ui-dom/src/index.ts"
+      ],
+      "@orbit/ui-native": [
+        "packages/ui-native/src/index.ts"
+      ],
+      "@orbit/ui-tokens": [
+        "packages/ui-tokens/src/index.ts"
+      ],
+      "@orbit/workspace-core": [
+        "packages/workspace-core/src/index.ts"
+      ]
+    }
+  }
+}

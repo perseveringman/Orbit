@@ -1,0 +1,38 @@
+{
+  "name": "@orbit/tooling",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./eslint/base": "./eslint/base.cjs",
+    "./tsconfig/base": "./tsconfig/base.json",
+    "./vitest/base": {
+      "types": "./dist/vitest/base.d.ts",
+      "default": "./dist/vitest/base.js"
+    }
+  },
+  "files": [
+    "dist",
+    "eslint",
+    "tsconfig"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint --config ./eslint/base.cjs \"src/**/*.ts\" \"tests/**/*.ts\" \"vitest.config.ts\"",
+    "test": "tsx --tsconfig ../../tsconfig.base.json --test tests/index.test.ts",
+    "clean": "rm -rf dist coverage"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1",
+    "tsx": "^4.19.2"
+  }
+}

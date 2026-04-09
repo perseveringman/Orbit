@@ -1,0 +1,39 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "files": [],
+  "references": [
+    { "path": "./apps/desktop" },
+    { "path": "./apps/ios" },
+    { "path": "./apps/server" },
+    { "path": "./apps/web" },
+    { "path": "./packages/agent-core" },
+    { "path": "./packages/api-types" },
+    { "path": "./packages/app-viewmodels" },
+    { "path": "./packages/capability-core" },
+    { "path": "./packages/data-protocol" },
+    { "path": "./packages/db-schema" },
+    { "path": "./packages/domain" },
+    { "path": "./packages/editor-dom" },
+    { "path": "./packages/feature-mobile" },
+    { "path": "./packages/feature-workbench" },
+    { "path": "./packages/i18n" },
+    { "path": "./packages/object-graph" },
+    { "path": "./packages/platform-contracts" },
+    { "path": "./packages/platform-electron" },
+    { "path": "./packages/platform-ios" },
+    { "path": "./packages/platform-web" },
+    { "path": "./packages/server-core" },
+    { "path": "./packages/server-db-schema" },
+    { "path": "./packages/server-infra" },
+    { "path": "./packages/sync-core" },
+    { "path": "./packages/test-kit" },
+    { "path": "./packages/tooling" },
+    { "path": "./packages/ui-dom" },
+    { "path": "./packages/ui-native" },
+    { "path": "./packages/ui-tokens" },
+    { "path": "./packages/workspace-core" }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": false,
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    "baseUrl": ".",
+    "paths": {
+      "@orbit/api-types": [
+        "../api-types/dist/index.d.ts"
+      ],
+      "@orbit/data-protocol": [
+        "../data-protocol/dist/index.d.ts"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts"
+  ]
+}

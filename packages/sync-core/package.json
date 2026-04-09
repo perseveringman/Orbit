@@ -1,0 +1,27 @@
+{
+  "name": "@orbit/sync-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Orbit 同步规划与 checkpoint 协调",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm --filter @orbit/api-types build && pnpm --filter @orbit/data-protocol build && tsc -p tsconfig.json",
+    "typecheck": "pnpm --filter @orbit/api-types build && pnpm --filter @orbit/data-protocol build && tsc -p tsconfig.json --noEmit",
+    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "test": "vitest run ./tests/index.test.ts",
+    "clean": "rm -rf dist coverage"
+  },
+  "dependencies": {
+    "@orbit/api-types": "workspace:*",
+    "@orbit/data-protocol": "workspace:*"
+  }
+}
