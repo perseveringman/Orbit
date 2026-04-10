@@ -2,16 +2,15 @@ import type {
   IsoDateString,
   IsoDateTimeString,
   OrbitEntityId,
+  LegacyTaskStatus,
   ProjectRecord,
   ProjectStatus,
   TaskRecord,
-  TaskStatus
 } from '@orbit/domain';
 import type { LocaleCode } from '@orbit/i18n';
-import type { WorkspaceViewId } from '@orbit/workspace-core';
 
-export type WorkspaceSection = WorkspaceViewId;
-export type WorkbenchSectionId = WorkspaceViewId;
+export type WorkspaceSection = 'projects' | 'tasks' | 'today' | 'focus' | 'review';
+export type WorkbenchSectionId = WorkspaceSection;
 export type WorkbenchMetricId = 'projects' | 'tasks' | 'today' | 'review';
 export type SelectionMode = 'single' | 'range';
 export type WorkbenchCurrentDateInput = IsoDateString | IsoDateTimeString;
@@ -53,7 +52,7 @@ export interface WorkbenchProjectSummaryViewModel {
 export interface WorkbenchTaskSummaryViewModel {
   id: OrbitEntityId;
   title: string;
-  status: TaskStatus;
+  status: LegacyTaskStatus;
   projectId: OrbitEntityId | null;
   projectTitle: string | null;
   todayOn: IsoDateString | null;

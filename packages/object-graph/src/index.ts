@@ -1,70 +1,55 @@
-import type { DomainObject, OrbitEntityId, OrbitObjectKind } from '@orbit/domain';
+// ── Types ──
+export type {
+  ObjectUid,
+  ObjectId,
+  IsoDateTimeString,
+  ObjectOrigin,
+  LinkStatus,
+  SourceChannel,
+  RelationFamily,
+  RelationType,
+  ObjectReference,
+  Link,
+  EvidenceType,
+  LinkEvidence,
+  LinkFilter,
+  CreateLinkInput,
+  UpdateLinkInput,
+  ContextBundle,
+  WorkChainResult,
+  EvidenceTraceResult,
+  HydratedObject,
+} from './types.js';
 
-export const OBJECT_EDGE_TYPES = ['contains', 'annotates', 'labels', 'references', 'belongs-to'] as const;
+export { RELATION_FAMILIES } from './types.js';
 
-export type ObjectEdgeType = (typeof OBJECT_EDGE_TYPES)[number];
+// ── Link CRUD ──
+export type { LinkRepository } from './link-crud.js';
 
-export interface ObjectReference {
-  readonly kind: OrbitObjectKind;
-  readonly id: OrbitEntityId;
-}
+// ── Hydration ──
+export type { ObjectHydrator } from './hydration.js';
 
-export type ObjectGraphNode = DomainObject | (ObjectReference & Record<string, unknown>);
+// ── Relation suggestions ──
+export type {
+  SuggestionSource,
+  SuggestionSignal,
+  RelationSuggestion,
+  SuppressRule,
+  RelationSuggestionEngine,
+} from './relation-suggestion.js';
 
-export interface ObjectEdge {
-  readonly type: ObjectEdgeType;
-  readonly from: ObjectReference;
-  readonly to: ObjectReference;
-}
+// ── Cross-object queries ──
+export type { CrossObjectQueryService } from './cross-object-queries.js';
 
-export interface ObjectGraphIndex {
-  readonly nodesByKey: Readonly<Record<string, ObjectGraphNode>>;
-  readonly outgoingByKey: Readonly<Record<string, readonly ObjectEdge[]>>;
-  readonly incomingByKey: Readonly<Record<string, readonly ObjectEdge[]>>;
-}
+// ── Graph index ──
+export type { ObjectGraphNode, ObjectGraphIndex } from './graph-index.js';
 
-export function createObjectReference(kind: OrbitObjectKind, id: OrbitEntityId): ObjectReference {
-  return { kind, id };
-}
-
-export function createObjectEdge(type: ObjectEdgeType, from: ObjectReference, to: ObjectReference): ObjectEdge {
-  return { type, from, to };
-}
-
-export function toObjectGraphKey(reference: ObjectReference): string {
-  return `${reference.kind}:${reference.id}`;
-}
-
-export function buildObjectGraphIndex(
-  nodes: readonly ObjectGraphNode[],
-  edges: readonly ObjectEdge[],
-): ObjectGraphIndex {
-  const nodesByKey: Record<string, ObjectGraphNode> = {};
-  const outgoingByKey: Record<string, ObjectEdge[]> = {};
-  const incomingByKey: Record<string, ObjectEdge[]> = {};
-
-  for (const node of nodes) {
-    nodesByKey[toObjectGraphKey(node)] = node;
-  }
-
-  for (const edge of edges) {
-    const fromKey = toObjectGraphKey(edge.from);
-    const toKey = toObjectGraphKey(edge.to);
-
-    outgoingByKey[fromKey] ??= [];
-    outgoingByKey[fromKey].push(edge);
-
-    incomingByKey[toKey] ??= [];
-    incomingByKey[toKey].push(edge);
-  }
-
-  return { nodesByKey, outgoingByKey, incomingByKey };
-}
-
-export function listConnectedTargets(index: ObjectGraphIndex, from: ObjectReference): ObjectReference[] {
-  return (index.outgoingByKey[toObjectGraphKey(from)] ?? []).map((edge) => edge.to);
-}
-
-export function listConnectedSources(index: ObjectGraphIndex, to: ObjectReference): ObjectReference[] {
-  return (index.incomingByKey[toObjectGraphKey(to)] ?? []).map((edge) => edge.from);
-}
+export {
+  buildObjectGraphIndex,
+  getOutlinks,
+  getBacklinks,
+  getNeighborUids,
+  collectNeighborhood,
+  findOrphanNodes,
+  findRejectedAiLinks,
+} from './graph-index.js';

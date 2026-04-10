@@ -2,7 +2,7 @@
   "name": "@orbit/object-graph",
   "version": "0.1.0",
   "private": true,
-  "description": "Orbit 对象关系图与遍历辅助",
+  "description": "Orbit 对象关系图、链接 CRUD、UID 水合、关系建议与跨对象查询",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -14,13 +14,10 @@
     }
   },
   "scripts": {
-    "build": "pnpm --filter @orbit/domain build && tsc -p tsconfig.json",
-    "typecheck": "pnpm --filter @orbit/domain build && tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
     "test": "vitest run ./tests/index.test.ts",
     "clean": "rm -rf dist coverage"
-  },
-  "dependencies": {
-    "@orbit/domain": "workspace:*"
   }
 }

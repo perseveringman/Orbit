@@ -1,225 +1,43 @@
-export const ORBIT_SQLITE_TABLES = {
-  workspaces: 'workspaces',
-  projects: 'projects',
-  tasks: 'tasks',
-  devices: 'devices',
-  feeds: 'feeds',
-  articles: 'articles',
-  highlights: 'highlights',
-  tags: 'tags',
-  articleTags: 'article_tags',
-  syncCheckpoints: 'sync_checkpoints',
-  blobs: 'blobs',
-} as const;
+// Types
+export type { SqliteColumnType, SqliteColumnDef, SqliteIndexDef, SqliteTableDef, TableModule } from './types.js';
 
-export type SqliteColumnType = 'TEXT' | 'INTEGER' | 'REAL' | 'BLOB';
+// Helpers
+export { renderCreateTableSql, renderCreateIndexSql, tableFromDef } from './helpers.js';
 
-export interface SqliteColumnDef {
-  readonly name: string;
-  readonly type: SqliteColumnType;
-  readonly notNull?: boolean;
-  readonly primaryKey?: boolean;
-  readonly defaultValue?: string;
-}
+// Core tables
+export { objectIndexTable } from './tables/object-index.js';
+export { linksTable } from './tables/links.js';
+export { eventsTable } from './tables/events.js';
+export { objectSearchFtsTable, objectChunksFtsTable, ftsTables } from './tables/fts.js';
+export { linkEvidenceTable } from './tables/link-evidence.js';
+export { fileIndexTable } from './tables/file-index.js';
 
-export interface SqliteIndexDef {
-  readonly name: string;
-  readonly columns: readonly string[];
-  readonly unique?: boolean;
-}
+// Domain type tables
+export { typeTables } from './tables/type-tables.js';
 
-export interface SqliteTableDef {
-  readonly name: string;
-  readonly columns: readonly SqliteColumnDef[];
-  readonly indexes?: readonly SqliteIndexDef[];
-}
+// Agent views
+export {
+  agentItemsView,
+  agentLinksView,
+  agentEventsView,
+  agentViews,
+  AGENT_ITEMS_VIEW_NAME,
+  AGENT_LINKS_VIEW_NAME,
+  AGENT_EVENTS_VIEW_NAME,
+} from './tables/agent-views.js';
 
-export const orbitSqliteSchema: readonly SqliteTableDef[] = [
-  {
-    name: ORBIT_SQLITE_TABLES.workspaces,
-    columns: [
-      { name: 'id', type: 'TEXT', primaryKey: true },
-      { name: 'name', type: 'TEXT', notNull: true },
-      { name: 'slug', type: 'TEXT', notNull: true },
-      { name: 'owner_user_id', type: 'TEXT', notNull: true },
-      { name: 'created_at', type: 'TEXT', notNull: true },
-      { name: 'updated_at', type: 'TEXT', notNull: true },
-    ],
-    indexes: [{ name: 'idx_workspaces_slug', columns: ['slug'], unique: true }],
-  },
-  {
-    name: ORBIT_SQLITE_TABLES.projects,
-    columns: [
-      { name: 'id', type: 'TEXT', primaryKey: true },
-      { name: 'workspace_id', type: 'TEXT', notNull: true },
-      { name: 'title', type: 'TEXT', notNull: true },
-      { name: 'status', type: 'TEXT', notNull: true, defaultValue: "'active'" },
-      { name: 'last_reviewed_at', type: 'TEXT' },
-      { name: 'created_at', type: 'TEXT', notNull: true },
-      { name: 'updated_at', type: 'TEXT', notNull: true },
-      { name: 'deleted_at', type: 'TEXT' },
-    ],
-    indexes: [{ name: 'idx_projects_workspace_status', columns: ['workspace_id', 'status'] }],
-  },
-  {
-    name: ORBIT_SQLITE_TABLES.tasks,
-    columns: [
-      { name: 'id', type: 'TEXT', primaryKey: true },
-      { name: 'workspace_id', type: 'TEXT', notNull: true },
-      { name: 'project_id', type: 'TEXT' },
-      { name: 'title', type: 'TEXT', notNull: true },
-      { name: 'status', type: 'TEXT', notNull: true, defaultValue: "'todo'" },
-      { name: 'today_on', type: 'TEXT' },
-      { name: 'focus_rank', type: 'INTEGER' },
-      { name: 'completed_at', type: 'TEXT' },
-      { name: 'last_reviewed_at', type: 'TEXT' },
-      { name: 'created_at', type: 'TEXT', notNull: true },
-      { name: 'updated_at', type: 'TEXT', notNull: true },
-      { name: 'deleted_at', type: 'TEXT' },
-    ],
-    indexes: [
-      { name: 'idx_tasks_workspace_status', columns: ['workspace_id', 'status'] },
-      { name: 'idx_tasks_workspace_today_on', columns: ['workspace_id', 'today_on'] },
-      { name: 'idx_tasks_workspace_focus_rank', columns: ['workspace_id', 'focus_rank'] },
-      { name: 'idx_tasks_project', columns: ['project_id'] },
-    ],
-  },
-  {
-    name: ORBIT_SQLITE_TABLES.devices,
-    columns: [
-      { name: 'id', type: 'TEXT', primaryKey: true },
-      { name: 'workspace_id', type: 'TEXT', notNull: true },
-      { name: 'name', type: 'TEXT', notNull: true },
-      { name: 'platform', type: 'TEXT', notNull: true },
-      { name: 'last_seen_at', type: 'TEXT' },
-    ],
-    indexes: [{ name: 'idx_devices_workspace', columns: ['workspace_id'] }],
-  },
-  {
-    name: ORBIT_SQLITE_TABLES.feeds,
-    columns: [
-      { name: 'id', type: 'TEXT', primaryKey: true },
-      { name: 'workspace_id', type: 'TEXT', notNull: true },
-      { name: 'title', type: 'TEXT', notNull: true },
-      { name: 'site_url', type: 'TEXT', notNull: true },
-      { name: 'feed_url', type: 'TEXT', notNull: true },
-      { name: 'created_at', type: 'TEXT', notNull: true },
-      { name: 'updated_at', type: 'TEXT', notNull: true },
-    ],
-    indexes: [{ name: 'idx_feeds_workspace', columns: ['workspace_id'] }],
-  },
-  {
-    name: ORBIT_SQLITE_TABLES.articles,
-    columns: [
-      { name: 'id', type: 'TEXT', primaryKey: true },
-      { name: 'workspace_id', type: 'TEXT', notNull: true },
-      { name: 'feed_id', type: 'TEXT', notNull: true },
-      { name: 'title', type: 'TEXT', notNull: true },
-      { name: 'source_url', type: 'TEXT', notNull: true },
-      { name: 'status', type: 'TEXT', notNull: true, defaultValue: "'unread'" },
-      { name: 'published_at', type: 'TEXT' },
-      { name: 'created_at', type: 'TEXT', notNull: true },
-      { name: 'updated_at', type: 'TEXT', notNull: true },
-      { name: 'deleted_flg', type: 'INTEGER', notNull: true, defaultValue: '0' },
-    ],
-    indexes: [
-      { name: 'idx_articles_workspace_status', columns: ['workspace_id', 'status'] },
-      { name: 'idx_articles_feed', columns: ['feed_id'] },
-    ],
-  },
-  {
-    name: ORBIT_SQLITE_TABLES.highlights,
-    columns: [
-      { name: 'id', type: 'TEXT', primaryKey: true },
-      { name: 'workspace_id', type: 'TEXT', notNull: true },
-      { name: 'article_id', type: 'TEXT', notNull: true },
-      { name: 'quote', type: 'TEXT', notNull: true },
-      { name: 'color', type: 'TEXT', notNull: true },
-      { name: 'note', type: 'TEXT' },
-      { name: 'created_at', type: 'TEXT', notNull: true },
-      { name: 'updated_at', type: 'TEXT', notNull: true },
-    ],
-    indexes: [{ name: 'idx_highlights_article', columns: ['article_id'] }],
-  },
-  {
-    name: ORBIT_SQLITE_TABLES.tags,
-    columns: [
-      { name: 'id', type: 'TEXT', primaryKey: true },
-      { name: 'workspace_id', type: 'TEXT', notNull: true },
-      { name: 'name', type: 'TEXT', notNull: true },
-      { name: 'color', type: 'TEXT' },
-      { name: 'created_at', type: 'TEXT', notNull: true },
-      { name: 'updated_at', type: 'TEXT', notNull: true },
-    ],
-    indexes: [{ name: 'idx_tags_workspace_name', columns: ['workspace_id', 'name'], unique: true }],
-  },
-  {
-    name: ORBIT_SQLITE_TABLES.articleTags,
-    columns: [
-      { name: 'article_id', type: 'TEXT', primaryKey: true },
-      { name: 'tag_id', type: 'TEXT', primaryKey: true },
-      { name: 'created_at', type: 'TEXT', notNull: true },
-    ],
-    indexes: [{ name: 'idx_article_tags_tag', columns: ['tag_id'] }],
-  },
-  {
-    name: ORBIT_SQLITE_TABLES.syncCheckpoints,
-    columns: [
-      { name: 'workspace_id', type: 'TEXT', primaryKey: true },
-      { name: 'device_id', type: 'TEXT', notNull: true },
-      { name: 'cursor', type: 'TEXT' },
-      { name: 'server_time', type: 'TEXT', notNull: true },
-      { name: 'updated_at', type: 'TEXT', notNull: true },
-    ],
-    indexes: [{ name: 'idx_sync_checkpoints_device', columns: ['device_id'] }],
-  },
-  {
-    name: ORBIT_SQLITE_TABLES.blobs,
-    columns: [
-      { name: 'id', type: 'TEXT', primaryKey: true },
-      { name: 'workspace_id', type: 'TEXT', notNull: true },
-      { name: 'sha256', type: 'TEXT', notNull: true },
-      { name: 'mime_type', type: 'TEXT', notNull: true },
-      { name: 'byte_length', type: 'INTEGER', notNull: true },
-      { name: 'created_at', type: 'TEXT', notNull: true },
-    ],
-    indexes: [{ name: 'idx_blobs_workspace', columns: ['workspace_id'] }],
-  },
-];
+// Schema orchestrator
+export {
+  TABLE_NAMES,
+  getAllCreateTableStatements,
+  getAllCreateIndexStatements,
+  getBootstrapSql,
+} from './schema.js';
 
-export function renderCreateTableSql(table: SqliteTableDef): string {
-  const primaryKeyColumns = table.columns.filter((column) => column.primaryKey).map((column) => column.name);
-  const hasCompositePrimaryKey = primaryKeyColumns.length > 1;
-  const tableDefinitionSql = table.columns
-    .map((column) => {
-      const fragments = [column.name, column.type];
-
-      if (column.primaryKey && !hasCompositePrimaryKey) {
-        fragments.push('PRIMARY KEY');
-      }
-
-      if (column.notNull || (hasCompositePrimaryKey && column.primaryKey)) {
-        fragments.push('NOT NULL');
-      }
-
-      if (column.defaultValue !== undefined) {
-        fragments.push(`DEFAULT ${column.defaultValue}`);
-      }
-
-      return fragments.join(' ');
-    })
-    .concat(hasCompositePrimaryKey ? [`PRIMARY KEY (${primaryKeyColumns.join(', ')})`] : [])
-    .join(', ');
-
-  return `CREATE TABLE IF NOT EXISTS ${table.name} (${tableDefinitionSql});`;
-}
-
-export function renderCreateIndexSql(tableName: string, index: SqliteIndexDef): string {
-  const unique = index.unique ? 'UNIQUE ' : '';
-  return `CREATE ${unique}INDEX IF NOT EXISTS ${index.name} ON ${tableName} (${index.columns.join(', ')});`;
-}
-
-export const orbitSqliteBootstrapSql = orbitSqliteSchema.flatMap((table) => [
-  renderCreateTableSql(table),
-  ...(table.indexes ?? []).map((index) => renderCreateIndexSql(table.name, index)),
-]);
+// Migrations
+export {
+  SCHEMA_MIGRATIONS_SQL,
+  migrations,
+  getMigrationSql,
+} from './migrations.js';
+export type { Migration } from './migrations.js';

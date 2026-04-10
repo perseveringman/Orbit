@@ -1,4 +1,4 @@
-import type { IsoDateString, ProjectRecord, TaskRecord, TaskStatus } from '@orbit/domain';
+import type { IsoDateString, LegacyTaskStatus, ProjectRecord, TaskRecord } from '@orbit/domain';
 import { createTranslator, type MessageKey } from '@orbit/i18n';
 import type {
   WorkbenchMetricId,
@@ -74,7 +74,7 @@ function resolveCurrentDate(currentDate: WorkbenchCurrentDateInput | null | unde
   throw new Error('currentDate is required and must be a YYYY-MM-DD date or ISO timestamp');
 }
 
-function isOpenTaskStatus(status: TaskStatus): boolean {
+function isOpenTaskStatus(status: LegacyTaskStatus): boolean {
   return status === 'todo' || status === 'doing';
 }
 
@@ -112,10 +112,12 @@ function projectSortOrder(project: WorkbenchProjectSummaryViewModel): number {
   switch (project.status) {
     case 'active':
       return 0;
-    case 'done':
+    case 'paused':
       return 1;
-    case 'archived':
+    case 'done':
       return 2;
+    case 'archived':
+      return 3;
   }
 }
 

@@ -1,129 +1,88 @@
-export const ORBIT_OBJECT_KINDS = ['workspace', 'project', 'task', 'feed', 'article', 'highlight', 'tag', 'note'] as const;
+// ── New Wave 1 modules ─────────────────────────────────────
 
-export type OrbitObjectKind = (typeof ORBIT_OBJECT_KINDS)[number];
+export * from './common.js';
+export * from './object-types.js';
+export * from './object-uid.js';
+export * from './relation-vocabulary.js';
+export * from './direction-objects.js';
+export * from './execution-objects.js';
+export * from './input-objects.js';
+export * from './research-objects.js';
+export * from './output-objects.js';
+export * from './time-objects.js';
+export * from './agent-objects.js';
+export * from './other-objects.js';
 
-export type OrbitEntityId = string;
-export type IsoDateString = string;
-export type IsoDateTimeString = string;
+// ── Backward-compatible legacy types ───────────────────────
 
-export interface OrbitEntityBase {
-  readonly kind: OrbitObjectKind;
-  readonly id: OrbitEntityId;
-  readonly workspaceId: OrbitEntityId;
-  readonly createdAt: IsoDateTimeString;
-  readonly updatedAt: IsoDateTimeString;
-  readonly deletedAt?: IsoDateTimeString | null;
-}
+export {
+  type OrbitEntityId,
+  type LegacyTaskStatus,
+  type LegacyProjectStatus,
+  type OrbitEntityBase,
+  type WorkspaceRecord,
+  type FeedRecord,
+  type ProjectRecord,
+  type TaskRecord,
+  type ArticleRecord,
+  type HighlightRecord,
+  type TagRecord,
+  type NoteRecord,
+  type LegacyDomainObject,
+  DOMAIN_RELATION_NAMES,
+} from './compat.js';
 
-export interface WorkspaceRecord extends OrbitEntityBase {
-  readonly kind: 'workspace';
-  readonly name: string;
-  readonly slug: string;
-  readonly ownerUserId: OrbitEntityId;
-}
+// ── DomainObject — discriminated union (objectType) ────────
 
-export interface FeedRecord extends OrbitEntityBase {
-  readonly kind: 'feed';
-  readonly title: string;
-  readonly siteUrl: string;
-  readonly feedUrl: string;
-}
-
-export type ProjectStatus = 'active' | 'archived' | 'done';
-
-export interface ProjectRecord extends OrbitEntityBase {
-  readonly kind: 'project';
-  readonly title: string;
-  readonly status: ProjectStatus;
-  readonly lastReviewedAt?: IsoDateTimeString | null;
-}
-
-export type TaskStatus = 'todo' | 'doing' | 'done' | 'canceled';
-
-export interface TaskRecord extends OrbitEntityBase {
-  readonly kind: 'task';
-  readonly projectId: OrbitEntityId | null;
-  readonly title: string;
-  readonly status: TaskStatus;
-  readonly todayOn?: IsoDateString | null;
-  readonly focusRank?: number | null;
-  readonly completedAt?: IsoDateTimeString | null;
-  readonly lastReviewedAt?: IsoDateTimeString | null;
-}
-
-export interface ArticleRecord extends OrbitEntityBase {
-  readonly kind: 'article';
-  readonly feedId: OrbitEntityId;
-  readonly title: string;
-  readonly sourceUrl: string;
-  readonly status: 'unread' | 'reading' | 'archived';
-  readonly publishedAt?: IsoDateTimeString | null;
-}
-
-export interface HighlightRecord extends OrbitEntityBase {
-  readonly kind: 'highlight';
-  readonly articleId: OrbitEntityId;
-  readonly quote: string;
-  readonly color: 'yellow' | 'green' | 'blue' | 'pink';
-  readonly note?: string | null;
-}
-
-export interface TagRecord extends OrbitEntityBase {
-  readonly kind: 'tag';
-  readonly name: string;
-  readonly color?: string | null;
-}
-
-export interface NoteRecord extends OrbitEntityBase {
-  readonly kind: 'note';
-  readonly articleId: OrbitEntityId;
-  readonly title: string;
-  readonly markdown: string;
-}
+import type { Vision, Direction, Theme, Goal, Commitment, Review } from './direction-objects.js';
+import type { Project, Milestone, Task, Directive } from './execution-objects.js';
+import type { Article, Book, Highlight, Note, Asset, SourceEndpoint, ContentItem } from './input-objects.js';
+import type { ResearchSpace, ResearchQuestion, SourceSet, ResearchClaim, ResearchGap, ResearchArtifact } from './research-objects.js';
+import type { Document, Draft, Post, VoiceProfile, OutputVariant } from './output-objects.js';
+import type { OrbitEvent, ActionLog, DayNote, JournalSummary, BehaviorInsight } from './time-objects.js';
+import type { AgentSession, AgentRun, AgentTask, CapabilityCall, ApprovalRequest } from './agent-objects.js';
+import type { Tag, AiChat } from './other-objects.js';
 
 export type DomainObject =
-  | WorkspaceRecord
-  | ProjectRecord
-  | TaskRecord
-  | FeedRecord
-  | ArticleRecord
-  | HighlightRecord
-  | TagRecord
-  | NoteRecord;
+  // Direction
+  | Vision | Direction | Theme | Goal | Commitment | Review
+  // Execution
+  | Project | Milestone | Task | Directive
+  // Input
+  | Article | Book | Highlight | Note | Asset | SourceEndpoint | ContentItem
+  // Research
+  | ResearchSpace | ResearchQuestion | SourceSet | ResearchClaim | ResearchGap | ResearchArtifact
+  // Output
+  | Document | Draft | Post | VoiceProfile | OutputVariant
+  // Time
+  | OrbitEvent | ActionLog | DayNote | JournalSummary | BehaviorInsight
+  // Agent
+  | AgentSession | AgentRun | AgentTask | CapabilityCall | ApprovalRequest
+  // Other
+  | Tag | AiChat;
 
-export const DOMAIN_RELATION_NAMES = {
-  workspaceToProject: 'workspace/project',
-  workspaceToTask: 'workspace/task',
-  workspaceToFeed: 'workspace/feed',
-  projectToTask: 'project/task',
-  feedToArticle: 'feed/article',
-  articleToHighlight: 'article/highlight',
-  articleToNote: 'article/note',
-  articleToTag: 'article/tag',
-  taskToToday: 'task/today',
-  taskToFocus: 'task/focus',
-  taskToReview: 'task/review',
-} as const;
+// ── Backward-compatible aliases ────────────────────────────
 
-const DOMAIN_OBJECT_LABELS: Record<OrbitObjectKind, string> = {
-  workspace: '工作区',
-  project: '项目',
-  task: '任务',
-  feed: '订阅源',
-  article: '文章',
-  highlight: '高亮',
-  tag: '标签',
-  note: '笔记',
-};
+import { ORBIT_OBJECT_TYPES, isOrbitObjectType, getObjectTypeLabel } from './object-types.js';
+import type { OrbitObjectType } from './object-types.js';
 
-export function isDomainObjectKind(value: string): value is OrbitObjectKind {
-  return ORBIT_OBJECT_KINDS.includes(value as OrbitObjectKind);
+/** @deprecated Use ORBIT_OBJECT_TYPES */
+export const ORBIT_OBJECT_KINDS = ORBIT_OBJECT_TYPES;
+
+/** @deprecated Use OrbitObjectType */
+export type OrbitObjectKind = OrbitObjectType;
+
+/** @deprecated Use isOrbitObjectType */
+export function isDomainObjectKind(value: string): value is OrbitObjectType {
+  return isOrbitObjectType(value);
 }
 
-export function getDomainObjectLabel(kind: OrbitObjectKind): string {
-  return DOMAIN_OBJECT_LABELS[kind];
+/** @deprecated Use getObjectTypeLabel */
+export function getDomainObjectLabel(kind: OrbitObjectType): string {
+  return getObjectTypeLabel(kind);
 }
 
-export function buildDomainObjectKey(kind: OrbitObjectKind, id: OrbitEntityId): string {
+/** @deprecated Use createObjectUid */
+export function buildDomainObjectKey(kind: OrbitObjectType, id: string): string {
   return `${kind}:${id}`;
 }

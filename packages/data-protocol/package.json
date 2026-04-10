@@ -14,13 +14,11 @@
     }
   },
   "scripts": {
-    "build": "pnpm --filter @orbit/domain build && tsc -p tsconfig.json",
-    "typecheck": "pnpm --filter @orbit/domain build && tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
     "test": "vitest run ./tests/index.test.ts",
     "clean": "rm -rf dist coverage"
   },
-  "dependencies": {
-    "@orbit/domain": "workspace:*"
-  }
+  "dependencies": {}
 }

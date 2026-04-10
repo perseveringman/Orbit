@@ -1,46 +1,74 @@
-import type { DomainObject, OrbitObjectKind } from '@orbit/domain';
+// ---------------------------------------------------------------------------
+// @orbit/workspace-core — File-system-first data architecture
+// ---------------------------------------------------------------------------
 
-export const WORKSPACE_VIEW_IDS = ['projects', 'tasks', 'today', 'focus', 'review'] as const;
-
+// Workspace view identifiers (backward-compatible)
+export const WORKSPACE_VIEW_IDS = ['projects', 'tasks', 'today', 'focus', 'review', 'inbox', 'library', 'search'] as const;
 export type WorkspaceViewId = (typeof WORKSPACE_VIEW_IDS)[number];
-export type WorkspaceRole = 'owner' | 'editor' | 'reader';
 
-export interface WorkspaceDescriptor {
-  readonly id: string;
-  readonly slug: string;
-  readonly name: string;
-  readonly ownerUserId: string;
-  readonly defaultView: WorkspaceViewId;
-}
+// Directory layout & path resolution
+export {
+  type WorkspaceLayer,
+  type SourceObjectType,
+  type WikiObjectType,
+  SOURCES_DIRS,
+  WIKI_DIRS,
+  ORBIT_SYSTEM_DIRS,
+  ALL_REQUIRED_DIRS,
+  resolveObjectPath,
+  resolveBundlePath,
+} from './directory-layout.js';
 
-export interface WorkspaceMembership {
-  readonly workspaceId: string;
-  readonly userId: string;
-  readonly role: WorkspaceRole;
-}
+// Workspace initialisation & validation
+export {
+  type WorkspaceHandle,
+  type WorkspaceValidationResult,
+  buildWorkspaceHandle,
+  requiredAbsolutePaths,
+  validateWorkspace,
+  initWorkspace,
+} from './workspace-init.js';
 
-export interface WorkspaceSelection {
-  readonly kind: OrbitObjectKind;
-  readonly id: string;
-}
+// Frontmatter contract
+export {
+  type OrbitFrontmatter,
+  type WikiCompileFrontmatter,
+  type CompileKind,
+  type FrontmatterParseResult,
+  parseFrontmatter,
+  serializeFrontmatter,
+  updateFrontmatter,
+} from './frontmatter.js';
 
-export interface WorkspaceSnapshot {
-  readonly workspace: WorkspaceDescriptor;
-  readonly members: readonly WorkspaceMembership[];
-  readonly objects: readonly DomainObject[];
-  readonly selected: WorkspaceSelection | null;
-  readonly lastHydratedAt: string;
-}
+// File scanner interface
+export {
+  type FileIndexEntry,
+  type FileChangeKind,
+  type FileChange,
+  type FileScanError,
+  type FileScanResult,
+  type FileScanner,
+  computeContentHash,
+} from './file-scanner.js';
 
-export interface WorkspaceGateway {
-  hydrate(workspaceId: string): Promise<WorkspaceSnapshot>;
-  saveSelection(workspaceId: string, selection: WorkspaceSelection | null): Promise<void>;
-}
+// Compile pipeline interface
+export {
+  CompilePipelineStage,
+  COMPILE_STAGE_ORDER,
+  type CompileTaskType,
+  type CompileContext,
+  type StageResult,
+  type CompileResult,
+  type CompilePipeline,
+} from './compile-pipeline.js';
 
-export function createWorkspaceSelection(kind: OrbitObjectKind, id: string): WorkspaceSelection {
-  return { kind, id };
-}
-
-export function makeWorkspaceCacheKey(workspaceId: string, viewId: WorkspaceViewId): string {
-  return `workspace:${workspaceId}:view:${viewId}`;
-}
+// AI write boundary
+export {
+  type WriteTarget,
+  type WritePermission,
+  type ActorKind,
+  type WritePermissionCheck,
+  AI_WRITE_RULES,
+  checkWritePermission,
+  inferWriteTarget,
+} from './write-boundary.js';

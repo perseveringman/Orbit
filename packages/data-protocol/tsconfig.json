@@ -4,13 +4,7 @@
     "rootDir": "src",
     "outDir": "dist",
     "noEmit": false,
-    "tsBuildInfoFile": "dist/.tsbuildinfo",
-    "baseUrl": ".",
-    "paths": {
-      "@orbit/domain": [
-        "../domain/dist/index.d.ts"
-      ]
-    }
+    "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
   "include": [
     "src/**/*.ts"
