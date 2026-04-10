@@ -1,9 +1,24 @@
+import { useState } from 'react';
 import type { ProjectRecord, TaskRecord } from '@orbit/domain';
 import { createWorkbenchDomModule, mountWorkbench } from '@orbit/feature-workbench';
 import { createWebRuntimeAdapter } from '@orbit/platform-web';
+import { setTheme, getCurrentTheme, setStyleVariant } from '@orbit/ui-dom';
+import type { OrbitThemeMode, OrbitStyleVariant } from '@orbit/ui-tokens';
 
 const runtime = createWebRuntimeAdapter();
 const CURRENT_DATE = '2026-04-09';
+
+const STYLE_VARIANTS: OrbitStyleVariant[] = ['default', 'notion', 'spaceship', 'library'];
+const STYLE_LABELS: Record<OrbitStyleVariant, string> = {
+  default: '🎨 Default',
+  notion: '📝 Notion',
+  spaceship: '🚀 Spaceship',
+  library: '📚 Library'
+};
+
+const savedStyle = (typeof localStorage !== 'undefined'
+  ? localStorage.getItem('orbit-style') as OrbitStyleVariant | null
+  : null) ?? 'default';
 
 function createProjectRecord(overrides: Partial<ProjectRecord> & Pick<ProjectRecord, 'id' | 'title'>): ProjectRecord {
   return {
@@ -88,149 +103,243 @@ const workbenchInput = {
   tasks: seedTasks
 };
 
-const capabilityList = runtime.capabilityHost.list();
-const supportsWorkspace = runtime.capabilityHost.has('workspace');
 const workbenchModule = createWorkbenchDomModule(workbenchInput);
-const mountedWorkbench = mountWorkbench(workbenchInput);
-const activeProject = workbenchModule.shell.activeProject;
-
-const hostPanels = [
-  {
-    title: 'Project context',
-    description: activeProject
-      ? `${activeProject.openTaskCount} 个开放任务 · ${activeProject.todayCount} 个已经进入 Today。`
-      : '当前没有活跃项目。',
-    items: [
-      `intent = ${workbenchModule.shell.planner.intent}`,
-      `focus = ${workbenchModule.shell.focus?.title ?? '待选择'}`,
-      `review signals = ${workbenchModule.slots.review.props.reviewItemCount}`
-    ]
-  },
-  {
-    title: 'Review snapshot',
-    description: workbenchModule.shell.review.summary,
-    items: [
-      ...workbenchModule.shell.review.completedToday.map((task) => `completed · ${task.title}`),
-      ...workbenchModule.shell.review.tasksNeedingReview.map((task) => `pending · ${task.title}`)
-    ]
-  }
-] as const;
+mountWorkbench(workbenchInput);
 
 export default function App(): JSX.Element {
+  const [themeMode, setThemeMode] = useState<OrbitThemeMode>(getCurrentTheme());
+  const [styleVariant, setStyleVariantState] = useState<OrbitStyleVariant>(savedStyle);
+  const [activeNav, setActiveNav] = useState('today');
+
+  const toggleTheme = () => {
+    const next: OrbitThemeMode = themeMode === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    setThemeMode(next);
+  };
+
+  const cycleStyle = () => {
+    const currentIdx = STYLE_VARIANTS.indexOf(styleVariant);
+    const next = STYLE_VARIANTS[(currentIdx + 1) % STYLE_VARIANTS.length];
+    setStyleVariant(next);
+    setStyleVariantState(next);
+  };
+
+  const focus = workbenchModule.shell.focus;
+  const activeProject = workbenchModule.shell.activeProject;
+
   return (
-    <main className="app-shell">
-      <section className="hero">
-        <p className="hero__eyebrow">Orbit / Browser host</p>
-        <div className="hero__content">
-          <div>
-            <h1>让 Web 保持轻量兼容入口，跟上新的 P0 project loop shell。</h1>
-            <p className="hero__body">
-              Browser host 不再构造 reader demo；这里只挂载 deterministic shell，并把浏览器 runtime 能力边界继续收在
-              @orbit/platform-web。
-            </p>
+    <div className="app">
+      {/* ===== SIDEBAR ===== */}
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <div className="sidebar-logo">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+              <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="2"/>
+              <circle cx="10" cy="10" r="3"/>
+            </svg>
+            Orbit
+          </div>
+        </div>
+
+        <div style={{ padding: '8px 10px' }}>
+          <button className="sidebar-new-btn">
+            <span>+</span> New Object
+          </button>
+        </div>
+
+        <div className="sidebar-content">
+          {workbenchModule.shell.sections.map((section) => (
+            <div
+              key={section.id}
+              className={`sidebar-nav-item${activeNav === section.id ? ' active' : ''}`}
+              onClick={() => setActiveNav(section.id)}
+            >
+              <span className="icon">
+                {section.id === 'projects' ? '📁' :
+                 section.id === 'tasks' ? '📋' :
+                 section.id === 'today' ? '📅' :
+                 section.id === 'focus' ? '🎯' : '📊'}
+              </span>
+              {section.label}
+              <span className="count">{section.count}</span>
+            </div>
+          ))}
+
+          <div className="sidebar-divider" />
+
+          <div className="sidebar-section">
+            <div className="sidebar-section-header">
+              <span>📦</span> Object types
+            </div>
+            <div className="sidebar-nav-item" data-type="project">
+              <span className="icon" style={{ background: 'var(--type-project-bg)', color: 'var(--type-project-text)' }}>P</span>
+              Projects
+            </div>
+            <div className="sidebar-nav-item" data-type="daily">
+              <span className="icon" style={{ background: 'var(--type-daily-bg)', color: 'var(--type-daily-text)' }}>D</span>
+              Daily Notes
+            </div>
+            <div className="sidebar-nav-item" data-type="atomic">
+              <span className="icon" style={{ background: 'var(--type-atomic-bg)', color: 'var(--type-atomic-text)' }}>A</span>
+              Atomic Notes
+            </div>
+          </div>
+        </div>
+
+        <div className="sidebar-footer">
+          <div className="sidebar-divider" />
+          <div className="sidebar-footer-item">🗑 Trash</div>
+          <div className="sidebar-footer-item">📖 Documentation</div>
+        </div>
+
+        <div className="sidebar-bottom-icons">
+          <button className="icon-btn">⚙️</button>
+          <button className="icon-btn" onClick={toggleTheme}>
+            {themeMode === 'light' ? '🌙' : '☀️'}
+          </button>
+          <button className="icon-btn" onClick={cycleStyle} title={`Style: ${styleVariant}`}>
+            {STYLE_LABELS[styleVariant].split(' ')[0]}
+          </button>
+          <button className="icon-btn">👤</button>
+        </div>
+      </aside>
+
+      {/* ===== MAIN CONTENT ===== */}
+      <div className="main-content">
+        <div className="page-nav active">
+          <div className="page-header">
+            <div className="page-header-left">
+              <span className="page-title">
+                {activeNav === 'today' ? 'Today' :
+                 activeNav === 'focus' ? 'Focus' :
+                 activeNav === 'review' ? 'Review' :
+                 activeNav === 'projects' ? 'Projects' : 'Tasks'}
+              </span>
+              <div className="page-header-nav">
+                <button className="nav-arrow-btn">‹</button>
+                <button className="today-btn">Today</button>
+                <button className="nav-arrow-btn">›</button>
+              </div>
+            </div>
+            <div className="page-header-right">
+              <button className="toolbar-btn">🔍</button>
+              <button className="toolbar-btn">⋯</button>
+            </div>
           </div>
 
-          <dl className="hero__facts" aria-label="Web 宿主摘要">
-            <div>
-              <dt>当前意图</dt>
-              <dd>{workbenchModule.shell.planner.intent}</dd>
+          <div className="tab-bar">
+            <div className="tab-item active">Overview</div>
+            <div className="tab-item">
+              All <span className="tab-count"># {workbenchModule.shell.today.length}</span>
             </div>
-            <div>
-              <dt>Today / Focus</dt>
-              <dd>{workbenchModule.shell.focus?.title ?? '待选择'}</dd>
-            </div>
-            <div>
-              <dt>挂载节点</dt>
-              <dd>{mountedWorkbench.mountTarget}</dd>
-            </div>
-          </dl>
-        </div>
-      </section>
+          </div>
 
-      <section className="workspace-overview" aria-label="工作循环概览">
-        <article className="workspace-overview__pane workspace-overview__pane--nav">
-          <span className="pane__label">Planner</span>
-          <h2>{workbenchModule.shell.planner.summary}</h2>
-          <ul className="pane__list">
-            {workbenchModule.shell.sections.map((section) => (
-              <li key={section.id} className={section.active ? 'is-active' : ''}>
-                <strong>{section.label}</strong>
-                <span>{section.count} 个信号</span>
-              </li>
-            ))}
-          </ul>
-        </article>
-
-        <article className="workspace-overview__pane workspace-overview__pane--content">
-          <span className="pane__label">Today / Focus</span>
-          <h2>{workbenchModule.shell.focus?.title ?? '等待聚焦任务'}</h2>
-          <p>
-            hostKind = <strong>{mountedWorkbench.hostKind}</strong>，todayCount ={' '}
-            <strong>{String(workbenchModule.shell.today.length).padStart(2, '0')}</strong>
-          </p>
-          <div className="article-stack">
-            {workbenchModule.shell.today.map((task) => (
-              <article key={task.id} className="article-card">
-                <div className="article-card__meta">
-                  <span>{task.status === 'doing' ? 'Doing' : 'Todo'}</span>
-                  <span>{task.projectTitle ?? 'No project'}</span>
+          <div className="page-body">
+            <div className="page-body-content">
+              {/* Planner summary */}
+              <div className="object-card">
+                <div className="object-card-header">
+                  <span className="type-label project">📋 Planner</span>
                 </div>
-                <h3>{task.title}</h3>
-                <p>{task.focusRank ? `Focus rank ${task.focusRank}` : '进入 Today，等待排序。'}</p>
-              </article>
-            ))}
-          </div>
-        </article>
-      </section>
+                <div className="object-card-title">{workbenchModule.shell.planner.summary}</div>
+                <div className="object-card-body">
+                  <p>{workbenchModule.shell.planner.intent}</p>
+                </div>
+              </div>
 
-      <section className="host-grid" aria-label="Web 宿主兼容层摘要">
-        {hostPanels.map((panel) => (
-          <article key={panel.title} className="host-card">
-            <span className="host-card__eyebrow">{panel.title}</span>
-            <p className="host-card__description">{panel.description}</p>
-            <ul>
-              {(panel.items.length > 0 ? panel.items : ['review queue is empty']).map((item) => (
-                <li key={item}>{item}</li>
+              {/* Today tasks */}
+              {workbenchModule.shell.today.map((task) => (
+                <div key={task.id} className="object-card">
+                  <div className="object-card-header">
+                    <span className={`type-label ${task.status === 'doing' ? 'atomic' : 'daily'}`}>
+                      {task.status === 'doing' ? '🔥 Doing' : '📝 Todo'}
+                    </span>
+                  </div>
+                  <div className="object-card-title">{task.title}</div>
+                  <div className="object-card-footer">
+                    <span className="tags-row">
+                      <span className="tag-badge">{task.projectTitle ?? 'No project'}</span>
+                      {task.focusRank != null && <span className="tag-badge">Focus #{task.focusRank}</span>}
+                    </span>
+                  </div>
+                </div>
               ))}
-            </ul>
-          </article>
-        ))}
-      </section>
 
-      <section className="runtime-strip" aria-label="浏览器平台能力">
-        <div>
-          <p className="runtime-strip__label">平台能力矩阵</p>
-          <h2>{runtime.platform} runtime adapter</h2>
-        </div>
-        <ul>
-          {(['workspace', 'database', 'sync', 'notification', 'auth', 'secure-store'] as const).map((capability) => (
-            <li key={capability} data-enabled={runtime.capabilityHost.has(capability)}>
-              <span>{capability}</span>
-              <strong>{runtime.capabilityHost.has(capability) ? '可接入' : '暂不暴露'}</strong>
-            </li>
-          ))}
-          <li data-enabled={supportsWorkspace}>
-            <span>capability list</span>
-            <strong>{capabilityList.join(', ') || 'none'}</strong>
-          </li>
-        </ul>
-      </section>
+              {/* Focus card */}
+              {focus && (
+                <div className="object-card" style={{ borderLeft: '3px solid var(--bg-button-primary)' }}>
+                  <div className="object-card-header">
+                    <span className="type-label project">🎯 Focus</span>
+                  </div>
+                  <div className="object-card-title">{focus.title}</div>
+                  <div className="object-card-body">
+                    <p>{focus.projectTitle} · rank {focus.focusRank}</p>
+                  </div>
+                </div>
+              )}
 
-      <section className="next-steps" aria-label="兼容宿主说明">
-        <div>
-          <p className="next-steps__label">Compatibility notes</p>
-          <h2>{activeProject?.title ?? workbenchModule.shell.title}</h2>
+              {/* Review section */}
+              {workbenchModule.shell.review.completedToday.length > 0 && (
+                <div className="object-card">
+                  <div className="object-card-header">
+                    <span className="type-label tag">📊 Review</span>
+                  </div>
+                  <div className="object-card-title">{workbenchModule.shell.review.summary}</div>
+                  <div className="object-card-body">
+                    {workbenchModule.shell.review.completedToday.map((t) => (
+                      <p key={t.id}>✓ {t.title}</p>
+                    ))}
+                    {workbenchModule.shell.review.carryForward.map((t) => (
+                      <p key={t.id}>→ {t.title}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ===== RIGHT PANEL ===== */}
+            <div className="right-panel">
+              <div className="right-panel-tabs">
+                <div className="right-panel-tab active">Project</div>
+                <div className="right-panel-tab">Graph view</div>
+              </div>
+              <div className="right-panel-content">
+                {activeProject ? (
+                  <div>
+                    <div className="detail-type-label">
+                      <span className="type-label project">📁 Project</span>
+                    </div>
+                    <div className="detail-title">{activeProject.title}</div>
+                    <div className="detail-properties">
+                      <div className="detail-prop">
+                        <span className="detail-prop-label">Status</span>
+                        <span className="detail-prop-value">{activeProject.status}</span>
+                      </div>
+                      <div className="detail-prop">
+                        <span className="detail-prop-label">Open tasks</span>
+                        <span className="detail-prop-value">{activeProject.openTaskCount}</span>
+                      </div>
+                      <div className="detail-prop">
+                        <span className="detail-prop-label">Today</span>
+                        <span className="detail-prop-value">{activeProject.todayCount}</span>
+                      </div>
+                      <div className="detail-prop">
+                        <span className="detail-prop-label">Done</span>
+                        <span className="detail-prop-value">{activeProject.doneTaskCount}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <div className="empty-state-icon">📁</div>
+                    <div className="empty-state-title">No active project</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-        <ol>
-          {[
-            '继续把浏览器路由、会话恢复与 PWA 生命周期保持在宿主壳层。',
-            '等桌面 P0 画面稳定后，再把真实数据接入同一 shell input。',
-            '移动端和 iOS 继续复用同一 deterministic seed 与 shell contract。'
-          ].map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ol>
-      </section>
-    </main>
+      </div>
+    </div>
   );
 }

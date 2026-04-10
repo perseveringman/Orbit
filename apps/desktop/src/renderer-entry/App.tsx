@@ -1,8 +1,10 @@
-import type { CSSProperties } from 'react';
+import { useState } from 'react';
 
 import type { ProjectRecord, TaskRecord } from '@orbit/domain';
 import { createWorkbenchDomModule, mountWorkbench } from '@orbit/feature-workbench';
 import { createElectronRuntimeAdapter } from '@orbit/platform-electron';
+import { setTheme, getCurrentTheme, setStyleVariant } from '@orbit/ui-dom';
+import type { OrbitThemeMode, OrbitStyleVariant } from '@orbit/ui-tokens';
 
 import { createFallbackDesktopBridge } from '../shared/contracts';
 
@@ -13,17 +15,23 @@ const FOCUS_BRIEF = `# Focus brief
 先锁定唯一活跃项目与开放任务。
 把 Today、Focus、Review 收拢成一张可信的桌面工作面。`;
 
+const STYLE_VARIANTS: OrbitStyleVariant[] = ['default', 'notion', 'spaceship', 'library'];
+const STYLE_LABELS: Record<OrbitStyleVariant, string> = {
+  default: '🎨 Default',
+  notion: '📝 Notion',
+  spaceship: '🚀 Spaceship',
+  library: '📚 Library'
+};
+
+const savedStyle = (typeof localStorage !== 'undefined'
+  ? localStorage.getItem('orbit-style') as OrbitStyleVariant | null
+  : null) ?? 'default';
+
 const TASK_STATUS_LABELS: Record<TaskRecord['status'], string> = {
   todo: '待做',
   doing: '进行中',
   done: '已完成',
   canceled: '已取消'
-};
-
-const PROJECT_STATUS_LABELS: Record<ProjectRecord['status'], string> = {
-  active: '进行中',
-  done: '完成',
-  archived: '归档'
 };
 
 function createProjectRecord(overrides: Partial<ProjectRecord> & Pick<ProjectRecord, 'id' | 'title'>): ProjectRecord {
@@ -117,49 +125,15 @@ const seedTasks = [
   })
 ] as const;
 
-function isOpenTask(task: Pick<TaskRecord, 'status'>): boolean {
-  return task.status === 'todo' || task.status === 'doing';
-}
-
-function formatProjectSummary(project: {
-  openTaskCount: number;
-  todayCount: number;
-  doneTaskCount: number;
-}): string {
-  return `${project.openTaskCount} 个开放任务 · ${project.todayCount} 个已经进入 Today · ${project.doneTaskCount} 个已完成`;
-}
-
-function createSectionBadgeStyle(active: boolean): CSSProperties {
-  return {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '8px 12px',
-    borderRadius: '999px',
-    background: active ? 'rgba(56, 189, 248, 0.18)' : 'rgba(30, 41, 59, 0.88)',
-    border: active ? '1px solid rgba(56, 189, 248, 0.48)' : '1px solid rgba(148, 163, 184, 0.18)',
-    color: active ? '#f8fafc' : '#cbd5e1',
-    fontSize: '13px'
-  };
-}
-
-function createStatusChipStyle(accentColor: string): CSSProperties {
-  return {
-    display: 'inline-flex',
-    alignItems: 'center',
-    padding: '6px 10px',
-    borderRadius: '999px',
-    background: `${accentColor}22`,
-    border: `1px solid ${accentColor}66`,
-    color: '#e2e8f0',
-    fontSize: '12px'
-  };
-}
-
 export function App() {
   const bridge = window.orbitDesktop ?? createFallbackDesktopBridge();
   const shellDescriptor = bridge.describeShell();
   const runtime = createElectronRuntimeAdapter();
+
+  const [themeMode, setThemeMode] = useState<OrbitThemeMode>(getCurrentTheme());
+  const [styleVariant, setStyleVariantState] = useState<OrbitStyleVariant>(savedStyle);
+  const [activeNav, setActiveNav] = useState(ACTIVE_SECTION as string);
+
   const workbenchInput = {
     host: {
       kind: 'desktop' as const,
@@ -178,345 +152,273 @@ export function App() {
   const capabilities = runtime.capabilityHost.list();
   const focus = workbench.shell.focus;
   const activeProject = workbench.shell.activeProject;
-  const activeProjectBacklog = workbench.shell.tasks.filter(
-    (task) => task.projectId === activeProject?.id && isOpenTask(task)
-  );
-  const pendingReviewCount =
-    workbench.shell.review.projectsNeedingReview.length + workbench.shell.review.tasksNeedingReview.length;
 
-  const pageStyle: CSSProperties = {
-    minHeight: '100vh',
-    padding: '24px',
-    background: 'linear-gradient(180deg, rgba(10,15,30,1) 0%, rgba(17,24,39,1) 100%)',
-    color: '#f8fafc',
-    fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif'
+  const toggleTheme = () => {
+    const next: OrbitThemeMode = themeMode === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    setThemeMode(next);
   };
-  const panelStyle: CSSProperties = {
-    padding: '20px',
-    borderRadius: '18px',
-    background: 'rgba(15, 23, 42, 0.82)',
-    border: '1px solid rgba(148, 163, 184, 0.18)',
-    boxShadow: '0 18px 48px rgba(2, 6, 23, 0.28)'
-  };
-  const kickerStyle: CSSProperties = {
-    margin: '0 0 10px',
-    color: '#38bdf8',
-    fontSize: '12px',
-    fontWeight: 700,
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase'
-  };
-  const mutedBodyStyle: CSSProperties = {
-    margin: 0,
-    color: '#cbd5e1',
-    lineHeight: 1.6
-  };
-  const resetListStyle: CSSProperties = {
-    margin: 0,
-    padding: 0,
-    listStyle: 'none'
+
+  const cycleStyle = () => {
+    const currentIdx = STYLE_VARIANTS.indexOf(styleVariant);
+    const next = STYLE_VARIANTS[(currentIdx + 1) % STYLE_VARIANTS.length];
+    setStyleVariant(next);
+    setStyleVariantState(next);
   };
 
   return (
-    <main style={pageStyle}>
-      <section
-        style={{
-          ...panelStyle,
-          marginBottom: '18px',
-          background: 'linear-gradient(135deg, rgba(8, 47, 73, 0.88) 0%, rgba(15, 23, 42, 0.92) 55%, rgba(30, 41, 59, 0.92) 100%)'
-        }}
-      >
-        <div
-          style={{
-            display: 'grid',
-            gap: '18px',
-            gridTemplateColumns: 'minmax(0, 1.35fr) minmax(260px, 0.9fr)',
-            alignItems: 'start'
-          }}
-        >
-          <div>
-            <p style={kickerStyle}>Orbit desktop P0</p>
-            <h1 style={{ margin: '0 0 12px', fontSize: '36px', lineHeight: 1.05 }}>
-              项目 + 任务 → Today / Focus → Review
-            </h1>
-            <p style={{ ...mutedBodyStyle, fontSize: '18px', marginBottom: '12px' }}>
-              {workbench.shell.planner.intentLabel}：{workbench.shell.planner.intent}
-            </p>
-            <p style={mutedBodyStyle}>{workbench.shell.planner.summary}</p>
-          </div>
-
-          <div
-            style={{
-              padding: '18px',
-              borderRadius: '16px',
-              background: 'rgba(15, 23, 42, 0.62)',
-              border: '1px solid rgba(148, 163, 184, 0.2)'
-            }}
-          >
-            <p style={kickerStyle}>Current shell</p>
-            <h2 style={{ margin: '0 0 8px', fontSize: '24px' }}>{workbench.shell.title}</h2>
-            <p style={mutedBodyStyle}>
-              日期 {workbench.shell.planner.currentDate} · mount = {mountedWorkbench.mountTarget}
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '16px' }}>
-              {workbench.shell.sections.map((section) => (
-                <span key={section.id} style={createSectionBadgeStyle(section.active)}>
-                  {section.label} · {section.count}
-                </span>
-              ))}
-            </div>
+    <div className="app">
+      {/* ===== SIDEBAR ===== */}
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <div className="sidebar-logo">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+              <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="2" />
+              <circle cx="10" cy="10" r="3" />
+            </svg>
+            Orbit Desktop
           </div>
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gap: '12px',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-            marginTop: '18px'
-          }}
-        >
-          {workbench.shell.planner.metrics.map((metric) => (
-            <article
-              key={metric.id}
-              style={{
-                padding: '14px 16px',
-                borderRadius: '14px',
-                background: 'rgba(15, 23, 42, 0.72)',
-                border: '1px solid rgba(148, 163, 184, 0.18)'
-              }}
+        <div style={{ padding: '8px 10px' }}>
+          <button className="sidebar-new-btn">
+            <span>+</span> New Object
+          </button>
+        </div>
+
+        <div className="sidebar-content">
+          {workbench.shell.sections.map((section) => (
+            <div
+              key={section.id}
+              className={`sidebar-nav-item${activeNav === section.id ? ' active' : ''}`}
+              onClick={() => setActiveNav(section.id)}
             >
-              <span style={{ display: 'block', marginBottom: '6px', color: '#94a3b8', fontSize: '12px' }}>
-                {metric.label}
+              <span className="icon">
+                {section.id === 'projects'
+                  ? '📁'
+                  : section.id === 'tasks'
+                    ? '📋'
+                    : section.id === 'today'
+                      ? '📅'
+                      : section.id === 'focus'
+                        ? '🎯'
+                        : '📊'}
               </span>
-              <strong style={{ fontSize: '24px' }}>{metric.value}</strong>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section
-        style={{
-          display: 'grid',
-          gap: '16px',
-          gridTemplateColumns: 'minmax(280px, 0.95fr) minmax(360px, 1.2fr) minmax(280px, 0.95fr)',
-          alignItems: 'start'
-        }}
-      >
-        <article style={panelStyle}>
-          <p style={kickerStyle}>Project / backlog</p>
-          {activeProject ? (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                <h2 style={{ margin: 0, fontSize: '24px' }}>{activeProject.title}</h2>
-                <span style={createStatusChipStyle('#38bdf8')}>
-                  {PROJECT_STATUS_LABELS[activeProject.status]}
-                </span>
-              </div>
-              <p style={{ ...mutedBodyStyle, marginTop: '10px', marginBottom: '18px' }}>
-                {formatProjectSummary(activeProject)}
-              </p>
-              <ul style={{ ...resetListStyle, display: 'grid', gap: '10px' }}>
-                {activeProjectBacklog.map((task) => (
-                  <li
-                    key={task.id}
-                    style={{
-                      padding: '14px',
-                      borderRadius: '14px',
-                      background: 'rgba(30, 41, 59, 0.72)',
-                      border: '1px solid rgba(148, 163, 184, 0.16)'
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '12px',
-                        marginBottom: '8px'
-                      }}
-                    >
-                      <strong>{task.title}</strong>
-                      <span
-                        style={createStatusChipStyle(task.status === 'doing' ? '#22c55e' : '#f59e0b')}
-                      >
-                        {TASK_STATUS_LABELS[task.status]}
-                      </span>
-                    </div>
-                    <span style={{ color: '#94a3b8', fontSize: '13px' }}>
-                      {task.isToday
-                        ? `Today · focus rank ${task.focusRank ?? '—'}`
-                        : task.isCarryForward
-                          ? `需要延续 · 昨日承接`
-                          : '仍在 backlog 中'}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <p style={mutedBodyStyle}>当前没有活跃项目。</p>
-          )}
-        </article>
-
-        <div style={{ display: 'grid', gap: '16px' }}>
-          <article style={panelStyle}>
-            <p style={kickerStyle}>Today</p>
-            <h2 style={{ margin: '0 0 14px', fontSize: '24px' }}>今天只保留 {workbench.shell.today.length} 个清晰动作</h2>
-            <div style={{ display: 'grid', gap: '10px' }}>
-              {workbench.shell.today.map((task) => (
-                <article
-                  key={task.id}
-                  style={{
-                    padding: '14px',
-                    borderRadius: '14px',
-                    background: 'rgba(8, 47, 73, 0.32)',
-                    border: '1px solid rgba(56, 189, 248, 0.18)'
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '12px',
-                      marginBottom: '8px'
-                    }}
-                  >
-                    <strong>{task.title}</strong>
-                    <span style={createStatusChipStyle(task.status === 'doing' ? '#22c55e' : '#38bdf8')}>
-                      {TASK_STATUS_LABELS[task.status]}
-                    </span>
-                  </div>
-                  <p style={{ ...mutedBodyStyle, fontSize: '14px' }}>
-                    {task.projectTitle ?? '未归属项目'} · focus rank {task.focusRank ?? '—'}
-                  </p>
-                </article>
-              ))}
+              {section.label}
+              <span className="count">{section.count}</span>
             </div>
-          </article>
+          ))}
 
-          <article style={panelStyle}>
-            <p style={kickerStyle}>Focus</p>
-            {focus ? (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                  <h2 style={{ margin: 0, fontSize: '24px' }}>{focus.title}</h2>
-                  <span style={createStatusChipStyle('#22c55e')}>{TASK_STATUS_LABELS[focus.status]}</span>
+          <div className="sidebar-divider" />
+
+          <div className="sidebar-section">
+            <div className="sidebar-section-header">
+              <span>📦</span> Object types
+            </div>
+            <div className="sidebar-nav-item" data-type="project">
+              <span className="icon" style={{ background: 'var(--type-project-bg)', color: 'var(--type-project-text)' }}>
+                P
+              </span>
+              Projects
+            </div>
+            <div className="sidebar-nav-item" data-type="daily">
+              <span className="icon" style={{ background: 'var(--type-daily-bg)', color: 'var(--type-daily-text)' }}>
+                D
+              </span>
+              Daily Notes
+            </div>
+          </div>
+        </div>
+
+        <div className="sidebar-footer">
+          <div className="sidebar-divider" />
+          <div className="sidebar-footer-item">🗑 Trash</div>
+          <div className="sidebar-footer-item">📖 Documentation</div>
+        </div>
+
+        <div className="sidebar-bottom-icons">
+          <button className="icon-btn">⚙️</button>
+          <button className="icon-btn" onClick={toggleTheme}>
+            {themeMode === 'light' ? '🌙' : '☀️'}
+          </button>
+          <button className="icon-btn" onClick={cycleStyle} title={`Style: ${styleVariant}`}>
+            {STYLE_LABELS[styleVariant].split(' ')[0]}
+          </button>
+          <button className="icon-btn">👤</button>
+        </div>
+      </aside>
+
+      {/* ===== MAIN CONTENT ===== */}
+      <div className="main-content">
+        <div className="page-header">
+          <div className="page-header-left">
+            <span className="page-title">
+              {activeNav === 'today'
+                ? `Today · ${CURRENT_DATE}`
+                : activeNav === 'focus'
+                  ? 'Focus'
+                  : activeNav === 'review'
+                    ? 'Review'
+                    : 'Tasks'}
+            </span>
+            <div className="page-header-nav">
+              <button className="nav-arrow-btn">‹</button>
+              <button className="today-btn">Today</button>
+              <button className="nav-arrow-btn">›</button>
+            </div>
+          </div>
+          <div className="page-header-right">
+            <button className="toolbar-btn">🔍</button>
+            <button className="toolbar-btn">⋯</button>
+            <button className="btn-primary">+ New</button>
+          </div>
+        </div>
+
+        <div className="tab-bar">
+          <div className="tab-item active">Overview</div>
+          <div className="tab-item">
+            All <span className="tab-count"># {workbench.shell.today.length}</span>
+          </div>
+        </div>
+
+        <div className="page-body">
+          <div className="page-body-content">
+            {/* Planner */}
+            <div className="object-card">
+              <div className="object-card-header">
+                <span className="type-label project">📋 Planner</span>
+              </div>
+              <div className="object-card-title">{workbench.shell.planner.summary}</div>
+              <div className="object-card-body">
+                <p>{workbench.shell.planner.intent}</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+                  {workbench.shell.planner.metrics.map((m) => (
+                    <span key={m.id} className="tag-badge">
+                      {m.label}: {m.value}
+                    </span>
+                  ))}
                 </div>
-                <p style={{ ...mutedBodyStyle, marginTop: '10px', marginBottom: '14px' }}>
-                  {focus.projectTitle ?? '未归属项目'} · focus rank {focus.focusRank ?? '—'} · Today
-                </p>
-                <div
-                  style={{
-                    padding: '14px',
-                    borderRadius: '14px',
-                    background: 'rgba(30, 41, 59, 0.72)',
-                    border: '1px solid rgba(148, 163, 184, 0.16)'
-                  }}
-                >
+              </div>
+            </div>
+
+            {/* Today tasks */}
+            {workbench.shell.today.map((task) => (
+              <div key={task.id} className="object-card">
+                <div className="object-card-header">
+                  <span className={`type-label ${task.status === 'doing' ? 'atomic' : 'daily'}`}>
+                    {task.status === 'doing' ? '🔥 进行中' : '📝 待做'}
+                  </span>
+                </div>
+                <div className="object-card-title">{task.title}</div>
+                <div className="object-card-footer">
+                  <span className="tags-row">
+                    <span className="tag-badge">{task.projectTitle ?? 'No project'}</span>
+                    {task.focusRank && <span className="tag-badge">Focus #{task.focusRank}</span>}
+                  </span>
+                </div>
+              </div>
+            ))}
+
+            {/* Focus */}
+            {focus && (
+              <div className="object-card" style={{ borderLeft: '3px solid var(--bg-button-primary)' }}>
+                <div className="object-card-header">
+                  <span className="type-label project">🎯 Focus</span>
+                </div>
+                <div className="object-card-title">{focus.title}</div>
+                <div className="object-card-body">
+                  <p>
+                    {focus.projectTitle} · rank {focus.focusRank}
+                  </p>
                   {workbench.editor.document.blocks.map((block) =>
                     block.kind === 'heading' ? (
-                      <strong key={block.id} style={{ display: 'block', marginBottom: '10px', fontSize: '15px' }}>
+                      <strong key={block.id} style={{ display: 'block', marginBottom: '8px' }}>
                         {block.text}
                       </strong>
                     ) : (
-                      <p key={block.id} style={{ ...mutedBodyStyle, marginBottom: '10px', fontSize: '14px' }}>
+                      <p key={block.id} style={{ margin: '0 0 8px' }}>
                         {block.text}
                       </p>
                     )
                   )}
                 </div>
-              </>
-            ) : (
-              <p style={mutedBodyStyle}>今天还没有进入 Focus 的任务。</p>
+              </div>
             )}
-          </article>
-        </div>
 
-        <article style={panelStyle}>
-          <p style={kickerStyle}>Review</p>
-          <h2 style={{ margin: '0 0 14px', fontSize: '24px' }}>{workbench.shell.review.summary}</h2>
-
-          <div style={{ display: 'grid', gap: '14px' }}>
-            <section>
-              <strong style={{ display: 'block', marginBottom: '8px' }}>今日完成</strong>
-              <ul style={{ ...resetListStyle, display: 'grid', gap: '8px' }}>
-                {workbench.shell.review.completedToday.map((task) => (
-                  <li key={task.id} style={{ color: '#cbd5e1' }}>
-                    {task.title}
-                  </li>
+            {/* Review */}
+            <div className="object-card">
+              <div className="object-card-header">
+                <span className="type-label tag">📊 Review</span>
+              </div>
+              <div className="object-card-title">{workbench.shell.review.summary}</div>
+              <div className="object-card-body">
+                {workbench.shell.review.completedToday.map((t) => (
+                  <p key={t.id}>✓ {t.title}</p>
                 ))}
-              </ul>
-            </section>
-
-            <section>
-              <strong style={{ display: 'block', marginBottom: '8px' }}>需要延续</strong>
-              <ul style={{ ...resetListStyle, display: 'grid', gap: '8px' }}>
-                {workbench.shell.review.carryForward.map((task) => (
-                  <li key={task.id} style={{ color: '#cbd5e1' }}>
-                    {task.title}
-                  </li>
+                {workbench.shell.review.carryForward.map((t) => (
+                  <p key={t.id}>→ {t.title}</p>
                 ))}
-              </ul>
-            </section>
-
-            <section>
-              <strong style={{ display: 'block', marginBottom: '8px' }}>待回顾信号 · {pendingReviewCount}</strong>
-              <ul style={{ ...resetListStyle, display: 'grid', gap: '8px' }}>
-                {workbench.shell.review.projectsNeedingReview.map((project) => (
-                  <li key={project.id} style={{ color: '#cbd5e1' }}>
-                    项目 · {project.title}
-                  </li>
+                {workbench.shell.review.tasksNeedingReview.map((t) => (
+                  <p key={t.id}>⚠ 任务 · {t.title}</p>
                 ))}
-                {workbench.shell.review.tasksNeedingReview.map((task) => (
-                  <li key={task.id} style={{ color: '#cbd5e1' }}>
-                    任务 · {task.title}
-                  </li>
-                ))}
-              </ul>
-            </section>
+              </div>
+            </div>
           </div>
-        </article>
-      </section>
 
-      <footer
-        style={{
-          ...panelStyle,
-          marginTop: '18px',
-          display: 'grid',
-          gap: '14px',
-          gridTemplateColumns: 'minmax(260px, 0.9fr) minmax(0, 1.1fr)',
-          background: 'rgba(2, 6, 23, 0.72)'
-        }}
-      >
-        <div>
-          <p style={kickerStyle}>Runtime status</p>
-          <h2 style={{ margin: '0 0 8px', fontSize: '22px' }}>
-            {bridge.host.platform} / Electron {bridge.host.electronVersion}
-          </h2>
-          <p style={mutedBodyStyle}>
-            shell slots = {workbench.slots.planner.name}, {workbench.slots.workspace.name}, {workbench.slots.review.name}
-          </p>
-        </div>
+          {/* RIGHT PANEL */}
+          <div className="right-panel">
+            <div className="right-panel-tabs">
+              <div className="right-panel-tab active">Project</div>
+              <div className="right-panel-tab">Runtime</div>
+            </div>
+            <div className="right-panel-content">
+              {activeProject ? (
+                <div>
+                  <div className="detail-type-label">
+                    <span className="type-label project">📁 Project</span>
+                  </div>
+                  <div className="detail-title">{activeProject.title}</div>
+                  <div className="detail-properties">
+                    <div className="detail-prop">
+                      <span className="detail-prop-label">Open tasks</span>
+                      <span className="detail-prop-value">{activeProject.openTaskCount}</span>
+                    </div>
+                    <div className="detail-prop">
+                      <span className="detail-prop-label">Today</span>
+                      <span className="detail-prop-value">{activeProject.todayCount}</span>
+                    </div>
+                    <div className="detail-prop">
+                      <span className="detail-prop-label">Done</span>
+                      <span className="detail-prop-value">{activeProject.doneTaskCount}</span>
+                    </div>
+                  </div>
 
-        <div style={{ display: 'grid', gap: '12px' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {capabilities.map((capability) => (
-              <span key={capability} style={createSectionBadgeStyle(true)}>
-                {capability}
-              </span>
-            ))}
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {shellDescriptor.layers.map((layer) => (
-              <span key={layer.id} style={createSectionBadgeStyle(false)}>
-                {layer.id} · {layer.responsibility}
-              </span>
-            ))}
+                  <div className="detail-backlinks-title">Runtime</div>
+                  <div className="detail-properties">
+                    <div className="detail-prop">
+                      <span className="detail-prop-label">Platform</span>
+                      <span className="detail-prop-value">{bridge.host.platform}</span>
+                    </div>
+                    <div className="detail-prop">
+                      <span className="detail-prop-label">Electron</span>
+                      <span className="detail-prop-value">{bridge.host.electronVersion}</span>
+                    </div>
+                    <div className="detail-prop">
+                      <span className="detail-prop-label">Capabilities</span>
+                      <span className="detail-prop-value">{capabilities.join(', ')}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <div className="empty-state-icon">📁</div>
+                  <div className="empty-state-title">No active project</div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </footer>
-    </main>
+      </div>
+    </div>
   );
 }
