@@ -20,7 +20,9 @@ function getRendererHtml(): string {
 }
 
 async function loadRenderer(window: BrowserWindow): Promise<void> {
-  const devUrl = runtimeProcess.process?.env?.ORBIT_DESKTOP_RENDERER_URL;
+  const devUrl =
+    runtimeProcess.process?.env?.ORBIT_DESKTOP_RENDERER_URL ??
+    runtimeProcess.process?.env?.ELECTRON_RENDERER_URL;
 
   if (devUrl) {
     await window.loadURL(devUrl);

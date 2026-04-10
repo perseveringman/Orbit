@@ -20,6 +20,9 @@
     "test": "turbo run test",
     "typecheck": "turbo run typecheck"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "electron"]
+  },
   "devDependencies": {
     "@types/node": "^22.15.17",
     "@typescript-eslint/eslint-plugin": "^8.30.1",
