@@ -16,9 +16,16 @@
     "clean": "rm -rf dist coverage"
   },
   "dependencies": {
+    "@orbit/agent-core": "workspace:*",
     "@orbit/app-viewmodels": "workspace:*",
     "@orbit/editor-dom": "workspace:*",
     "@orbit/i18n": "workspace:*",
     "@orbit/ui-dom": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0"
   }
 }

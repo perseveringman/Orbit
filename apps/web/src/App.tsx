@@ -1,5 +1,7 @@
+import { useState, useCallback, useRef } from 'react';
 import type { ProjectRecord, TaskRecord } from '@orbit/domain';
-import { createWorkbenchDomModule, mountWorkbench } from '@orbit/feature-workbench';
+import type { AgentMessage } from '@orbit/agent-core';
+import { createWorkbenchDomModule, mountWorkbench, createAgentChatViewModel, AgentChatPanel } from '@orbit/feature-workbench';
 import { createWebRuntimeAdapter } from '@orbit/platform-web';
 
 const runtime = createWebRuntimeAdapter();
@@ -116,7 +118,89 @@ const hostPanels = [
   }
 ] as const;
 
+// ---------------------------------------------------------------------------
+// Agent chat demo helpers
+// ---------------------------------------------------------------------------
+
+let _msgCounter = 0;
+function nextMsgId(): string {
+  _msgCounter += 1;
+  return `msg_web_${_msgCounter}`;
+}
+
+function createDemoAgentMessage(
+  role: AgentMessage['role'],
+  content: string,
+  extra?: Partial<Pick<AgentMessage, 'toolCalls' | 'toolCallId'>>,
+): AgentMessage {
+  return {
+    id: nextMsgId(),
+    role,
+    content,
+    timestamp: new Date().toISOString(),
+    ...extra,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// App
+// ---------------------------------------------------------------------------
+
 export default function App(): JSX.Element {
+  const [showAgentPanel, setShowAgentPanel] = useState(false);
+  const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleSendMessage = useCallback((text: string) => {
+    const userMsg = createDemoAgentMessage('user', text);
+    setAgentMessages((prev) => [...prev, userMsg]);
+    setIsProcessing(true);
+
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      const toolMsg = createDemoAgentMessage('assistant', '正在检索工作区 …', {
+        toolCalls: [
+          {
+            id: `tc_${Date.now()}`,
+            name: 'search-workspace',
+            arguments: JSON.stringify({ query: text, scope: 'current-project' }, null, 2),
+          },
+        ],
+      });
+      setAgentMessages((prev) => [...prev, toolMsg]);
+
+      timerRef.current = setTimeout(() => {
+        const toolResult = createDemoAgentMessage('tool', '找到 2 个相关条目：Browser shell 兼容状态、Review 队列。', {
+          toolCallId: toolMsg.toolCalls![0].id,
+        });
+        setAgentMessages((prev) => [...prev, toolResult]);
+
+        timerRef.current = setTimeout(() => {
+          const reply = createDemoAgentMessage(
+            'assistant',
+            `关于「${text}」的分析：\n\n` +
+              '1. Browser host 保持轻量兼容入口\n' +
+              '2. 当前 Today 列表有 2 个任务待处理\n' +
+              '3. Review 信号表明 1 个项目需要回顾\n\n' +
+              '建议按照 Focus rank 顺序推进。',
+          );
+          setAgentMessages((prev) => [...prev, reply]);
+          setIsProcessing(false);
+        }, 800);
+      }, 600);
+    }, 1000);
+  }, []);
+
+  const agentViewModel = createAgentChatViewModel({
+    surface: 'global-chat',
+    sessionId: agentMessages.length > 0 ? 'demo-web-session-1' : null,
+    messages: agentMessages,
+    isProcessing,
+    currentDomain: isProcessing ? 'research' : null,
+    pendingApprovals: [],
+  });
+
   return (
     <main className="app-shell">
       <section className="hero">
@@ -231,6 +315,30 @@ export default function App(): JSX.Element {
           ))}
         </ol>
       </section>
+
+      {/* Agent panel toggle */}
+      <button
+        onClick={() => setShowAgentPanel((prev) => !prev)}
+        type="button"
+        className="agent-panel-toggle"
+        aria-label={showAgentPanel ? '关闭助手' : '打开助手'}
+      >
+        {showAgentPanel ? '✕' : '🤖'}
+      </button>
+
+      {/* Agent slide-in panel */}
+      <div
+        className="agent-panel-overlay"
+        style={{
+          transform: showAgentPanel ? 'translateX(0)' : 'translateX(100%)',
+        }}
+      >
+        <AgentChatPanel
+          viewModel={agentViewModel}
+          onSendMessage={handleSendMessage}
+          onClose={() => setShowAgentPanel(false)}
+        />
+      </div>
     </main>
   );
 }

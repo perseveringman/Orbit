@@ -1,7 +1,9 @@
+import { useState, useCallback, useRef } from 'react';
 import type { CSSProperties } from 'react';
 
 import type { ProjectRecord, TaskRecord } from '@orbit/domain';
-import { createWorkbenchDomModule, mountWorkbench } from '@orbit/feature-workbench';
+import type { AgentMessage } from '@orbit/agent-core';
+import { createWorkbenchDomModule, mountWorkbench, createAgentChatViewModel, AgentChatPanel } from '@orbit/feature-workbench';
 import { createElectronRuntimeAdapter } from '@orbit/platform-electron';
 
 import { createFallbackDesktopBridge } from '../shared/contracts';
@@ -156,7 +158,90 @@ function createStatusChipStyle(accentColor: string): CSSProperties {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Agent chat demo helpers
+// ---------------------------------------------------------------------------
+
+let _msgCounter = 0;
+function nextMsgId(): string {
+  _msgCounter += 1;
+  return `msg_${_msgCounter}`;
+}
+
+function createDemoAgentMessage(
+  role: AgentMessage['role'],
+  content: string,
+  extra?: Partial<Pick<AgentMessage, 'toolCalls' | 'toolCallId'>>,
+): AgentMessage {
+  return {
+    id: nextMsgId(),
+    role,
+    content,
+    timestamp: new Date().toISOString(),
+    ...extra,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// App
+// ---------------------------------------------------------------------------
+
 export function App() {
+  const [showAgentPanel, setShowAgentPanel] = useState(false);
+  const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleSendMessage = useCallback((text: string) => {
+    const userMsg = createDemoAgentMessage('user', text);
+    setAgentMessages((prev) => [...prev, userMsg]);
+    setIsProcessing(true);
+
+    // Simulate agent flow: thinking → tool call → response
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      const toolMsg = createDemoAgentMessage('assistant', '让我查找相关信息 …', {
+        toolCalls: [
+          {
+            id: `tc_${Date.now()}`,
+            name: 'search-workspace',
+            arguments: JSON.stringify({ query: text, scope: 'current-project' }, null, 2),
+          },
+        ],
+      });
+      setAgentMessages((prev) => [...prev, toolMsg]);
+
+      timerRef.current = setTimeout(() => {
+        const toolResult = createDemoAgentMessage('tool', '找到 3 个相关条目：任务进度、项目笔记、Review 信号。', {
+          toolCallId: toolMsg.toolCalls![0].id,
+        });
+        setAgentMessages((prev) => [...prev, toolResult]);
+
+        timerRef.current = setTimeout(() => {
+          const reply = createDemoAgentMessage(
+            'assistant',
+            `基于工作区搜索结果，以下是关于「${text}」的摘要：\n\n` +
+              '1. 当前项目有 3 个开放任务，其中 1 个正在进行中\n' +
+              '2. Today 列表已安排 2 个任务，Focus rank 已设定\n' +
+              '3. Review 信号显示有 2 个待回顾项需要关注\n\n' +
+              '建议先完成 Focus 中的任务，再处理 Review 队列。',
+          );
+          setAgentMessages((prev) => [...prev, reply]);
+          setIsProcessing(false);
+        }, 800);
+      }, 600);
+    }, 1000);
+  }, []);
+
+  const agentViewModel = createAgentChatViewModel({
+    surface: 'project',
+    sessionId: agentMessages.length > 0 ? 'demo-session-1' : null,
+    messages: agentMessages,
+    isProcessing,
+    currentDomain: isProcessing ? 'planning' : null,
+    pendingApprovals: [],
+  });
+
   const bridge = window.orbitDesktop ?? createFallbackDesktopBridge();
   const shellDescriptor = bridge.describeShell();
   const runtime = createElectronRuntimeAdapter();
@@ -517,6 +602,56 @@ export function App() {
           </div>
         </div>
       </footer>
+
+      {/* Agent panel toggle */}
+      <button
+        onClick={() => setShowAgentPanel((prev) => !prev)}
+        type="button"
+        style={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          width: 52,
+          height: 52,
+          borderRadius: '50%',
+          border: 'none',
+          background: 'linear-gradient(135deg, oklch(0.55 0.15 250), oklch(0.65 0.15 250))',
+          color: '#fff',
+          fontSize: 22,
+          cursor: 'pointer',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+          zIndex: 999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'transform 0.2s',
+          transform: showAgentPanel ? 'scale(0.9)' : 'scale(1)',
+        }}
+        aria-label={showAgentPanel ? '关闭助手' : '打开助手'}
+      >
+        {showAgentPanel ? '✕' : '🤖'}
+      </button>
+
+      {/* Agent slide-in panel */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          width: 400,
+          height: '100vh',
+          zIndex: 1000,
+          transform: showAgentPanel ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 0.25s ease',
+          boxShadow: showAgentPanel ? '-4px 0 32px rgba(0,0,0,0.35)' : 'none',
+        }}
+      >
+        <AgentChatPanel
+          viewModel={agentViewModel}
+          onSendMessage={handleSendMessage}
+          onClose={() => setShowAgentPanel(false)}
+        />
+      </div>
     </main>
   );
 }

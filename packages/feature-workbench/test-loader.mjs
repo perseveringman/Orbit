@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = pathResolve(currentDir, '../..');
 const aliases = new Map([
+  ['@orbit/agent-core', pathResolve(repoRoot, 'packages/agent-core/src/index.ts')],
   ['@orbit/app-viewmodels', pathResolve(repoRoot, 'packages/app-viewmodels/src/index.ts')],
   ['@orbit/editor-dom', pathResolve(repoRoot, 'packages/editor-dom/src/index.ts')],
   ['@orbit/feature-mobile', pathResolve(repoRoot, 'packages/feature-mobile/src/index.ts')],
@@ -20,15 +21,17 @@ function tryResolveRelativeTs(specifier, parentURL) {
     return null;
   }
 
-  const candidate = fileURLToPath(new URL(`${specifier}.ts`, parentURL));
-  if (!existsSync(candidate)) {
-    return null;
+  for (const ext of ['.ts', '.tsx']) {
+    const candidate = fileURLToPath(new URL(`${specifier}${ext}`, parentURL));
+    if (existsSync(candidate)) {
+      return {
+        shortCircuit: true,
+        url: pathToFileURL(candidate).href
+      };
+    }
   }
 
-  return {
-    shortCircuit: true,
-    url: pathToFileURL(candidate).href
-  };
+  return null;
 }
 
 export async function resolve(specifier, context, defaultResolve) {
@@ -46,4 +49,30 @@ export async function resolve(specifier, context, defaultResolve) {
   }
 
   return defaultResolve(specifier, context, defaultResolve);
+}
+
+// Handle .tsx files in the Node test runner (--experimental-strip-types
+// only covers .ts).  For test purposes we stub out React component modules
+// with a re-export-safe empty namespace.
+export async function load(url, context, defaultLoad) {
+  if (url.endsWith('.tsx')) {
+    // Read the file and extract named exports so the module graph stays valid.
+    // We don't execute React components in node:test – just provide stubs.
+    const { readFileSync } = await import('node:fs');
+    const { fileURLToPath: fu } = await import('node:url');
+    const src = readFileSync(fu(url), 'utf8');
+    // Match "export function Foo" and "export interface Foo"
+    const exportNames = [];
+    for (const m of src.matchAll(/export\s+(?:function|const|class)\s+(\w+)/g)) {
+      exportNames.push(m[1]);
+    }
+    const stubs = exportNames.map((n) => `export function ${n}() {}`).join('\n');
+    return {
+      shortCircuit: true,
+      format: 'module',
+      source: stubs || 'export {};'
+    };
+  }
+
+  return defaultLoad(url, context, defaultLoad);
 }
