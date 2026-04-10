@@ -1,0 +1,16 @@
+/* Orbit Desktop Host — Design System */
+@import '@orbit/ui-dom/src/orbit-design-system.css';
+
+/* Electron-specific: frameless titlebar drag region */
+.app {
+  height: 100vh;
+}
+
+.sidebar-header {
+  -webkit-app-region: drag;
+}
+
+.sidebar-header button,
+.sidebar-header a {
+  -webkit-app-region: no-drag;
+}

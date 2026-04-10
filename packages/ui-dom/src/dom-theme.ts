@@ -1,4 +1,13 @@
-import { createPlatformTheme, getSpacing } from '@orbit/ui-tokens';
+import {
+  generateCSSVariables,
+  generateStylesheet,
+  createPlatformTheme,
+  getSpacing,
+  type OrbitThemeMode,
+  type OrbitStyleVariant
+} from '@orbit/ui-tokens';
+
+export type { OrbitThemeMode, OrbitStyleVariant };
 
 export interface DomThemeContract {
   cssVariables: Record<string, string>;
@@ -16,18 +25,14 @@ export interface DomThemeContract {
   };
 }
 
-export function createDomThemeContract(): DomThemeContract {
+/** Creates the theme contract for a given mode. Backward compatible. */
+export function createDomThemeContract(mode?: OrbitThemeMode): DomThemeContract {
+  const resolvedMode = mode ?? 'light';
   const theme = createPlatformTheme('dom');
+  const cssVariables = generateCSSVariables(resolvedMode);
 
   return {
-    cssVariables: {
-      '--orbit-color-canvas': theme.color.canvas,
-      '--orbit-color-panel': theme.color.panel,
-      '--orbit-color-accent': theme.color.accent,
-      '--orbit-color-text-strong': theme.color.textStrong,
-      '--orbit-color-border': theme.color.border,
-      '--orbit-radius-md': `${theme.radius.md}px`
-    },
+    cssVariables,
     classNames: {
       shell: 'orbit-shell orbit-shell--dom',
       sidebar: 'orbit-sidebar orbit-sidebar--nav',
@@ -41,4 +46,50 @@ export function createDomThemeContract(): DomThemeContract {
       cardPadding: theme.cardPadding
     }
   };
+}
+
+/** Injects design system CSS variables into a DOM element (default: document.documentElement). */
+export function injectTheme(mode: OrbitThemeMode, target?: HTMLElement): void {
+  if (typeof document === 'undefined') return;
+  const el = target ?? document.documentElement;
+  const vars = generateCSSVariables(mode);
+  for (const [key, value] of Object.entries(vars)) {
+    el.style.setProperty(key, value);
+  }
+}
+
+/** Switches theme by updating data-theme attribute and CSS variables. Also persists to localStorage. */
+export function setTheme(mode: OrbitThemeMode): void {
+  if (typeof document === 'undefined') return;
+  document.documentElement.dataset.theme = mode;
+  injectTheme(mode);
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('orbit-theme', mode);
+  }
+}
+
+/** Gets the current theme from document or localStorage, falling back to 'light'. */
+export function getCurrentTheme(): OrbitThemeMode {
+  if (typeof document !== 'undefined' && document.documentElement.dataset.theme) {
+    return document.documentElement.dataset.theme as OrbitThemeMode;
+  }
+  if (typeof localStorage !== 'undefined') {
+    const stored = localStorage.getItem('orbit-theme');
+    if (stored === 'light' || stored === 'dark') return stored;
+  }
+  return 'light';
+}
+
+/** Sets the style variant (data-style attribute). Also persists to localStorage. */
+export function setStyleVariant(variant: OrbitStyleVariant): void {
+  if (typeof document === 'undefined') return;
+  document.documentElement.dataset.style = variant;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('orbit-style', variant);
+  }
+}
+
+/** Gets the full design system CSS as a string (for SSR or injection). */
+export function getDesignSystemCSS(): string {
+  return generateStylesheet();
 }

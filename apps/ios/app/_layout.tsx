@@ -1,22 +1,30 @@
-import { Stack } from "expo-router";
+import { Stack } from 'expo-router';
+import type { TextStyle } from 'react-native';
+import { createNativeThemeContract } from '@orbit/ui-native';
+
+const theme = createNativeThemeContract('light');
 
 export default function RootLayout(): JSX.Element {
   return (
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: "#0f172a"
+          backgroundColor: theme.palette.bg.back,
         },
-        headerTintColor: "#f8fafc",
+        headerTintColor: theme.palette.text.primary,
+        headerTitleStyle: {
+          fontWeight: theme.typography.fontWeight.semibold as TextStyle['fontWeight'],
+          fontSize: theme.typography.fontSize.md,
+        },
         contentStyle: {
-          backgroundColor: "#020617"
-        }
+          backgroundColor: theme.palette.bg.back,
+        },
       }}
     >
       <Stack.Screen
         name="index"
         options={{
-          title: "Orbit iOS 宿主"
+          title: 'Orbit',
         }}
       />
     </Stack>

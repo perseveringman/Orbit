@@ -1,0 +1,99 @@
+/* Orbit Style: Library — Serif & Warm */
+[data-style="library"] {
+  /* Serif typography */
+  --font-family-sans: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  --font-family-serif: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  --font-family-mono: 'Courier New', 'Courier', monospace;
+  
+  /* Generous radius — soft, inviting */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-base: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 22px;
+  --radius-3xl: 28px;
+  --radius-full: 999px;
+  
+  /* Inset, paper-like shadows */
+  --shadow-xs: 0 1px 2px rgba(120, 85, 50, 0.06);
+  --shadow-sm: 0 1px 3px rgba(120, 85, 50, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --shadow-md: 0 2px 6px rgba(120, 85, 50, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  --shadow-lg: 0 4px 12px rgba(120, 85, 50, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  --shadow-xl: 0 8px 24px rgba(120, 85, 50, 0.14);
+  --shadow-2xl: 0 16px 48px rgba(120, 85, 50, 0.18);
+  --shadow-inner: inset 0 2px 4px rgba(120, 85, 50, 0.06);
+  --shadow-focus: 0 0 0 2px rgba(160, 120, 70, 0.4);
+  
+  /* Comfortable letter spacing */
+  --letter-spacing-tight: -0.01em;
+  --letter-spacing-normal: 0.01em;
+  --letter-spacing-wide: 0.04em;
+  
+  /* Slightly larger base size */
+  --text-base: 15.5px;
+  --text-sm-plus: 14.5px;
+}
+
+/* Book-spine sidebar */
+[data-style="library"] .sidebar {
+  border-right: 3px double var(--border-base);
+}
+
+/* Card: paper-like with subtle texture */
+[data-style="library"] .object-card {
+  border: 1px solid var(--border-base);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+[data-style="library"] .object-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 248, 235, 0.08) 0%, transparent 60%);
+}
+
+[data-style="library"] .page-title {
+  font-style: italic;
+  font-weight: 600;
+}
+
+[data-style="library"] .sidebar-nav-item.active {
+  font-weight: 600;
+  border-left: 3px solid var(--bg-button-primary);
+  padding-left: 9px;
+}
+
+/* Drop cap style for detail titles */
+[data-style="library"] .detail-title {
+  font-size: var(--text-2xl);
+  line-height: var(--lh-tight);
+}
+
+[data-style="library"] .type-label {
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+[data-style="library"] .right-panel {
+  border-left: 3px double var(--border-base);
+}
+
+[data-style="library"] .sidebar-section-header {
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+}
+
+[data-style="library"] .tab-item.active::after {
+  height: 3px;
+  border-radius: 999px;
+}
+
+/* Warm tooltip/badge feel */
+[data-style="library"] .tag-badge {
+  font-style: italic;
+}

@@ -1,11 +1,14 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import type { TextStyle } from 'react-native';
 
 import type { ProjectRecord, TaskRecord } from '@orbit/domain';
 import { createMobileFeatureModule } from '@orbit/feature-mobile';
 import { createIosRuntimeAdapter } from '@orbit/platform-ios';
+import { createNativeThemeContract } from '@orbit/ui-native';
 
 const runtime = createIosRuntimeAdapter();
 const CURRENT_DATE = '2026-04-09';
+const theme = createNativeThemeContract('light');
 
 function createProjectRecord(overrides: Partial<ProjectRecord> & Pick<ProjectRecord, 'id' | 'title'>): ProjectRecord {
   return {
@@ -86,97 +89,127 @@ const mobileFeature = createMobileFeatureModule({
 });
 const capabilities = runtime.capabilityHost.list();
 const activeProject = mobileFeature.shell.activeProject;
+const ACTIVE_TAB = 'home' as const;
 
-const sections = [
-  {
-    title: 'Loop summary',
-    items: [
-      `${mobileFeature.shell.planner.intentLabel}：${mobileFeature.shell.planner.intent}`,
-      mobileFeature.shell.planner.summary,
-      `Focus：${mobileFeature.screens.focus.focusTitle ?? '待选择'}`
-    ]
-  },
-  {
-    title: 'iOS 宿主能力',
-    items: capabilities
-  }
-] as const;
+type FontWeight = TextStyle['fontWeight'];
+const fw = {
+  medium: theme.typography.fontWeight.medium as FontWeight,
+  semibold: theme.typography.fontWeight.semibold as FontWeight,
+  bold: theme.typography.fontWeight.bold as FontWeight,
+};
 
 export default function HomeScreen(): JSX.Element {
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.heroCard}>
-        <Text style={styles.kicker}>Expo Router / React Native Host</Text>
-        <Text style={styles.title}>Orbit iOS compatibility shell</Text>
-        <Text style={styles.body}>
-          iOS 现在只做最小兼容宿主：复用新的 deterministic project loop shell，保留原生能力桥接，不再继续构造 reader demo。
-        </Text>
-        <View style={styles.chipRow}>
-          {mobileFeature.tabs.map((tab) => (
-            <View key={tab.id} style={styles.chip}>
-              <Text style={styles.chipText}>{tab.label}</Text>
-            </View>
-          ))}
-        </View>
+    <ScrollView
+      style={{ backgroundColor: theme.palette.bg.back }}
+      contentContainerStyle={styles.container}
+    >
+      {/* Sidebar-like navigation pills */}
+      <View style={styles.navRow}>
+        {mobileFeature.tabs.map((tab) => (
+          <Pressable key={tab.id} style={[styles.navPill, tab.id === ACTIVE_TAB && styles.navPillActive]}>
+            <Text style={[styles.navPillText, tab.id === ACTIVE_TAB && styles.navPillTextActive]}>
+              {tab.label}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>活跃项目</Text>
-        <Text style={styles.body}>{activeProject?.title ?? '暂无活跃项目'}</Text>
-        <Text style={styles.note}>
-          {activeProject
-            ? `${activeProject.openTaskCount} 个开放任务 · ${activeProject.todayCount} 个已进入 Today`
-            : '等待上层注入项目数据。'}
-        </Text>
+      {/* Active Project Card */}
+      <View style={styles.sectionCard}>
+        <View style={styles.sectionHeader}>
+          <View style={[styles.typeIcon, { backgroundColor: theme.objectTypes.project.bg }]}>
+            <Text style={{ color: theme.objectTypes.project.text, fontSize: 12, fontWeight: '700' }}>P</Text>
+          </View>
+          <Text style={styles.sectionTitle}>
+            {activeProject?.title ?? '暂无活跃项目'}
+          </Text>
+        </View>
+        {activeProject && (
+          <Text style={styles.metaText}>
+            {activeProject.openTaskCount} 个开放任务 · {activeProject.todayCount} 个已进入 Today
+          </Text>
+        )}
       </View>
 
-      {sections.map((section) => (
-        <View key={section.title} style={styles.card}>
-          <Text style={styles.sectionTitle}>{section.title}</Text>
-          {section.items.map((item) => (
-            <View key={item} style={styles.listItem}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.body}>{item}</Text>
-            </View>
-          ))}
-        </View>
-      ))}
-
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Today / Focus</Text>
+      {/* Today Section */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionLabel}>Today</Text>
         {mobileFeature.shell.today.map((task) => (
-          <View key={task.id} style={styles.listItem}>
-            <Text style={styles.bullet}>•</Text>
-            <Text style={styles.body}>
-              {task.title} · rank {task.focusRank ?? '—'}
+          <View key={task.id} style={styles.taskCard}>
+            <View style={styles.taskHeader}>
+              <Text style={styles.taskTitle}>{task.title}</Text>
+              <View style={[styles.statusBadge,
+                task.status === 'doing' ? styles.statusDoing : styles.statusTodo
+              ]}>
+                <Text style={styles.statusText}>
+                  {task.status === 'doing' ? '进行中' : '待做'}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.metaText}>
+              {task.projectTitle ?? '未归属项目'} · Focus #{task.focusRank ?? '—'}
             </Text>
           </View>
         ))}
-        <Text style={styles.note}>当前 Focus：{mobileFeature.screens.focus.focusTitle ?? '待选择'}</Text>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Review snapshot</Text>
-        <Text style={styles.body}>{mobileFeature.shell.review.summary}</Text>
-        {mobileFeature.shell.review.completedToday.map((task) => (
-          <View key={task.id} style={styles.listItem}>
-            <Text style={styles.bullet}>•</Text>
-            <Text style={styles.body}>完成 · {task.title}</Text>
+      {/* Focus Section */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionLabel}>Focus</Text>
+        {mobileFeature.screens.focus.focusTitle ? (
+          <View style={styles.focusCard}>
+            <Text style={styles.focusTitle}>{mobileFeature.screens.focus.focusTitle}</Text>
+            <Text style={styles.metaText}>当前聚焦任务</Text>
           </View>
-        ))}
-        {mobileFeature.shell.review.carryForward.map((task) => (
-          <View key={task.id} style={styles.listItem}>
-            <Text style={styles.bullet}>•</Text>
-            <Text style={styles.body}>延续 · {task.title}</Text>
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>🎯</Text>
+            <Text style={styles.emptyText}>今天还没有聚焦任务</Text>
           </View>
-        ))}
+        )}
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>后续真机接入</Text>
-        <Text style={styles.body}>
-          从 {runtime.platform} runtime adapter 继续扩展通知、分享、生物识别等原生能力，但保持 iOS 宿主只消费新的 shell contract。
-        </Text>
+      {/* Review Section */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionLabel}>Review</Text>
+        <Text style={styles.bodyText}>{mobileFeature.shell.review.summary}</Text>
+
+        {mobileFeature.shell.review.completedToday.length > 0 && (
+          <View style={styles.reviewGroup}>
+            <Text style={styles.reviewGroupTitle}>今日完成</Text>
+            {mobileFeature.shell.review.completedToday.map((task) => (
+              <View key={task.id} style={styles.reviewItem}>
+                <Text style={styles.checkmark}>✓</Text>
+                <Text style={styles.reviewText}>{task.title}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {mobileFeature.shell.review.carryForward.length > 0 && (
+          <View style={styles.reviewGroup}>
+            <Text style={styles.reviewGroupTitle}>需要延续</Text>
+            {mobileFeature.shell.review.carryForward.map((task) => (
+              <View key={task.id} style={styles.reviewItem}>
+                <Text style={styles.carryIcon}>→</Text>
+                <Text style={styles.reviewText}>{task.title}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* Capabilities */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionLabel}>平台能力</Text>
+        <View style={styles.capRow}>
+          {capabilities.map((cap) => (
+            <View key={cap} style={styles.capBadge}>
+              <Text style={styles.capText}>{cap}</Text>
+            </View>
+          ))}
+        </View>
       </View>
     </ScrollView>
   );
@@ -184,78 +217,183 @@ export default function HomeScreen(): JSX.Element {
 
 const styles = StyleSheet.create({
   container: {
-    gap: 16,
-    padding: 20
+    gap: theme.spacing.md,
+    padding: theme.spacing.md,
+    paddingBottom: theme.spacing['2xl'],
   },
-  heroCard: {
-    backgroundColor: '#111827',
-    borderColor: '#1f2937',
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 12,
-    padding: 20
-  },
-  card: {
-    backgroundColor: '#0f172a',
-    borderColor: '#1e293b',
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 10,
-    padding: 16
-  },
-  chipRow: {
+  navRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8
+    gap: theme.spacing.sm,
   },
-  chip: {
-    backgroundColor: '#082f49',
-    borderColor: '#155e75',
-    borderRadius: 999,
+  navPill: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.palette.bg.el,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 6
+    borderColor: theme.palette.border.el,
   },
-  chipText: {
-    color: '#e0f2fe',
-    fontSize: 13,
-    fontWeight: '600'
+  navPillActive: {
+    backgroundColor: theme.palette.bg.elActive,
+    borderColor: theme.palette.border.elHover,
   },
-  kicker: {
-    color: '#38bdf8',
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase'
+  navPillText: {
+    color: theme.palette.text.secondary,
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: fw.medium,
   },
-  title: {
-    color: '#f8fafc',
-    fontSize: 28,
-    fontWeight: '700'
+  navPillTextActive: {
+    color: theme.palette.text.primary,
+    fontWeight: fw.semibold,
+  },
+  sectionCard: {
+    backgroundColor: theme.palette.bg.base,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.palette.border.base,
+    padding: theme.spacing.md,
+    gap: theme.spacing.sm,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  typeIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: theme.radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionLabel: {
+    color: theme.palette.text.subtle,
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: fw.semibold,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
   sectionTitle: {
-    color: '#f8fafc',
-    fontSize: 18,
-    fontWeight: '600'
+    color: theme.palette.text.primary,
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: fw.bold,
   },
-  body: {
-    color: '#cbd5e1',
-    fontSize: 15,
-    lineHeight: 22
+  taskCard: {
+    backgroundColor: theme.palette.bg.front,
+    borderRadius: theme.radius.base,
+    borderWidth: 1,
+    borderColor: theme.palette.border.base,
+    padding: theme.spacing.md,
+    gap: theme.spacing.xs,
   },
-  note: {
-    color: '#fda4af',
-    fontSize: 14,
-    lineHeight: 20
-  },
-  listItem: {
-    alignItems: 'flex-start',
+  taskHeader: {
     flexDirection: 'row',
-    gap: 8
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  bullet: {
-    color: '#38bdf8',
-    fontSize: 16,
-    lineHeight: 22
-  }
+  taskTitle: {
+    color: theme.palette.text.primary,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: fw.medium,
+    flex: 1,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: theme.radius.full,
+  },
+  statusDoing: {
+    backgroundColor: theme.palette.bg.buttonPrimary + '22',
+  },
+  statusTodo: {
+    backgroundColor: theme.palette.bg.el,
+  },
+  statusText: {
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: fw.medium,
+    color: theme.palette.text.secondary,
+  },
+  metaText: {
+    color: theme.palette.text.subtle,
+    fontSize: theme.typography.fontSize.sm,
+    lineHeight: theme.typography.lineHeight.relaxed * theme.typography.fontSize.sm,
+  },
+  bodyText: {
+    color: theme.palette.text.secondary,
+    fontSize: theme.typography.fontSize.base,
+    lineHeight: theme.typography.lineHeight.base * theme.typography.fontSize.base,
+  },
+  focusCard: {
+    backgroundColor: theme.palette.bg.front,
+    borderRadius: theme.radius.base,
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.palette.border.base,
+    gap: theme.spacing.xs,
+  },
+  focusTitle: {
+    color: theme.palette.text.primary,
+    fontSize: theme.typography.fontSize.md,
+    fontWeight: fw.semibold,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.xl,
+    gap: theme.spacing.sm,
+  },
+  emptyIcon: {
+    fontSize: 32,
+  },
+  emptyText: {
+    color: theme.palette.text.subtle,
+    fontSize: theme.typography.fontSize.sm,
+  },
+  reviewGroup: {
+    gap: theme.spacing.xs,
+  },
+  reviewGroupTitle: {
+    color: theme.palette.text.secondary,
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: fw.semibold,
+    marginTop: theme.spacing.xs,
+  },
+  reviewItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: theme.spacing.sm,
+  },
+  checkmark: {
+    color: theme.palette.bg.buttonPrimary,
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: fw.bold,
+  },
+  carryIcon: {
+    color: theme.palette.text.subtle,
+    fontSize: theme.typography.fontSize.sm,
+  },
+  reviewText: {
+    color: theme.palette.text.secondary,
+    fontSize: theme.typography.fontSize.sm,
+    flex: 1,
+    lineHeight: theme.typography.lineHeight.base * theme.typography.fontSize.sm,
+  },
+  capRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  capBadge: {
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 4,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.palette.bg.el,
+    borderWidth: 1,
+    borderColor: theme.palette.border.el,
+  },
+  capText: {
+    color: theme.palette.text.secondary,
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: fw.medium,
+  },
 });
