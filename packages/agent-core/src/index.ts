@@ -1,38 +1,52 @@
-export const AGENT_HANDOFF_VERSION = 1;
-export const AGENT_ROLES = ['planner', 'researcher', 'executor', 'reviewer'] as const;
-export const AGENT_CONTEXT_KINDS = ['note', 'object-ref', 'url', 'instruction'] as const;
+// ---------------------------------------------------------------------------
+// @orbit/agent-core – Public API
+// ---------------------------------------------------------------------------
 
-export type AgentRole = (typeof AGENT_ROLES)[number];
-export type AgentContextKind = (typeof AGENT_CONTEXT_KINDS)[number];
+// Types & constants
+export * from './types.js';
 
-export interface AgentContextEntry {
-  readonly kind: AgentContextKind;
-  readonly label: string;
-  readonly value: string;
-}
+// Tool Registry
+export {
+  ToolRegistry,
+  type ToolEntry,
+  type ToolFilters,
+  type ToolResult,
+  createToolResult,
+  createToolError,
+} from './tool-registry.js';
 
-export interface AgentCapabilityRequirement {
-  readonly capabilityId: string;
-  readonly reason: string;
-  readonly optional?: boolean;
-}
+// Memory Manager
+export {
+  MemoryManager,
+  InMemoryMemoryStore,
+  type MemoryStore,
+  type MemoryRecallQuery,
+} from './memory-manager.js';
 
-export interface AgentHandoff {
-  readonly version: number;
-  readonly handoffId: string;
-  readonly taskId: string;
-  readonly workspaceId: string;
-  readonly role: AgentRole;
-  readonly summary: string;
-  readonly expectedOutput: string;
-  readonly context: readonly AgentContextEntry[];
-  readonly capabilityRequirements: readonly AgentCapabilityRequirement[];
-}
+// Context Compressor
+export {
+  ContextCompressor,
+  type CompressionConfig,
+  type CompressionResult,
+} from './context-compressor.js';
 
-export function isAgentRole(value: string): value is AgentRole {
-  return AGENT_ROLES.includes(value as AgentRole);
-}
+// Safety Gate
+export {
+  SafetyGate,
+  THREAT_PATTERNS,
+  type SafetyCheckResult,
+} from './safety-gate.js';
 
-export function createHandoffTitle(input: Pick<AgentHandoff, 'taskId' | 'role'>): string {
-  return `[${input.role}] ${input.taskId}`;
-}
+// Domain Agents
+export { DOMAIN_AGENT_CONFIGS } from './domain-agents.js';
+
+// LLM Adapter
+export type { LLMAdapter } from './llm-adapter.js';
+export { toOpenAIMessages, fromOpenAIResponse, toOpenAITools } from './llm-adapter.js';
+
+// Orchestrator
+export {
+  Orchestrator,
+  type OrchestratorInput,
+  type OrchestratorOutput,
+} from './orchestrator.js';
