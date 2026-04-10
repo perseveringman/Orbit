@@ -1,8 +1,7 @@
 import {
   createWorkbenchShellViewModel,
-  type ReaderArticleSummary,
-  type WorkbenchShellViewModel,
-  type WorkspaceSection
+  type WorkbenchShellInput,
+  type WorkbenchShellViewModel
 } from '@orbit/app-viewmodels';
 import { createTranslator, type LocaleCode } from '@orbit/i18n';
 import {
@@ -17,12 +16,18 @@ export interface MobileHost {
   navigationStyle: 'stack' | 'split';
 }
 
-export interface MobileFeatureInput {
+export interface MobileFocusScreen {
+  kind: 'native-focus';
+  focusTaskId: string | null;
+  focusTitle: string | null;
+  todayTaskIds: string[];
+  reviewSummary: string;
+  navigationStyle: MobileHost['navigationStyle'];
+}
+
+export interface MobileFeatureInput
+  extends Pick<WorkbenchShellInput, 'locale' | 'activeSection' | 'currentDate' | 'userIntent' | 'projects' | 'tasks'> {
   host: MobileHost;
-  locale: LocaleCode;
-  activeSection: WorkspaceSection;
-  searchQuery: string;
-  articles: ReaderArticleSummary[];
 }
 
 export interface MobileFeatureModule {
@@ -35,24 +40,34 @@ export interface MobileFeatureModule {
     label: string;
   }>;
   screens: {
-    home: NativeScreenScaffold & { articleCount: number };
-    library: NativeScreenScaffold & { totalCount: number };
-    reader: {
-      kind: 'native-reader';
-      articleIds: string[];
-      emptyState: string;
-      navigationStyle: MobileHost['navigationStyle'];
-    };
+    home: NativeScreenScaffold & { projectCount: number; todayCount: number; focusTaskId: string | null };
+    library: NativeScreenScaffold & { openTaskCount: number; reviewCount: number };
+    focus: MobileFocusScreen;
   };
 }
 
+function getMetricValue(shell: WorkbenchShellViewModel, metricId: 'projects' | 'tasks'): number {
+  return shell.planner.metrics.find((metric) => metric.id === metricId)?.value ?? 0;
+}
+
+function getReviewCount(shell: WorkbenchShellViewModel): number {
+  return (
+    shell.review.completedToday.length +
+    shell.review.carryForward.length +
+    shell.review.projectsNeedingReview.length +
+    shell.review.tasksNeedingReview.length
+  );
+}
+
 export function createMobileFeatureModule(input: MobileFeatureInput): MobileFeatureModule {
-  const translator = createTranslator(input.locale);
+  const translator = createTranslator(input.locale as LocaleCode);
   const shell = createWorkbenchShellViewModel({
     locale: input.locale,
     activeSection: input.activeSection,
-    searchQuery: input.searchQuery,
-    articles: input.articles
+    currentDate: input.currentDate,
+    userIntent: input.userIntent,
+    projects: input.projects,
+    tasks: input.tasks
   });
 
   return {
@@ -72,17 +87,22 @@ export function createMobileFeatureModule(input: MobileFeatureInput): MobileFeat
     ],
     screens: {
       home: {
-        ...createNativeScreenScaffold(translator.t('mobile.tab.home'), shell.searchPlaceholder),
-        articleCount: shell.filteredArticles.length
+        ...createNativeScreenScaffold(translator.t('mobile.tab.home'), shell.planner.summary),
+        projectCount: getMetricValue(shell, 'projects'),
+        todayCount: shell.today.length,
+        focusTaskId: shell.focus?.id ?? null
       },
       library: {
-        ...createNativeScreenScaffold(translator.t('mobile.tab.library'), shell.title),
-        totalCount: input.articles.length
+        ...createNativeScreenScaffold(translator.t('mobile.tab.library'), shell.review.summary),
+        openTaskCount: getMetricValue(shell, 'tasks'),
+        reviewCount: getReviewCount(shell)
       },
-      reader: {
-        kind: 'native-reader',
-        articleIds: shell.filteredArticles.map((article) => article.id),
-        emptyState: shell.emptyState,
+      focus: {
+        kind: 'native-focus',
+        focusTaskId: shell.focus?.id ?? null,
+        focusTitle: shell.focus?.title ?? null,
+        todayTaskIds: shell.today.map((task) => task.id),
+        reviewSummary: shell.review.summary,
         navigationStyle: input.host.navigationStyle
       }
     }

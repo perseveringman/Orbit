@@ -1,6 +1,6 @@
 import type { DomainObject, OrbitObjectKind } from '@orbit/domain';
 
-export const WORKSPACE_VIEW_IDS = ['inbox', 'today', 'library', 'search'] as const;
+export const WORKSPACE_VIEW_IDS = ['projects', 'tasks', 'today', 'focus', 'review'] as const;
 
 export type WorkspaceViewId = (typeof WORKSPACE_VIEW_IDS)[number];
 export type WorkspaceRole = 'owner' | 'editor' | 'reader';

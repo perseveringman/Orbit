@@ -1,44 +1,96 @@
+import type {
+  IsoDateString,
+  IsoDateTimeString,
+  OrbitEntityId,
+  ProjectRecord,
+  ProjectStatus,
+  TaskRecord,
+  TaskStatus
+} from '@orbit/domain';
 import type { LocaleCode } from '@orbit/i18n';
+import type { WorkspaceViewId } from '@orbit/workspace-core';
 
-export type WorkspaceSection = 'inbox' | 'library';
+export type WorkspaceSection = WorkspaceViewId;
+export type WorkbenchSectionId = WorkspaceViewId;
+export type WorkbenchMetricId = 'projects' | 'tasks' | 'today' | 'review';
 export type SelectionMode = 'single' | 'range';
+export type WorkbenchCurrentDateInput = IsoDateString | IsoDateTimeString;
 
-export interface ReaderArticleSummary {
-  id: string;
-  title: string;
-  excerpt: string;
-  isRead: boolean;
-  updatedAt: string;
+export interface WorkbenchMetricViewModel {
+  id: WorkbenchMetricId;
+  label: string;
+  value: number;
 }
 
 export interface WorkbenchSectionViewModel {
-  id: WorkspaceSection;
+  id: WorkbenchSectionId;
   label: string;
   count: number;
   active: boolean;
 }
 
-export interface WorkbenchArticleCardViewModel {
-  id: string;
+export interface WorkbenchPlannerSummaryViewModel {
   title: string;
-  excerpt: string;
-  updatedAt: string;
-  isRead: boolean;
-  emphasis: 'default' | 'muted';
+  intentLabel: string;
+  intent: string;
+  currentDate: IsoDateString;
+  summary: string;
+  metrics: WorkbenchMetricViewModel[];
+}
+
+export interface WorkbenchProjectSummaryViewModel {
+  id: OrbitEntityId;
+  title: string;
+  status: ProjectStatus;
+  taskCount: number;
+  openTaskCount: number;
+  doneTaskCount: number;
+  todayCount: number;
+  lastReviewedAt: IsoDateTimeString | null;
+  needsReview: boolean;
+}
+
+export interface WorkbenchTaskSummaryViewModel {
+  id: OrbitEntityId;
+  title: string;
+  status: TaskStatus;
+  projectId: OrbitEntityId | null;
+  projectTitle: string | null;
+  todayOn: IsoDateString | null;
+  focusRank: number | null;
+  completedAt: IsoDateTimeString | null;
+  lastReviewedAt: IsoDateTimeString | null;
+  isToday: boolean;
+  isCarryForward: boolean;
+  needsReview: boolean;
+}
+
+export interface WorkbenchReviewSummaryViewModel {
+  summary: string;
+  completedToday: WorkbenchTaskSummaryViewModel[];
+  carryForward: WorkbenchTaskSummaryViewModel[];
+  projectsNeedingReview: WorkbenchProjectSummaryViewModel[];
+  tasksNeedingReview: WorkbenchTaskSummaryViewModel[];
 }
 
 export interface WorkbenchShellInput {
   locale: LocaleCode;
   activeSection: WorkspaceSection;
-  searchQuery: string;
-  articles: ReaderArticleSummary[];
+  currentDate: WorkbenchCurrentDateInput;
+  userIntent?: string;
+  projects?: readonly ProjectRecord[];
+  tasks?: readonly TaskRecord[];
 }
 
 export interface WorkbenchShellViewModel {
   title: string;
-  searchPlaceholder: string;
-  activeSection: WorkspaceSection;
+  activeSection: WorkbenchSectionId;
   sections: WorkbenchSectionViewModel[];
-  filteredArticles: WorkbenchArticleCardViewModel[];
-  emptyState: string;
+  planner: WorkbenchPlannerSummaryViewModel;
+  projects: WorkbenchProjectSummaryViewModel[];
+  activeProject: WorkbenchProjectSummaryViewModel | null;
+  tasks: WorkbenchTaskSummaryViewModel[];
+  today: WorkbenchTaskSummaryViewModel[];
+  focus: WorkbenchTaskSummaryViewModel | null;
+  review: WorkbenchReviewSummaryViewModel;
 }

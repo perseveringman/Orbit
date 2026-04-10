@@ -1,5 +1,7 @@
 export const ORBIT_SQLITE_TABLES = {
   workspaces: 'workspaces',
+  projects: 'projects',
+  tasks: 'tasks',
   devices: 'devices',
   feeds: 'feeds',
   articles: 'articles',
@@ -44,6 +46,43 @@ export const orbitSqliteSchema: readonly SqliteTableDef[] = [
       { name: 'updated_at', type: 'TEXT', notNull: true },
     ],
     indexes: [{ name: 'idx_workspaces_slug', columns: ['slug'], unique: true }],
+  },
+  {
+    name: ORBIT_SQLITE_TABLES.projects,
+    columns: [
+      { name: 'id', type: 'TEXT', primaryKey: true },
+      { name: 'workspace_id', type: 'TEXT', notNull: true },
+      { name: 'title', type: 'TEXT', notNull: true },
+      { name: 'status', type: 'TEXT', notNull: true, defaultValue: "'active'" },
+      { name: 'last_reviewed_at', type: 'TEXT' },
+      { name: 'created_at', type: 'TEXT', notNull: true },
+      { name: 'updated_at', type: 'TEXT', notNull: true },
+      { name: 'deleted_at', type: 'TEXT' },
+    ],
+    indexes: [{ name: 'idx_projects_workspace_status', columns: ['workspace_id', 'status'] }],
+  },
+  {
+    name: ORBIT_SQLITE_TABLES.tasks,
+    columns: [
+      { name: 'id', type: 'TEXT', primaryKey: true },
+      { name: 'workspace_id', type: 'TEXT', notNull: true },
+      { name: 'project_id', type: 'TEXT' },
+      { name: 'title', type: 'TEXT', notNull: true },
+      { name: 'status', type: 'TEXT', notNull: true, defaultValue: "'todo'" },
+      { name: 'today_on', type: 'TEXT' },
+      { name: 'focus_rank', type: 'INTEGER' },
+      { name: 'completed_at', type: 'TEXT' },
+      { name: 'last_reviewed_at', type: 'TEXT' },
+      { name: 'created_at', type: 'TEXT', notNull: true },
+      { name: 'updated_at', type: 'TEXT', notNull: true },
+      { name: 'deleted_at', type: 'TEXT' },
+    ],
+    indexes: [
+      { name: 'idx_tasks_workspace_status', columns: ['workspace_id', 'status'] },
+      { name: 'idx_tasks_workspace_today_on', columns: ['workspace_id', 'today_on'] },
+      { name: 'idx_tasks_workspace_focus_rank', columns: ['workspace_id', 'focus_rank'] },
+      { name: 'idx_tasks_project', columns: ['project_id'] },
+    ],
   },
   {
     name: ORBIT_SQLITE_TABLES.devices,
@@ -149,15 +188,17 @@ export const orbitSqliteSchema: readonly SqliteTableDef[] = [
 ];
 
 export function renderCreateTableSql(table: SqliteTableDef): string {
-  const columnSql = table.columns
+  const primaryKeyColumns = table.columns.filter((column) => column.primaryKey).map((column) => column.name);
+  const hasCompositePrimaryKey = primaryKeyColumns.length > 1;
+  const tableDefinitionSql = table.columns
     .map((column) => {
       const fragments = [column.name, column.type];
 
-      if (column.primaryKey) {
+      if (column.primaryKey && !hasCompositePrimaryKey) {
         fragments.push('PRIMARY KEY');
       }
 
-      if (column.notNull) {
+      if (column.notNull || (hasCompositePrimaryKey && column.primaryKey)) {
         fragments.push('NOT NULL');
       }
 
@@ -167,9 +208,10 @@ export function renderCreateTableSql(table: SqliteTableDef): string {
 
       return fragments.join(' ');
     })
+    .concat(hasCompositePrimaryKey ? [`PRIMARY KEY (${primaryKeyColumns.join(', ')})`] : [])
     .join(', ');
 
-  return `CREATE TABLE IF NOT EXISTS ${table.name} (${columnSql});`;
+  return `CREATE TABLE IF NOT EXISTS ${table.name} (${tableDefinitionSql});`;
 }
 
 export function renderCreateIndexSql(tableName: string, index: SqliteIndexDef): string {

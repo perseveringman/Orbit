@@ -64,3 +64,7 @@ export function buildObjectGraphIndex(
 export function listConnectedTargets(index: ObjectGraphIndex, from: ObjectReference): ObjectReference[] {
   return (index.outgoingByKey[toObjectGraphKey(from)] ?? []).map((edge) => edge.to);
 }
+
+export function listConnectedSources(index: ObjectGraphIndex, to: ObjectReference): ObjectReference[] {
+  return (index.incomingByKey[toObjectGraphKey(to)] ?? []).map((edge) => edge.from);
+}
