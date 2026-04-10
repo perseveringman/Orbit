@@ -11,5 +11,45 @@ export const zhCNMessages = {
   'workbench.review.summary': '{{completedCount}} 个今日完成 · {{carryForwardCount}} 个需要延续 · {{pendingCount}} 个待回顾信号',
   'mobile.tab.home': '首页',
   'mobile.tab.library': '资料库',
-  'editor.placeholder': '开始记录今天的想法'
+  'editor.placeholder': '开始记录今天的想法',
+
+  'common.save': '保存',
+  'common.cancel': '取消',
+  'common.delete': '删除',
+  'common.confirm': '确认',
+  'common.loading': '加载中…',
+  'common.error': '出错了',
+  'common.search': '搜索',
+  'common.settings': '设置',
+
+  'reader.title': '阅读器',
+  'reader.import': '导入',
+  'reader.highlight': '高亮',
+  'reader.note': '笔记',
+  'reader.bookmark': '书签',
+  'reader.source': '来源',
+  'reader.progress': '阅读进度',
+
+  'search.placeholder': '搜索文章、笔记、任务…',
+  'search.noResults': '未找到结果',
+  'search.filters': '筛选条件',
+  'search.recent': '最近搜索',
+  'search.advanced': '高级搜索',
+  'search.indexing': '正在建立索引…',
+
+  'agent.thinking': '思考中…',
+  'agent.error': '智能体遇到错误',
+  'agent.approve': '批准',
+  'agent.reject': '拒绝',
+  'agent.retry': '重试',
+  'agent.session': '会话',
+  'agent.history': '历史记录',
+
+  'settings.title': '设置',
+  'settings.general': '通用',
+  'settings.appearance': '外观',
+  'settings.language': '语言',
+  'settings.sync': '同步',
+  'settings.privacy': '隐私',
+  'settings.about': '关于'
 } as const;

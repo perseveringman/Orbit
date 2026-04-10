@@ -11,5 +11,45 @@ export const enUSMessages = {
   'workbench.review.summary': '{{completedCount}} completed today · {{carryForwardCount}} to carry forward · {{pendingCount}} pending review signals',
   'mobile.tab.home': 'Home',
   'mobile.tab.library': 'Library',
-  'editor.placeholder': 'Start capturing today\'s thinking'
+  'editor.placeholder': 'Start capturing today\'s thinking',
+
+  'common.save': 'Save',
+  'common.cancel': 'Cancel',
+  'common.delete': 'Delete',
+  'common.confirm': 'Confirm',
+  'common.loading': 'Loading…',
+  'common.error': 'Something went wrong',
+  'common.search': 'Search',
+  'common.settings': 'Settings',
+
+  'reader.title': 'Reader',
+  'reader.import': 'Import',
+  'reader.highlight': 'Highlight',
+  'reader.note': 'Note',
+  'reader.bookmark': 'Bookmark',
+  'reader.source': 'Source',
+  'reader.progress': 'Reading progress',
+
+  'search.placeholder': 'Search articles, notes, tasks…',
+  'search.noResults': 'No results found',
+  'search.filters': 'Filters',
+  'search.recent': 'Recent searches',
+  'search.advanced': 'Advanced search',
+  'search.indexing': 'Indexing…',
+
+  'agent.thinking': 'Thinking…',
+  'agent.error': 'Agent encountered an error',
+  'agent.approve': 'Approve',
+  'agent.reject': 'Reject',
+  'agent.retry': 'Retry',
+  'agent.session': 'Session',
+  'agent.history': 'History',
+
+  'settings.title': 'Settings',
+  'settings.general': 'General',
+  'settings.appearance': 'Appearance',
+  'settings.language': 'Language',
+  'settings.sync': 'Sync',
+  'settings.privacy': 'Privacy',
+  'settings.about': 'About'
 } as const;

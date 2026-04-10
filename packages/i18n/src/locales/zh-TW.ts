@@ -11,5 +11,45 @@ export const zhTWMessages = {
   'workbench.review.summary': '{{completedCount}} 個今日完成 · {{carryForwardCount}} 個需要延續 · {{pendingCount}} 個待回顧訊號',
   'mobile.tab.home': '首頁',
   'mobile.tab.library': '資料庫',
-  'editor.placeholder': '開始記錄今天的想法'
+  'editor.placeholder': '開始記錄今天的想法',
+
+  'common.save': '儲存',
+  'common.cancel': '取消',
+  'common.delete': '刪除',
+  'common.confirm': '確認',
+  'common.loading': '載入中…',
+  'common.error': '發生錯誤',
+  'common.search': '搜尋',
+  'common.settings': '設定',
+
+  'reader.title': '閱讀器',
+  'reader.import': '匯入',
+  'reader.highlight': '標註',
+  'reader.note': '筆記',
+  'reader.bookmark': '書籤',
+  'reader.source': '來源',
+  'reader.progress': '閱讀進度',
+
+  'search.placeholder': '搜尋文章、筆記、任務…',
+  'search.noResults': '找不到結果',
+  'search.filters': '篩選條件',
+  'search.recent': '最近搜尋',
+  'search.advanced': '進階搜尋',
+  'search.indexing': '正在建立索引…',
+
+  'agent.thinking': '思考中…',
+  'agent.error': '智慧體遇到錯誤',
+  'agent.approve': '核准',
+  'agent.reject': '拒絕',
+  'agent.retry': '重試',
+  'agent.session': '對話',
+  'agent.history': '歷史紀錄',
+
+  'settings.title': '設定',
+  'settings.general': '一般',
+  'settings.appearance': '外觀',
+  'settings.language': '語言',
+  'settings.sync': '同步',
+  'settings.privacy': '隱私',
+  'settings.about': '關於'
 } as const;
