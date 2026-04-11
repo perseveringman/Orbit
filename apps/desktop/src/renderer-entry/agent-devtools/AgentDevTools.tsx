@@ -3,18 +3,20 @@ import { AgentChatPanel } from '@orbit/feature-workbench';
 import { DevAgentService } from './DevAgentService';
 import { EventStreamPanel } from './EventStreamPanel';
 import { ObservabilityPanel } from './ObservabilityPanel';
+import { LLMConfigPanel } from './LLMConfigPanel';
 import { SCENARIOS, type ScenarioInfo } from './mock-scenarios';
 
 // ---------------------------------------------------------------------------
 // AgentDevTools – Main container with tabs
 // ---------------------------------------------------------------------------
 
-type Tab = 'chat' | 'events' | 'observe';
+type Tab = 'chat' | 'events' | 'observe' | 'config';
 
 const TAB_ITEMS: { id: Tab; label: string; icon: string }[] = [
   { id: 'chat', label: '对话', icon: '💬' },
   { id: 'events', label: '事件流', icon: '📡' },
   { id: 'observe', label: '可观测', icon: '📊' },
+  { id: 'config', label: 'LLM 配置', icon: '⚙️' },
 ];
 
 const VAR = {
@@ -25,6 +27,7 @@ const VAR = {
   textDim: 'oklch(0.55 0.01 260)',
   accent: 'oklch(0.65 0.15 250)',
   green: 'oklch(0.65 0.15 145)',
+  red: 'oklch(0.60 0.18 25)',
   border: 'oklch(0.25 0.01 260)',
   font: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
 } as const;
@@ -36,6 +39,7 @@ export interface AgentDevToolsProps {
 export function AgentDevTools({ onClose }: AgentDevToolsProps) {
   const [tab, setTab] = useState<Tab>('chat');
   const [, setTick] = useState(0);
+  const [chatMode, setChatMode] = useState<'mock' | 'real'>('mock');
 
   // Service is a singleton ref — survives re-renders
   const serviceRef = useRef<DevAgentService | null>(null);
@@ -61,9 +65,13 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
 
   const handleSendMessage = useCallback(
     (content: string) => {
-      void service.sendMessage(content);
+      if (chatMode === 'real') {
+        void service.sendRealMessage(content);
+      } else {
+        void service.sendMessage(content);
+      }
     },
-    [service],
+    [service, chatMode],
   );
 
   const handleRunScenario = useCallback(
@@ -76,6 +84,11 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
   const handleReset = useCallback(() => {
     service.reset();
     service.createSession();
+  }, [service]);
+
+  const handleLLMConfigChanged = useCallback(() => {
+    service.refreshLLMProviders();
+    setTick((t) => t + 1);
   }, [service]);
 
   const viewModel = service.getViewModel();
@@ -110,30 +123,73 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
         <span style={{ fontSize: 16 }}>🔬</span>
         <strong style={{ fontSize: 14 }}>Agent DevTools</strong>
 
-        {/* Scenario selector */}
-        <div style={{ marginLeft: 16, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-          {SCENARIOS.map((sc) => (
-            <button
-              key={sc.id}
-              onClick={() => handleRunScenario(sc)}
-              disabled={service.getIsRunning()}
-              title={sc.description}
-              style={{
-                padding: '3px 8px',
-                borderRadius: 6,
-                border: `1px solid ${VAR.border}`,
-                background: service.getActiveScenario()?.id === sc.id ? VAR.accent : 'transparent',
-                color: service.getActiveScenario()?.id === sc.id ? VAR.bg : VAR.textDim,
-                fontSize: 11,
-                cursor: service.getIsRunning() ? 'not-allowed' : 'pointer',
-                fontFamily: VAR.font,
-                opacity: service.getIsRunning() && service.getActiveScenario()?.id !== sc.id ? 0.5 : 1,
-              }}
-            >
-              {sc.label}
-            </button>
-          ))}
+        {/* Scenario selector (mock mode only) */}
+        {chatMode === 'mock' && (
+          <div style={{ marginLeft: 16, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {SCENARIOS.map((sc) => (
+              <button
+                key={sc.id}
+                onClick={() => handleRunScenario(sc)}
+                disabled={service.getIsRunning()}
+                title={sc.description}
+                style={{
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  border: `1px solid ${VAR.border}`,
+                  background: service.getActiveScenario()?.id === sc.id ? VAR.accent : 'transparent',
+                  color: service.getActiveScenario()?.id === sc.id ? VAR.bg : VAR.textDim,
+                  fontSize: 11,
+                  cursor: service.getIsRunning() ? 'not-allowed' : 'pointer',
+                  fontFamily: VAR.font,
+                  opacity: service.getIsRunning() && service.getActiveScenario()?.id !== sc.id ? 0.5 : 1,
+                }}
+              >
+                {sc.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Mode toggle: Mock ↔ Real LLM */}
+        <div style={{ marginLeft: chatMode === 'mock' ? 8 : 16, display: 'flex', gap: 2, borderRadius: 6, border: `1px solid ${VAR.border}`, overflow: 'hidden' }}>
+          <button
+            onClick={() => setChatMode('mock')}
+            style={{
+              padding: '3px 10px',
+              border: 'none',
+              background: chatMode === 'mock' ? VAR.accent : 'transparent',
+              color: chatMode === 'mock' ? VAR.bg : VAR.textDim,
+              fontSize: 11,
+              cursor: 'pointer',
+              fontFamily: VAR.font,
+              fontWeight: chatMode === 'mock' ? 600 : 400,
+            }}
+          >
+            🎭 Mock
+          </button>
+          <button
+            onClick={() => setChatMode('real')}
+            style={{
+              padding: '3px 10px',
+              border: 'none',
+              background: chatMode === 'real' ? VAR.green : 'transparent',
+              color: chatMode === 'real' ? VAR.bg : VAR.textDim,
+              fontSize: 11,
+              cursor: 'pointer',
+              fontFamily: VAR.font,
+              fontWeight: chatMode === 'real' ? 600 : 400,
+            }}
+          >
+            🤖 Real LLM
+          </button>
         </div>
+
+        {/* Real LLM provider indicator */}
+        {chatMode === 'real' && (
+          <span style={{ fontSize: 11, color: service.getActiveProvider() ? VAR.green : VAR.red, marginLeft: 4 }}>
+            {service.getActiveProvider() ?? '未配置供应商'}
+          </span>
+        )}
 
         <span style={{ flex: 1 }} />
 
@@ -236,6 +292,9 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
             sessionState={sessionState}
             eventCount={eventLog.length}
           />
+        )}
+        {tab === 'config' && (
+          <LLMConfigPanel onConfigChanged={handleLLMConfigChanged} />
         )}
       </div>
     </div>

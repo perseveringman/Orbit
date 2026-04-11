@@ -68,6 +68,19 @@ export { OpenAIProvider, OpenAIAPIError } from './providers/openai-provider.js';
 export { AnthropicProvider, AnthropicAPIError } from './providers/anthropic-provider.js';
 export { OllamaProvider } from './providers/ollama-provider.js';
 
+// Provider Catalog (hermes-agent compatible)
+export {
+  PROVIDER_CATALOG,
+  PROVIDER_ALIASES,
+  getCatalogEntry,
+  getApiKeyProviders,
+  getProviderIds,
+  resolveProviderName,
+  type ProviderCatalogEntry,
+  type TransportType,
+  type AuthType,
+} from './providers/provider-catalog.js';
+
 // Model Metadata
 export {
   MODEL_CATALOG,

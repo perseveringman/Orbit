@@ -13,9 +13,12 @@ import {
   type OrbitAgentEvent,
   type SessionUIState,
   type ProgressState,
+  type LLMProvider,
+  PROVIDER_CATALOG,
 } from '@orbit/agent-core';
 import type { AgentChatViewModel, AgentChatMessageViewModel } from '@orbit/feature-workbench';
 import { SCENARIOS, type ScenarioInfo } from './mock-scenarios';
+import { LLMConfigStore } from './llm-config-store';
 
 // ---- ViewModel mapping from SessionUIState ----
 
@@ -115,6 +118,16 @@ export class DevAgentService {
 
   private activeScenario: ScenarioInfo | null = null;
   private isRunning = false;
+
+  // Real LLM provider state
+  private realProvider: LLMProvider | null = null;
+  private activeProviderName: string | null = null;
+  private conversationHistory: Array<{
+    readonly id: string;
+    readonly role: 'system' | 'user' | 'assistant' | 'tool';
+    readonly content: string;
+    readonly timestamp: string;
+  }> = [];
 
   constructor() {
     this.transport = new InMemoryTransport();
@@ -216,6 +229,168 @@ export class DevAgentService {
     await this.runScenario(scenario);
   }
 
+  // ---- Real LLM Methods ----
+
+  /** Refresh real LLM providers from stored config. */
+  refreshLLMProviders(): void {
+    const enabled = LLMConfigStore.getEnabled();
+    if (enabled.length > 0) {
+      const first = enabled[0];
+      this.realProvider = LLMConfigStore.createProvider(first);
+      this.activeProviderName = this.realProvider
+        ? (PROVIDER_CATALOG.find((e) => e.id === first.providerId)?.displayName ?? first.providerId)
+        : null;
+    } else {
+      this.realProvider = null;
+      this.activeProviderName = null;
+    }
+    this.notifyListeners();
+  }
+
+  /** Get the name of the currently active real LLM provider. */
+  getActiveProvider(): string | null {
+    return this.activeProviderName;
+  }
+
+  /** Send a message using the real LLM provider (streaming). */
+  async sendRealMessage(content: string): Promise<void> {
+    if (!this.sessionState) {
+      this.createSession();
+    }
+
+    // Ensure we have a provider
+    if (!this.realProvider) {
+      this.refreshLLMProviders();
+    }
+
+    const runId = this.sessionId ?? 'devtools';
+
+    if (!this.realProvider) {
+      this.sessionState!.addUserMessage(content);
+      this.bridge.getEventBus().emit({
+        type: 'agent:error',
+        runId,
+        timestamp: Date.now(),
+        domain: 'planning',
+        error: '未配置 LLM 供应商。请前往「LLM 配置」标签页配置并启用一个供应商。',
+      });
+      this.notifyListeners();
+      return;
+    }
+
+    this.sessionState!.addUserMessage(content);
+    this.isRunning = true;
+    this.notifyListeners();
+
+    // Build conversation history
+    this.conversationHistory.push({
+      id: `msg_${Date.now().toString(36)}`,
+      role: 'user',
+      content,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Emit orchestrator started
+    this.bridge.getEventBus().emit({
+      type: 'orchestrator:started',
+      runId,
+      timestamp: Date.now(),
+      sessionId: this.sessionId!,
+      surface: 'global-chat',
+    });
+
+    // Emit agent reasoning (thinking indicator)
+    this.bridge.getEventBus().emit({
+      type: 'agent:reasoning',
+      runId,
+      timestamp: Date.now(),
+      content: '正在调用 LLM ...',
+    });
+
+    try {
+      // Get the enabled config to determine model
+      const enabled = LLMConfigStore.getEnabled();
+      const providerConfig = enabled[0];
+      const entry = PROVIDER_CATALOG.find((e) => e.id === providerConfig?.providerId);
+      const model = providerConfig?.defaultModel || entry?.defaultModel || '';
+
+      // Try streaming first
+      let fullResponse = '';
+      const startMs = Date.now();
+
+      try {
+        const stream = this.realProvider.chatCompletionStream({
+          model,
+          messages: this.conversationHistory,
+        });
+
+        for await (const chunk of stream) {
+          if (chunk.type === 'text-delta') {
+            fullResponse += chunk.text;
+            this.bridge.getEventBus().emit({
+              type: 'agent:stream-delta',
+              runId,
+              timestamp: Date.now(),
+              delta: chunk.text,
+            });
+          }
+          // usage chunk is informational, tracked internally
+        }
+      } catch {
+        // Streaming not supported or failed — fall back to non-streaming
+        const result = await this.realProvider.chatCompletion({
+          model,
+          messages: this.conversationHistory,
+        });
+        fullResponse = result.choices[0]?.message?.content ?? '';
+      }
+
+      const durationMs = Date.now() - startMs;
+
+      // Emit agent completed with the full response
+      if (fullResponse) {
+        this.bridge.getEventBus().emit({
+          type: 'agent:completed',
+          runId,
+          timestamp: Date.now(),
+          domain: 'planning',
+          responseContent: fullResponse,
+          totalTokens: 0,
+          totalDurationMs: durationMs,
+        });
+
+        this.bridge.getEventBus().emit({
+          type: 'orchestrator:completed',
+          runId,
+          timestamp: Date.now(),
+          sessionId: this.sessionId!,
+          totalTokens: 0,
+          totalDurationMs: durationMs,
+        });
+
+        // Add to conversation history
+        this.conversationHistory.push({
+          id: `msg_${Date.now().toString(36)}`,
+          role: 'assistant',
+          content: fullResponse,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      this.bridge.getEventBus().emit({
+        type: 'agent:error',
+        runId,
+        timestamp: Date.now(),
+        domain: 'planning',
+        error: `LLM 调用失败: ${errorMsg}`,
+      });
+    } finally {
+      this.isRunning = false;
+      this.notifyListeners();
+    }
+  }
+
   /** Get the current chat ViewModel. */
   getViewModel(): AgentChatViewModel {
     if (!this.sessionState) {
@@ -268,6 +443,7 @@ export class DevAgentService {
     }
     this.isRunning = false;
     this.activeScenario = null;
+    this.conversationHistory = [];
     this.notifyListeners();
   }
 
