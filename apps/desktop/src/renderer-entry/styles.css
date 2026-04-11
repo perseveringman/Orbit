@@ -1,6 +1,15 @@
 /* Orbit Desktop Host — Design System */
-@import 'tailwindcss';
+
+/* HeroUI v3 styles (includes Tailwind CSS v4 internally) */
 @import '@heroui/react/styles';
+
+/* Scan our source files for Tailwind utility classes */
+@source "../src/**/*.{ts,tsx}";
+
+/* Dark mode variant for HeroUI */
+@custom-variant dark (&:is(.dark *));
+
+/* Orbit design tokens */
 @import '@orbit/ui-dom/src/orbit-design-system.css';
 
 /* Electron-specific: frameless titlebar drag region */
