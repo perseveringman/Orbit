@@ -53,9 +53,6 @@ importers:
       '@orbit/ui-dom':
         specifier: workspace:*
         version: link:../../packages/ui-dom
-      '@orbit/ui-tokens':
-        specifier: workspace:*
-        version: link:../../packages/ui-tokens
       electron:
         specifier: ^35.0.0
         version: 35.7.5
@@ -179,6 +176,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@heroui/react':
+        specifier: ^3.0.2
+        version: 3.0.2(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(tailwindcss@4.2.2)
+      '@heroui/styles':
+        specifier: ^3.0.2
+        version: 3.0.2(tailwind-merge@3.4.0)(tailwindcss@4.2.2)
       '@orbit/feature-workbench':
         specifier: workspace:*
         version: link:../../packages/feature-workbench
@@ -188,34 +191,40 @@ importers:
       '@orbit/ui-dom':
         specifier: workspace:*
         version: link:../../packages/ui-dom
-      '@orbit/ui-tokens':
-        specifier: workspace:*
-        version: link:../../packages/ui-tokens
       react:
-        specifier: ^18.3.1
-        version: 18.3.1
+        specifier: ^19.2.5
+        version: 19.2.5
       react-dom:
-        specifier: ^18.3.1
-        version: 18.3.1(react@18.3.1)
+        specifier: ^19.2.5
+        version: 19.2.5(react@19.2.5)
     devDependencies:
+      '@tailwindcss/vite':
+        specifier: ^4.2.2
+        version: 4.2.2(vite@5.4.21(@types/node@22.19.17)(lightningcss@1.32.0)(terser@5.46.1))
       '@types/react':
-        specifier: ^18.3.12
-        version: 18.3.28
+        specifier: ^19.2.14
+        version: 19.2.14
       '@types/react-dom':
-        specifier: ^18.3.1
-        version: 18.3.7(@types/react@18.3.28)
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.14)
       '@vitejs/plugin-react':
         specifier: ^4.3.4
         version: 4.7.0(vite@5.4.21(@types/node@22.19.17)(lightningcss@1.32.0)(terser@5.46.1))
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
+      tailwindcss:
+        specifier: ^4.2.2
+        version: 4.2.2
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
       vite:
         specifier: ^5.4.19
         version: 5.4.21(@types/node@22.19.17)(lightningcss@1.32.0)(terser@5.46.1)
+      vite-tsconfig-paths:
+        specifier: ^6.1.1
+        version: 6.1.1(typescript@5.9.3)(vite@5.4.21(@types/node@22.19.17)(lightningcss@1.32.0)(terser@5.46.1))
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/node@22.19.17)(lightningcss@1.32.0)(terser@5.46.1)
@@ -247,9 +256,6 @@ importers:
       '@orbit/app-viewmodels':
         specifier: workspace:*
         version: link:../app-viewmodels
-      '@orbit/ui-dom':
-        specifier: workspace:*
-        version: link:../ui-dom
 
   packages/feature-mobile:
     dependencies:
@@ -277,9 +283,6 @@ importers:
       '@orbit/i18n':
         specifier: workspace:*
         version: link:../i18n
-      '@orbit/ui-dom':
-        specifier: workspace:*
-        version: link:../ui-dom
       react:
         specifier: ^18.0.0 || ^19.0.0
         version: 19.2.5
@@ -413,11 +416,7 @@ importers:
         specifier: ^3.1.1
         version: 3.2.4(@types/node@22.19.17)(lightningcss@1.32.0)(terser@5.46.1)
 
-  packages/ui-dom:
-    dependencies:
-      '@orbit/ui-tokens':
-        specifier: workspace:*
-        version: link:../ui-tokens
+  packages/ui-dom: {}
 
   packages/ui-native:
     dependencies:
@@ -1642,7 +1641,7 @@ packages:
 
   '@expo/bunyan@4.0.1':
     resolution: {integrity: sha512-+Lla7nYSiHZirgK+U/uYzsLv/X+HaJienbD5AKX1UQZHYfWaP+9uuQluRB4GrEVWF0GZ7vEVp/jzaOT9k/SQlg==}
-    engines: {node: '>=0.10.0'}
+    engines: {'0': node >=0.10.0}
 
   '@expo/cli@0.22.28':
     resolution: {integrity: sha512-lvt72KNitGuixYD2l3SZmRKVu2G4zJpmg5V7WfUBNpmUU5oODBw/6qmiJ6kSLAlfDozscUk+BBGknBBzxUrwrA==}
@@ -2985,11 +2984,6 @@ packages:
 
   '@types/prop-types@15.7.15':
     resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
-
-  '@types/react-dom@18.3.7':
-    resolution: {integrity: sha512-MEe3UeoENYVFXzoXEWsvcpg6ZvlrFNlOQ7EOsvhI3CfAXwzPfO8Qwuxd40nepsYKqyyVQnTdEfv68q91yLcKrQ==}
-    peerDependencies:
-      '@types/react': ^18.0.0
 
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
@@ -5551,11 +5545,6 @@ packages:
   react-devtools-core@5.3.2:
     resolution: {integrity: sha512-crr9HkVrDiJ0A4zot89oS0Cgv0Oa4OG1Em4jit3P3ZxZSKPMYyMjfwMqgcJna9o625g8oN87rBm8SWWrSTBZxg==}
 
-  react-dom@18.3.1:
-    resolution: {integrity: sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw==}
-    peerDependencies:
-      react: ^18.3.1
-
   react-dom@19.2.5:
     resolution: {integrity: sha512-J5bAZz+DXMMwW/wV3xzKke59Af6CHY7G4uYLN1OvBcKEsWOs4pQExj86BBKamxl/Ik5bx9whOrvBlSDfWzgSag==}
     peerDependencies:
@@ -5780,9 +5769,6 @@ packages:
   sax@1.6.0:
     resolution: {integrity: sha512-6R3J5M4AcbtLUdZmRv2SygeVaM7IhrLXu9BmnOGmmACak8fiUtOsYNWUS4uK7upbmHIBbLBeFeI//477BKLBzA==}
     engines: {node: '>=11.0.0'}
-
-  scheduler@0.23.2:
-    resolution: {integrity: sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ==}
 
   scheduler@0.24.0-canary-efb381bbf-20230505:
     resolution: {integrity: sha512-ABvovCDe/k9IluqSh4/ISoq8tIJnW8euVAWYt5j/bg6dRnqwQwiGO1F/V4AyK96NGF/FB04FhOUDuWj8IKfABA==}
@@ -9866,10 +9852,6 @@ snapshots:
 
   '@types/prop-types@15.7.15': {}
 
-  '@types/react-dom@18.3.7(@types/react@18.3.28)':
-    dependencies:
-      '@types/react': 18.3.28
-
   '@types/react-dom@19.2.3(@types/react@19.2.14)':
     dependencies:
       '@types/react': 19.2.14
@@ -12916,12 +12898,6 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  react-dom@18.3.1(react@18.3.1):
-    dependencies:
-      loose-envify: 1.4.0
-      react: 18.3.1
-      scheduler: 0.23.2
-
   react-dom@19.2.5(react@18.3.1):
     dependencies:
       react: 18.3.1
@@ -13253,10 +13229,6 @@ snapshots:
       is-regex: 1.2.1
 
   sax@1.6.0: {}
-
-  scheduler@0.23.2:
-    dependencies:
-      loose-envify: 1.4.0
 
   scheduler@0.24.0-canary-efb381bbf-20230505:
     dependencies:

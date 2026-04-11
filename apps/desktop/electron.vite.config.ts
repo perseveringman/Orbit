@@ -43,7 +43,7 @@ export default defineConfig({
       ]
     },
     optimizeDeps: {
-      exclude: ['@orbit/ui-dom', '@orbit/ui-tokens']
+      exclude: ['@orbit/ui-dom']
     },
     build: {
       outDir: resolve(__dirname, 'dist/renderer-entry'),

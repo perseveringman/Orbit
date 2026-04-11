@@ -48,6 +48,16 @@ pnpm dev:ios
 pnpm dev:server
 ```
 
+## UI 标准
+
+DOM 宿主与共享 DOM UI（当前主要是 `apps/desktop`、`apps/web` 与相关 DOM packages）默认使用 **HeroUI v3**。iOS 原生 UI 不在这个约束内。
+
+1. 使用 `@heroui/react` 与 `@heroui/styles`
+2. 使用 React 19 + Tailwind CSS v4
+3. 入口样式保持 `@import "tailwindcss"` 在前、`@import "@heroui/styles"` 在后
+4. 不使用 `HeroUIProvider`，并保持 `html` 的 `class` / `data-theme` 与当前主题同步
+5. 新增或修改 HeroUI 组件前，优先参考仓库内 `.github/skills/heroui-react` 或官方 v3 文档
+
 ## 架构原则
 
 1. **共享稳定性优先于复用数量**：先判断边界是否稳定，再决定是否下沉到 `packages/`。

@@ -6,6 +6,7 @@ import type { EventLogEntry } from './DevAgentService';
 // EventStreamPanel – Real-time event stream viewer
 // ---------------------------------------------------------------------------
 
+// Domain-specific semantic colors — kept as inline styles
 const CATEGORY_COLORS: Record<string, string> = {
   orchestrator: 'oklch(0.70 0.15 280)',
   agent: 'oklch(0.70 0.15 200)',
@@ -21,17 +22,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   safety: '安全',
   compression: '压缩',
 };
-
-const VAR = {
-  bg: 'oklch(0.13 0.005 260)',
-  surface: 'oklch(0.18 0.008 260)',
-  text: 'oklch(0.93 0.005 260)',
-  textDim: 'oklch(0.55 0.01 260)',
-  border: 'oklch(0.25 0.01 260)',
-  accent: 'oklch(0.65 0.15 250)',
-  font: "'Menlo', 'Monaco', 'Courier New', monospace",
-  uiFont: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-} as const;
 
 function formatEventTime(ts: number): string {
   const d = new Date(ts);
@@ -108,71 +98,35 @@ function EventRow({ entry, isExpanded, onToggle }: EventRowProps) {
 
   return (
     <div
-      style={{
-        borderBottom: `1px solid ${VAR.border}`,
-        cursor: 'pointer',
-        transition: 'background 0.1s',
-      }}
+      className="border-b border-border cursor-pointer transition-colors hover:bg-surface"
       onClick={onToggle}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '6px 12px',
-          fontSize: 12,
-          fontFamily: VAR.font,
-        }}
-      >
-        <span style={{ color: VAR.textDim, width: 28, textAlign: 'right', flexShrink: 0 }}>
+      <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-mono">
+        <span className="text-muted w-7 text-right shrink-0">
           {entry.index}
         </span>
-        <span style={{ color: VAR.textDim, width: 90, flexShrink: 0 }}>
+        <span className="text-muted w-[90px] shrink-0">
           {formatEventTime(event.timestamp)}
         </span>
         <span
-          style={{
-            padding: '1px 6px',
-            borderRadius: 4,
-            background: color,
-            color: 'oklch(0.15 0 0)',
-            fontSize: 10,
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.03em',
-            flexShrink: 0,
-            width: 36,
-            textAlign: 'center',
-          }}
+          className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide shrink-0 w-9 text-center"
+          style={{ background: color, color: 'oklch(0.15 0 0)' }}
         >
           {label}
         </span>
-        <span style={{ color: VAR.accent, fontWeight: 600, flexShrink: 0, minWidth: 160 }}>
+        <span className="text-accent font-semibold shrink-0 min-w-[160px]">
           {event.type}
         </span>
-        <span style={{ color: VAR.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span className="text-foreground flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
           {getEventSummary(event)}
         </span>
-        <span style={{ color: VAR.textDim, fontSize: 10, flexShrink: 0 }}>
+        <span className="text-muted text-[10px] shrink-0">
           {isExpanded ? '▼' : '▶'}
         </span>
       </div>
 
       {isExpanded && (
-        <pre
-          style={{
-            margin: 0,
-            padding: '8px 12px 12px 50px',
-            fontSize: 11,
-            lineHeight: 1.5,
-            color: VAR.text,
-            fontFamily: VAR.font,
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-all',
-            background: 'oklch(0.10 0.005 260)',
-          }}
-        >
+        <pre className="m-0 px-3 pb-3 pl-[50px] text-[11px] leading-relaxed font-mono whitespace-pre-wrap break-all text-foreground bg-black/20">
           {JSON.stringify(event, null, 2)}
         </pre>
       )}
@@ -233,69 +187,39 @@ export function EventStreamPanel({ events }: EventStreamPanelProps) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="flex flex-col h-full">
       {/* Toolbar */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          padding: '8px 12px',
-          borderBottom: `1px solid ${VAR.border}`,
-          background: VAR.surface,
-          fontFamily: VAR.uiFont,
-          flexShrink: 0,
-        }}
-      >
+      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border bg-surface shrink-0">
         {filters.map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            style={{
-              padding: '3px 10px',
-              borderRadius: 6,
-              border: 'none',
-              background: filter === f ? VAR.accent : 'transparent',
-              color: filter === f ? VAR.bg : VAR.textDim,
-              fontSize: 11,
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: VAR.uiFont,
-            }}
+            className={`px-2.5 py-[3px] rounded-md border-none text-[11px] font-semibold cursor-pointer transition-colors ${
+              filter === f
+                ? 'bg-accent text-background'
+                : 'bg-transparent text-muted hover:bg-surface-secondary'
+            }`}
           >
             {filterLabels[f]}
           </button>
         ))}
-        <span style={{ flex: 1 }} />
+        <span className="flex-1" />
         <button
           onClick={() => setIsPaused(!isPaused)}
-          style={{
-            padding: '3px 10px',
-            borderRadius: 6,
-            border: `1px solid ${VAR.border}`,
-            background: isPaused ? 'oklch(0.45 0.12 50)' : 'transparent',
-            color: isPaused ? '#fff' : VAR.textDim,
-            fontSize: 11,
-            cursor: 'pointer',
-            fontFamily: VAR.uiFont,
-          }}
+          className={`px-2.5 py-[3px] rounded-md border border-border text-[11px] cursor-pointer transition-colors ${
+            isPaused
+              ? 'bg-warning text-white'
+              : 'bg-transparent text-muted hover:bg-surface-secondary'
+          }`}
         >
           {isPaused ? '▶ 继续' : '⏸ 暂停'}
         </button>
       </div>
 
       {/* Event list */}
-      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', background: VAR.bg }}>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto bg-background">
         {filtered.length === 0 ? (
-          <div
-            style={{
-              padding: 40,
-              textAlign: 'center',
-              color: VAR.textDim,
-              fontSize: 13,
-              fontFamily: VAR.uiFont,
-            }}
-          >
+          <div className="p-10 text-center text-muted text-sm">
             暂无事件。发送消息或运行场景以产生事件流。
           </div>
         ) : (

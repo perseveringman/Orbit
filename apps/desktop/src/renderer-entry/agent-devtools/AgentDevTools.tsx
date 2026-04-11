@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Button, Chip } from '@heroui/react';
 import { AgentChatPanel } from '@orbit/feature-workbench';
 import { DevAgentService } from './DevAgentService';
 import { EventStreamPanel } from './EventStreamPanel';
@@ -19,19 +20,6 @@ const TAB_ITEMS: { id: Tab; label: string; icon: string }[] = [
   { id: 'observe', label: '可观测', icon: '📊' },
   { id: 'config', label: 'LLM 配置', icon: '⚙️' },
 ];
-
-const VAR = {
-  bg: 'oklch(0.11 0.008 260)',
-  surface: 'oklch(0.17 0.008 260)',
-  headerBg: 'oklch(0.14 0.01 260)',
-  text: 'oklch(0.93 0.005 260)',
-  textDim: 'oklch(0.55 0.01 260)',
-  accent: 'oklch(0.65 0.15 250)',
-  green: 'oklch(0.65 0.15 145)',
-  red: 'oklch(0.60 0.18 25)',
-  border: 'oklch(0.25 0.01 260)',
-  font: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-} as const;
 
 const CHAT_MODE_STORAGE_KEY = 'orbit:agent-devtools:chat-mode';
 
@@ -126,148 +114,66 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
   const sessionState = service.getSessionState();
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        background: VAR.bg,
-        color: VAR.text,
-        fontFamily: VAR.font,
-        overflow: 'hidden',
-      }}
-    >
+    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden">
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-          padding: '10px 16px',
-          background: VAR.headerBg,
-          borderBottom: `1px solid ${VAR.border}`,
-          flexShrink: 0,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            width: '100%',
-            minWidth: 0,
-          }}
-        >
-          <span style={{ fontSize: 16 }}>🔬</span>
-          <strong style={{ fontSize: 14 }}>Agent DevTools</strong>
-          <span style={{ flex: 1 }} />
+      <div className="flex flex-col gap-2.5 px-4 py-2.5 bg-surface-secondary border-b border-border shrink-0">
+        <div className="flex items-center gap-2 w-full min-w-0">
+          <span className="text-base">🔬</span>
+          <strong className="text-sm">Agent DevTools</strong>
+          <span className="flex-1" />
 
           {/* Reset button */}
           <button
             onClick={handleReset}
             title="重置所有状态"
-            style={{
-              padding: '4px 10px',
-              borderRadius: 6,
-              border: `1px solid ${VAR.border}`,
-              background: 'transparent',
-              color: VAR.textDim,
-              fontSize: 11,
-              cursor: 'pointer',
-              fontFamily: VAR.font,
-              flexShrink: 0,
-            }}
+            className="px-2.5 py-1 rounded-md border border-border bg-transparent text-muted text-[11px] cursor-pointer shrink-0 hover:bg-surface-secondary transition-colors"
           >
             🔄 重置
           </button>
 
           {/* Event count badge */}
-          <span
-            style={{
-              padding: '2px 8px',
-              borderRadius: 10,
-              background: eventLog.length > 0 ? VAR.green : VAR.border,
-              color: eventLog.length > 0 ? VAR.bg : VAR.textDim,
-              fontSize: 11,
-              fontWeight: 700,
-              flexShrink: 0,
-            }}
-          >
+          <Chip size="sm" variant="soft" color={eventLog.length > 0 ? 'success' : 'default'}>
             {eventLog.length} events
-          </span>
+          </Chip>
 
           {/* Close */}
-          <button
-            onClick={onClose}
-            aria-label="关闭"
-            style={{
-              background: 'none',
-              border: 'none',
-              color: VAR.textDim,
-              cursor: 'pointer',
-              fontSize: 18,
-              lineHeight: 1,
-              padding: '2px 6px',
-              flexShrink: 0,
-            }}
-          >
+          <Button variant="ghost" isIconOnly size="sm" onPress={onClose} aria-label="关闭">
             ✕
-          </button>
+          </Button>
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            gap: 10,
-            width: '100%',
-            minWidth: 0,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0, flex: 1 }}>
-            <span style={{ fontSize: 11, color: VAR.textDim, fontWeight: 600 }}>模式</span>
-            <div style={{ display: 'flex', gap: 2, borderRadius: 6, border: `1px solid ${VAR.border}`, overflow: 'hidden' }}>
+        <div className="flex flex-wrap items-center gap-2.5 w-full min-w-0">
+          <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
+            <span className="text-[11px] text-muted font-semibold">模式</span>
+            <div className="flex gap-0.5 rounded-md border border-border overflow-hidden">
               <button
                 onClick={() => setChatMode('mock')}
-                style={{
-                  padding: '3px 10px',
-                  border: 'none',
-                  background: chatMode === 'mock' ? VAR.accent : 'transparent',
-                  color: chatMode === 'mock' ? VAR.bg : VAR.textDim,
-                  fontSize: 11,
-                  cursor: 'pointer',
-                  fontFamily: VAR.font,
-                  fontWeight: chatMode === 'mock' ? 600 : 400,
-                }}
+                className={`px-2.5 py-[3px] border-none text-[11px] cursor-pointer transition-colors ${
+                  chatMode === 'mock'
+                    ? 'bg-accent text-background font-semibold'
+                    : 'bg-transparent text-muted'
+                }`}
               >
                 🎭 Mock
               </button>
               <button
                 onClick={() => setChatMode('real')}
-                style={{
-                  padding: '3px 10px',
-                  border: 'none',
-                  background: chatMode === 'real' ? VAR.green : 'transparent',
-                  color: chatMode === 'real' ? VAR.bg : VAR.textDim,
-                  fontSize: 11,
-                  cursor: 'pointer',
-                  fontFamily: VAR.font,
-                  fontWeight: chatMode === 'real' ? 600 : 400,
-                }}
+                className={`px-2.5 py-[3px] border-none text-[11px] cursor-pointer transition-colors ${
+                  chatMode === 'real'
+                    ? 'bg-success text-background font-semibold'
+                    : 'bg-transparent text-muted'
+                }`}
               >
                 🤖 Real LLM
               </button>
             </div>
 
             <span
-              style={{
-                fontSize: 11,
-                color: chatMode === 'real'
-                  ? (service.getActiveProvider() ? VAR.green : VAR.red)
-                  : VAR.textDim,
-                minWidth: 0,
-              }}
+              className={`text-[11px] min-w-0 ${
+                chatMode === 'real'
+                  ? (service.getActiveProvider() ? 'text-success' : 'text-danger')
+                  : 'text-muted'
+              }`}
             >
               {chatMode === 'real'
                 ? `当前供应商：${service.getActiveProvider() ?? '未配置'}`
@@ -277,61 +183,45 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
 
           {/* Scenario selector (mock mode only) */}
           {chatMode === 'mock' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', minWidth: 0, flex: 999 }}>
-              <span style={{ fontSize: 11, color: VAR.textDim, fontWeight: 600 }}>场景</span>
-              {SCENARIOS.map((sc) => (
-                <button
-                  key={sc.id}
-                  onClick={() => handleRunScenario(sc)}
-                  disabled={service.getIsRunning()}
-                  title={sc.description}
-                  style={{
-                    padding: '3px 8px',
-                    borderRadius: 6,
-                    border: `1px solid ${VAR.border}`,
-                    background: service.getActiveScenario()?.id === sc.id ? VAR.accent : 'transparent',
-                    color: service.getActiveScenario()?.id === sc.id ? VAR.bg : VAR.textDim,
-                    fontSize: 11,
-                    cursor: service.getIsRunning() ? 'not-allowed' : 'pointer',
-                    fontFamily: VAR.font,
-                    opacity: service.getIsRunning() && service.getActiveScenario()?.id !== sc.id ? 0.5 : 1,
-                    flexShrink: 0,
-                  }}
-                >
-                  {sc.label}
-                </button>
-              ))}
+            <div className="flex items-center gap-1.5 flex-wrap min-w-0" style={{ flex: 999 }}>
+              <span className="text-[11px] text-muted font-semibold">场景</span>
+              {SCENARIOS.map((sc) => {
+                const isActive = service.getActiveScenario()?.id === sc.id;
+                const isRunning = service.getIsRunning();
+                return (
+                  <button
+                    key={sc.id}
+                    onClick={() => handleRunScenario(sc)}
+                    disabled={isRunning}
+                    title={sc.description}
+                    className={`px-2 py-[3px] rounded-md border text-[11px] shrink-0 transition-colors ${
+                      isActive
+                        ? 'border-accent bg-accent text-background'
+                        : 'border-border bg-transparent text-muted'
+                    } ${isRunning ? 'cursor-not-allowed' : 'cursor-pointer'} ${
+                      isRunning && !isActive ? 'opacity-50' : ''
+                    }`}
+                  >
+                    {sc.label}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
       </div>
 
       {/* Tab bar */}
-      <div
-        style={{
-          display: 'flex',
-          borderBottom: `1px solid ${VAR.border}`,
-          background: VAR.surface,
-          flexShrink: 0,
-        }}
-      >
+      <div className="flex border-b border-border bg-surface shrink-0">
         {TAB_ITEMS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            style={{
-              flex: 1,
-              padding: '10px 0',
-              background: 'none',
-              border: 'none',
-              borderBottom: tab === t.id ? `2px solid ${VAR.accent}` : '2px solid transparent',
-              color: tab === t.id ? VAR.text : VAR.textDim,
-              fontSize: 13,
-              fontWeight: tab === t.id ? 600 : 400,
-              cursor: 'pointer',
-              fontFamily: VAR.font,
-              transition: 'all 0.15s',
-            }}
+            className={`flex-1 py-2.5 bg-transparent border-none cursor-pointer text-[13px] transition-all border-b-2 ${
+              tab === t.id
+                ? 'border-b-accent text-foreground font-semibold'
+                : 'border-b-transparent text-muted'
+            }`}
           >
             {t.icon} {t.label}
           </button>
@@ -339,7 +229,7 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
       </div>
 
       {/* Tab content */}
-      <div style={{ flex: 1, overflow: 'hidden' }}>
+      <div className="flex-1 overflow-hidden">
         {tab === 'chat' && (
           <AgentChatPanel
             viewModel={viewModel}

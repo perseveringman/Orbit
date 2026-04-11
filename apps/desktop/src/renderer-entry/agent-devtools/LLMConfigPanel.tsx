@@ -4,6 +4,7 @@
 // ---------------------------------------------------------------------------
 
 import { useState, useCallback, useRef } from 'react';
+import { Button, Chip } from '@heroui/react';
 import {
   PROVIDER_CATALOG,
   type ProviderCatalogEntry,
@@ -14,31 +15,13 @@ import {
   type ConnectivityResult,
 } from './llm-config-store';
 
-// ---- Styling ----
-
-const V = {
-  bg: 'oklch(0.11 0.008 260)',
-  surface: 'oklch(0.17 0.008 260)',
-  surfaceHover: 'oklch(0.20 0.008 260)',
-  headerBg: 'oklch(0.14 0.01 260)',
-  text: 'oklch(0.93 0.005 260)',
-  textDim: 'oklch(0.55 0.01 260)',
-  accent: 'oklch(0.65 0.15 250)',
-  green: 'oklch(0.65 0.15 145)',
-  red: 'oklch(0.60 0.18 25)',
-  yellow: 'oklch(0.70 0.15 80)',
-  border: 'oklch(0.25 0.01 260)',
-  inputBg: 'oklch(0.09 0.006 260)',
-  font: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-} as const;
-
 // ---- Transport badge ----
 
 function TransportBadge({ transport }: { transport: string }) {
-  const colors: Record<string, string> = {
-    'openai_chat': V.accent,
-    'anthropic_messages': 'oklch(0.60 0.15 320)',
-    'codex_responses': V.yellow,
+  const chipColor: Record<string, 'accent' | 'warning' | 'default'> = {
+    'openai_chat': 'accent',
+    'anthropic_messages': 'accent',
+    'codex_responses': 'warning',
   };
   const labels: Record<string, string> = {
     'openai_chat': 'OpenAI',
@@ -47,45 +30,28 @@ function TransportBadge({ transport }: { transport: string }) {
   };
 
   return (
-    <span
-      style={{
-        fontSize: 10,
-        padding: '1px 6px',
-        borderRadius: 4,
-        border: `1px solid ${colors[transport] ?? V.border}`,
-        color: colors[transport] ?? V.textDim,
-        fontWeight: 600,
-        whiteSpace: 'nowrap',
-      }}
-    >
+    <Chip size="sm" variant="soft" color={chipColor[transport] ?? 'default'}>
       {labels[transport] ?? transport}
-    </span>
+    </Chip>
   );
 }
 
 // ---- Status indicator ----
 
 function StatusDot({ status }: { status: 'none' | 'success' | 'error' | 'auth_error' | 'timeout' | 'testing' }) {
-  const color: Record<string, string> = {
-    none: V.textDim,
-    success: V.green,
-    error: V.red,
-    auth_error: V.red,
-    timeout: V.yellow,
-    testing: V.yellow,
+  const colorClass: Record<string, string> = {
+    none: 'bg-muted',
+    success: 'bg-success',
+    error: 'bg-danger',
+    auth_error: 'bg-danger',
+    timeout: 'bg-warning',
+    testing: 'bg-warning',
   };
 
   return (
     <span
-      style={{
-        display: 'inline-block',
-        width: 8,
-        height: 8,
-        borderRadius: '50%',
-        background: color[status],
-        flexShrink: 0,
-        animation: status === 'testing' ? 'pulse 1s infinite' : undefined,
-      }}
+      className={`inline-block w-2 h-2 rounded-full shrink-0 ${colorClass[status]}`}
+      style={{ animation: status === 'testing' ? 'pulse 1s infinite' : undefined }}
     />
   );
 }
@@ -164,73 +130,58 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
 
   return (
     <div
-      style={{
-        border: `1px solid ${isConfigured ? V.green + '40' : V.border}`,
-        borderRadius: 8,
-        background: expanded ? V.surface : 'transparent',
-        overflow: 'hidden',
-        transition: 'all 0.15s',
-        minWidth: 0,
-      }}
+      className={`rounded-lg overflow-hidden transition-all min-w-0 border ${
+        isConfigured ? 'border-success/25' : 'border-border'
+      } ${expanded ? 'bg-surface' : 'bg-transparent hover:bg-surface-secondary'}`}
     >
       {/* Header row */}
       <div
         onClick={() => setExpanded(!expanded)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 8,
-          padding: '10px 12px',
-          cursor: 'pointer',
-          userSelect: 'none',
-        }}
-        onMouseEnter={(e) => { if (!expanded) e.currentTarget.style.background = V.surfaceHover; }}
-        onMouseLeave={(e) => { if (!expanded) e.currentTarget.style.background = 'transparent'; }}
+        className="flex items-center flex-wrap gap-2 px-3 py-2.5 cursor-pointer select-none"
       >
         <StatusDot status={connStatus} />
-        <span style={{ fontWeight: 600, fontSize: 13, color: V.text, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{entry.displayName}</span>
+        <span className="font-semibold text-[13px] text-foreground min-w-0 overflow-hidden text-ellipsis">{entry.displayName}</span>
 
         {entry.isAggregator && (
-          <span style={{ fontSize: 10, color: V.yellow, fontWeight: 600 }}>聚合</span>
+          <span className="text-[10px] text-warning font-semibold">聚合</span>
         )}
 
         <TransportBadge transport={entry.transport} />
 
         {!isApiKeyAuth && (
-          <span style={{ fontSize: 10, color: V.textDim }}>
+          <span className="text-[10px] text-muted">
             {entry.authType === 'oauth_device_code' ? '🔐 OAuth' :
              entry.authType === 'oauth_external' ? '🔐 OAuth (ext)' :
              entry.authType === 'external_process' ? '⚙️ 外部进程' : entry.authType}
           </span>
         )}
 
-        <span style={{ flex: 1, minWidth: 12 }} />
+        <span className="flex-1 min-w-[12px]" />
 
         {isConfigured && (
-          <span style={{ fontSize: 10, color: V.green, fontWeight: 600 }}>● 已配置</span>
+          <span className="text-[10px] text-success font-semibold">● 已配置</span>
         )}
 
         {showSaved && (
-          <span style={{ fontSize: 10, color: V.green, fontWeight: 600, animation: 'fadeIn 0.2s' }}>✓ 已保存</span>
+          <span className="text-[10px] text-success font-semibold animate-[fadeIn_0.2s]">✓ 已保存</span>
         )}
 
-        <span style={{ fontSize: 12, color: V.textDim, transition: 'transform 0.15s', transform: expanded ? 'rotate(180deg)' : 'none' }}>
+        <span className={`text-xs text-muted transition-transform ${expanded ? 'rotate-180' : ''}`}>
           ▾
         </span>
       </div>
 
       {/* Expanded config form */}
       {expanded && (
-        <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
+        <div className="px-3 pb-3 flex flex-col gap-2.5 min-w-0">
           {/* Description */}
-          <div style={{ fontSize: 12, color: V.textDim, lineHeight: 1.4 }}>
+          <div className="text-xs text-muted leading-relaxed">
             {entry.description}
             {entry.docUrl && (
               <>
                 {' — '}
                 <a href={entry.docUrl} target="_blank" rel="noopener noreferrer"
-                  style={{ color: V.accent, textDecoration: 'none' }}
+                  className="text-accent no-underline hover:underline"
                 >
                   文档 ↗
                 </a>
@@ -241,200 +192,121 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
           {/* API Key */}
           {isApiKeyAuth && (
             <div>
-              <label style={{ fontSize: 11, color: V.textDim, display: 'block', marginBottom: 4 }}>
+              <label className="text-[11px] text-muted block mb-1">
                 API Key {entry.apiKeyEnvVars.length > 0 && (
-                  <span style={{ fontSize: 10 }}>({entry.apiKeyEnvVars[0]})</span>
+                  <span className="text-[10px]">({entry.apiKeyEnvVars[0]})</span>
                 )}
               </label>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div className="flex gap-1.5">
                 <input
                   type={showApiKey ? 'text' : 'password'}
                   value={config.apiKey}
                   onChange={(e) => updateConfig({ apiKey: e.target.value })}
                   placeholder="sk-..."
-                  style={{
-                    flex: 1,
-                    padding: '6px 10px',
-                    borderRadius: 6,
-                    border: `1px solid ${V.border}`,
-                    background: V.inputBg,
-                    color: V.text,
-                    fontSize: 12,
-                    fontFamily: 'monospace',
-                    outline: 'none',
-                  }}
+                  className="flex-1 px-2.5 py-1.5 rounded-md border border-border bg-surface-tertiary text-foreground text-xs font-mono outline-none focus:ring-1 focus:ring-focus"
                 />
-                <button
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: 6,
-                    border: `1px solid ${V.border}`,
-                    background: 'transparent',
-                    color: V.textDim,
-                    fontSize: 12,
-                    cursor: 'pointer',
-                  }}
-                >
+                <Button variant="ghost" size="sm" isIconOnly onPress={() => setShowApiKey(!showApiKey)}>
                   {showApiKey ? '🙈' : '👁'}
-                </button>
+                </Button>
               </div>
             </div>
           )}
 
           {/* Base URL override */}
           <div>
-            <label style={{ fontSize: 11, color: V.textDim, display: 'block', marginBottom: 4 }}>
-              Base URL <span style={{ fontSize: 10 }}>(留空使用默认: {entry.defaultBaseUrl})</span>
+            <label className="text-[11px] text-muted block mb-1">
+              Base URL <span className="text-[10px]">(留空使用默认: {entry.defaultBaseUrl})</span>
             </label>
             <input
               type="text"
               value={config.baseUrl}
               onChange={(e) => updateConfig({ baseUrl: e.target.value })}
               placeholder={entry.defaultBaseUrl}
-              style={{
-                width: '100%',
-                padding: '6px 10px',
-                borderRadius: 6,
-                border: `1px solid ${V.border}`,
-                background: V.inputBg,
-                color: V.text,
-                fontSize: 12,
-                fontFamily: 'monospace',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
+              className="w-full px-2.5 py-1.5 rounded-md border border-border bg-surface-tertiary text-foreground text-xs font-mono outline-none focus:ring-1 focus:ring-focus box-border"
             />
           </div>
 
           {/* Default Model */}
           <div>
-            <label style={{ fontSize: 11, color: V.textDim, display: 'block', marginBottom: 4 }}>
-              默认模型 <span style={{ fontSize: 10 }}>(留空使用: {entry.defaultModel})</span>
+            <label className="text-[11px] text-muted block mb-1">
+              默认模型 <span className="text-[10px]">(留空使用: {entry.defaultModel})</span>
             </label>
             <input
               type="text"
               value={config.defaultModel}
               onChange={(e) => updateConfig({ defaultModel: e.target.value })}
               placeholder={entry.defaultModel}
-              style={{
-                width: '100%',
-                padding: '6px 10px',
-                borderRadius: 6,
-                border: `1px solid ${V.border}`,
-                background: V.inputBg,
-                color: V.text,
-                fontSize: 12,
-                fontFamily: 'monospace',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
+              className="w-full px-2.5 py-1.5 rounded-md border border-border bg-surface-tertiary text-foreground text-xs font-mono outline-none focus:ring-1 focus:ring-focus box-border"
             />
           </div>
 
           {/* Enabled toggle + action buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: V.text, cursor: 'pointer' }}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <label className="flex items-center gap-1.5 text-xs text-foreground cursor-pointer">
               <input
                 type="checkbox"
                 checked={config.enabled}
                 onChange={(e) => updateConfig({ enabled: e.target.checked })}
-                style={{ accentColor: V.green }}
+                className="accent-success"
               />
               启用
             </label>
 
-            <span style={{ flex: 1 }} />
+            <span className="flex-1" />
 
             {/* Test connectivity */}
-            {(
-              <button
-                onClick={handleTestConnectivity}
-                disabled={isTesting || (!hasApiKey && isApiKeyAuth)}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: 6,
-                  border: `1px solid ${V.border}`,
-                  background: 'transparent',
-                  color: isTesting ? V.yellow : V.accent,
-                  fontSize: 11,
-                  cursor: isTesting || (!hasApiKey && isApiKeyAuth) ? 'not-allowed' : 'pointer',
-                  fontFamily: V.font,
-                  opacity: (!hasApiKey && isApiKeyAuth) ? 0.4 : 1,
-                }}
-              >
-                {isTesting ? '⏳ 测试中...' : '🔗 测试连通性'}
-              </button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onPress={handleTestConnectivity}
+              isDisabled={isTesting || (!hasApiKey && isApiKeyAuth)}
+              className={isTesting ? 'text-warning' : 'text-accent'}
+            >
+              {isTesting ? '⏳ 测试中...' : '🔗 测试连通性'}
+            </Button>
 
             {/* Test chat */}
             {(entry.transport === 'openai_chat' || entry.transport === 'anthropic_messages') && (
-              <button
-                onClick={handleTestChat}
-                disabled={isChatTesting || !hasApiKey}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: 6,
-                  border: `1px solid ${V.border}`,
-                  background: 'transparent',
-                  color: isChatTesting ? V.yellow : V.green,
-                  fontSize: 11,
-                  cursor: isChatTesting || !hasApiKey ? 'not-allowed' : 'pointer',
-                  fontFamily: V.font,
-                  opacity: !hasApiKey ? 0.4 : 1,
-                }}
+              <Button
+                variant="ghost"
+                size="sm"
+                onPress={handleTestChat}
+                isDisabled={isChatTesting || !hasApiKey}
+                className={isChatTesting ? 'text-warning' : 'text-success'}
               >
                 {isChatTesting ? '⏳ 调用中...' : '💬 测试对话'}
-              </button>
+              </Button>
             )}
           </div>
 
           {/* Test connectivity result */}
           {testResult && (
             <div
-              style={{
-                padding: '8px 10px',
-                borderRadius: 6,
-                fontSize: 12,
-                background: testResult.status === 'success' ? V.green + '15' :
-                            testResult.status === 'auth_error' ? V.red + '15' :
-                            V.yellow + '15',
-                color: testResult.status === 'success' ? V.green :
-                       testResult.status === 'auth_error' ? V.red :
-                       V.yellow,
-                border: `1px solid ${
-                  testResult.status === 'success' ? V.green + '30' :
-                  testResult.status === 'auth_error' ? V.red + '30' :
-                  V.yellow + '30'
-                }`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 10,
-                flexWrap: 'wrap',
-              }}
+              className={`px-2.5 py-2 rounded-md text-xs flex items-center justify-between gap-2.5 flex-wrap border ${
+                testResult.status === 'success'
+                  ? 'bg-success/10 text-success border-success/20'
+                  : testResult.status === 'auth_error'
+                  ? 'bg-danger/10 text-danger border-danger/20'
+                  : 'bg-warning/10 text-warning border-warning/20'
+              }`}
             >
-              <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+              <span className="min-w-0 break-all">
                 {testResult.status === 'success' ? '✅' : testResult.status === 'auth_error' ? '🔑' : '⚠️'}
                 {' '}
                 {testResult.message}
               </span>
-              <span style={{ opacity: 0.7, flexShrink: 0 }}>{testResult.latencyMs}ms</span>
+              <span className="opacity-70 shrink-0">{testResult.latencyMs}ms</span>
             </div>
           )}
 
           {/* Chat test result */}
           {chatResult && (
             <div
-              style={{
-                padding: '8px 10px',
-                borderRadius: 6,
-                fontSize: 12,
-                background: chatResult.success ? V.green + '15' : V.red + '15',
-                color: chatResult.success ? V.green : V.red,
-                border: `1px solid ${chatResult.success ? V.green + '30' : V.red + '30'}`,
-                overflowWrap: 'anywhere',
-              }}
+              className={`px-2.5 py-2 rounded-md text-xs break-all border ${
+                chatResult.success
+                  ? 'bg-success/10 text-success border-success/20'
+                  : 'bg-danger/10 text-danger border-danger/20'
+              }`}
             >
               {chatResult.success ? '✅' : '❌'}{' '}
               {chatResult.success
@@ -496,32 +368,19 @@ export function LLMConfigPanel({ onConfigChanged }: LLMConfigPanelProps) {
   }).length;
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        fontFamily: V.font,
-        overflow: 'hidden',
-      }}
-    >
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header stats */}
-      <div style={{ padding: '12px 14px', borderBottom: `1px solid ${V.border}`, flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: V.text }}>
+      <div className="px-3.5 py-3 border-b border-border shrink-0">
+        <div className="flex items-center gap-3 mb-2.5 flex-wrap">
+          <span className="text-[13px] font-semibold text-foreground">
             LLM 供应商配置
           </span>
-          <span style={{ fontSize: 11, color: V.textDim }}>
+          <span className="text-[11px] text-muted">
             {PROVIDER_CATALOG.length} 个供应商
           </span>
-          <span style={{
-            fontSize: 11, padding: '1px 8px', borderRadius: 10,
-            background: configuredCount > 0 ? V.green : V.border,
-            color: configuredCount > 0 ? V.bg : V.textDim,
-            fontWeight: 700,
-          }}>
+          <Chip size="sm" variant="soft" color={configuredCount > 0 ? 'success' : 'default'}>
             {configuredCount} 已配置
-          </span>
+          </Chip>
         </div>
 
         {/* Search bar */}
@@ -530,22 +389,11 @@ export function LLMConfigPanel({ onConfigChanged }: LLMConfigPanelProps) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="搜索供应商..."
-          style={{
-            width: '100%',
-            padding: '6px 10px',
-            borderRadius: 6,
-            border: `1px solid ${V.border}`,
-            background: V.inputBg,
-            color: V.text,
-            fontSize: 12,
-            outline: 'none',
-            boxSizing: 'border-box',
-            marginBottom: 8,
-          }}
+          className="w-full px-2.5 py-1.5 rounded-md border border-border bg-surface-tertiary text-foreground text-xs outline-none focus:ring-1 focus:ring-focus box-border mb-2"
         />
 
         {/* Filter buttons */}
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        <div className="flex gap-1 flex-wrap">
           {([
             ['all', '全部'],
             ['configured', '已配置'],
@@ -555,16 +403,11 @@ export function LLMConfigPanel({ onConfigChanged }: LLMConfigPanelProps) {
             <button
               key={key}
               onClick={() => setFilter(key)}
-              style={{
-                padding: '3px 10px',
-                borderRadius: 6,
-                border: `1px solid ${filter === key ? V.accent : V.border}`,
-                background: filter === key ? V.accent + '20' : 'transparent',
-                color: filter === key ? V.accent : V.textDim,
-                fontSize: 11,
-                cursor: 'pointer',
-                fontFamily: V.font,
-              }}
+              className={`px-2.5 py-[3px] rounded-md text-[11px] cursor-pointer transition-colors border ${
+                filter === key
+                  ? 'border-accent bg-accent/15 text-accent'
+                  : 'border-border bg-transparent text-muted hover:bg-surface-secondary'
+              }`}
             >
               {label}
             </button>
@@ -573,9 +416,9 @@ export function LLMConfigPanel({ onConfigChanged }: LLMConfigPanelProps) {
       </div>
 
       {/* Provider list */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+      <div className="flex-1 overflow-auto p-2.5 flex flex-col gap-2 min-w-0">
         {filteredProviders.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 32, color: V.textDim, fontSize: 13 }}>
+          <div className="text-center p-8 text-muted text-sm">
             没有匹配的供应商
           </div>
         ) : (
@@ -590,14 +433,7 @@ export function LLMConfigPanel({ onConfigChanged }: LLMConfigPanelProps) {
       </div>
 
       {/* Footer tip */}
-      <div style={{
-        padding: '8px 14px',
-        borderTop: `1px solid ${V.border}`,
-        fontSize: 11,
-        color: V.textDim,
-        textAlign: 'center',
-        flexShrink: 0,
-      }}>
+      <div className="px-3.5 py-2 border-t border-border text-[11px] text-muted text-center shrink-0">
         💡 配置 API Key 并启用后，可在「对话」标签页中使用真实 LLM 模型进行测试
       </div>
     </div>

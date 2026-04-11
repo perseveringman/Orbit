@@ -15,7 +15,5 @@
     "test": "node --test --experimental-strip-types --loader ./test-loader.mjs tests/index.test.ts",
     "clean": "rm -rf dist coverage"
   },
-  "dependencies": {
-    "@orbit/ui-tokens": "workspace:*"
-  }
+  "dependencies": {}
 }

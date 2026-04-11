@@ -6,7 +6,6 @@ import {
   type WorkspaceSection
 } from '@orbit/app-viewmodels';
 import { createEditorDomModule, type EditorDomModule } from '@orbit/editor-dom';
-import { createDomSlot, createDomThemeContract, type DomSlot, type DomThemeContract } from '@orbit/ui-dom';
 
 export type WorkbenchDomHostKind = 'web' | 'desktop';
 
@@ -48,12 +47,6 @@ export interface WorkbenchDomModule {
   host: WorkbenchDomHost;
   shell: WorkbenchShellViewModel;
   editor: EditorDomModule;
-  theme: DomThemeContract;
-  slots: {
-    planner: DomSlot<WorkbenchPlannerSlotProps>;
-    workspace: DomSlot<WorkbenchWorkspaceSlotProps>;
-    review: DomSlot<WorkbenchReviewSlotProps>;
-  };
 }
 
 export interface MountedWorkbench extends WorkbenchDomModule {
@@ -64,10 +57,6 @@ export interface MountedWorkbench extends WorkbenchDomModule {
 
 function getPendingReviewCount(shell: WorkbenchShellViewModel): number {
   return shell.review.projectsNeedingReview.length + shell.review.tasksNeedingReview.length;
-}
-
-function getReviewItemCount(shell: WorkbenchShellViewModel): number {
-  return shell.review.completedToday.length + shell.review.carryForward.length + getPendingReviewCount(shell);
 }
 
 export function createWorkbenchDomModule(input: WorkbenchDomInput): WorkbenchDomModule {
@@ -83,34 +72,11 @@ export function createWorkbenchDomModule(input: WorkbenchDomInput): WorkbenchDom
     draft: input.draft,
     selectionMode: input.selectionMode ?? 'single'
   });
-  const pendingReviewCount = getPendingReviewCount(shell);
-  const reviewItemCount = getReviewItemCount(shell);
 
   return {
     host: input.host,
     shell,
     editor,
-    theme: createDomThemeContract(),
-    slots: {
-      planner: createDomSlot('planner-sidebar', {
-        activeSection: input.activeSection,
-        currentDate: shell.planner.currentDate,
-        intent: shell.planner.intent,
-        summary: shell.planner.summary
-      }),
-      workspace: createDomSlot('workspace-main', {
-        projectCount: shell.projects.length,
-        taskCount: shell.tasks.length,
-        todayCount: shell.today.length,
-        focusTaskId: shell.focus?.id ?? null
-      }),
-      review: createDomSlot('review-panel', {
-        reviewItemCount,
-        completedTodayCount: shell.review.completedToday.length,
-        carryForwardCount: shell.review.carryForward.length,
-        pendingReviewCount
-      })
-    }
   };
 }
 

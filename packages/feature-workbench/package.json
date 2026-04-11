@@ -19,8 +19,7 @@
     "@orbit/agent-core": "workspace:*",
     "@orbit/app-viewmodels": "workspace:*",
     "@orbit/editor-dom": "workspace:*",
-    "@orbit/i18n": "workspace:*",
-    "@orbit/ui-dom": "workspace:*"
+    "@orbit/i18n": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.0.0"

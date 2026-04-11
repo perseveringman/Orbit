@@ -1,5 +1,14 @@
 /* Orbit Web Host — Design System */
-@import '@orbit/ui-dom/src/orbit-design-system.css';
+/* Per HeroUI docs: tailwindcss first, then @heroui/styles */
+@import "tailwindcss";
+@import "@heroui/styles";
+
+/* Scan our source files for Tailwind utility classes */
+@source "./**/*.{ts,tsx}";
+@source "../index.html";
+
+/* Dark mode variant for HeroUI */
+@custom-variant dark (&:is(.dark *));
 
 /* Web-specific overrides */
 html, body, #orbit-root {
@@ -10,51 +19,7 @@ html, body, #orbit-root {
   overflow: hidden;
 }
 
-/* Electron-style frameless title bar space (not needed on web, but harmless) */
-.app {
-  height: 100vh;
-}
-
-/* ---- Agent Chat Panel ---- */
-
-.agent-panel-toggle {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  width: 3.25rem;
-  height: 3.25rem;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  background: color-mix(in oklch, var(--accent) 85%, white 15%);
-  color: white;
-  font-size: 1.35rem;
-  cursor: pointer;
-  box-shadow: 0 4px 16px oklch(0.2 0.02 260 / 0.35);
-  z-index: 999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.agent-panel-toggle:hover {
-  transform: scale(1.08);
-  box-shadow: 0 6px 24px oklch(0.2 0.02 260 / 0.45);
-}
-
-.agent-panel-overlay {
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 400px;
-  height: 100vh;
-  z-index: 1000;
-  transition: transform 0.25s ease;
-  box-shadow: -4px 0 32px oklch(0.1 0.01 260 / 0.3);
-}
-
-@media (max-width: 640px) {
-  .agent-panel-overlay {
-    width: 100vw;
-  }
+body {
+  background: var(--background);
+  color: var(--foreground);
 }

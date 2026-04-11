@@ -20,7 +20,6 @@
     "@orbit/feature-workbench": "workspace:*",
     "@orbit/platform-electron": "workspace:*",
     "@orbit/ui-dom": "workspace:*",
-    "@orbit/ui-tokens": "workspace:*",
     "electron": "^35.0.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",

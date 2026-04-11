@@ -16,7 +16,6 @@
     "clean": "rm -rf dist coverage"
   },
   "dependencies": {
-    "@orbit/app-viewmodels": "workspace:*",
-    "@orbit/ui-dom": "workspace:*"
+    "@orbit/app-viewmodels": "workspace:*"
   }
 }

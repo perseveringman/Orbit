@@ -4,61 +4,42 @@ import type { ProgressState, SessionUIState } from '@orbit/agent-core';
 // ObservabilityPanel – Progress, tokens, session state, metrics
 // ---------------------------------------------------------------------------
 
-const VAR = {
-  bg: 'oklch(0.13 0.005 260)',
-  surface: 'oklch(0.18 0.008 260)',
-  text: 'oklch(0.93 0.005 260)',
-  textDim: 'oklch(0.55 0.01 260)',
-  accent: 'oklch(0.65 0.15 250)',
-  green: 'oklch(0.65 0.15 145)',
-  red: 'oklch(0.65 0.15 25)',
-  yellow: 'oklch(0.70 0.15 80)',
-  border: 'oklch(0.25 0.01 260)',
-  font: "'Menlo', 'Monaco', 'Courier New', monospace",
-  uiFont: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-} as const;
-
 // ---- Progress bar ----
 
 function ProgressBar({ progress }: { progress: ProgressState }) {
   const pct = Math.round(progress.progress * 100);
-  const barColor =
-    progress.phase === 'error' ? VAR.red
-    : progress.phase === 'done' ? VAR.green
-    : VAR.accent;
+  const barColorClass =
+    progress.phase === 'error' ? 'bg-danger'
+    : progress.phase === 'done' ? 'bg-success'
+    : 'bg-accent';
 
   return (
-    <div style={{ padding: '16px 20px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-        <span style={{ fontSize: 20 }}>{progress.icon}</span>
-        <span style={{ fontSize: 14, fontWeight: 600, color: VAR.text, fontFamily: VAR.uiFont }}>
+    <div className="px-5 py-4">
+      <div className="flex items-center gap-2.5 mb-2">
+        <span className="text-xl">{progress.icon}</span>
+        <span className="text-sm font-semibold text-foreground">
           {progress.message}
         </span>
         {progress.detail && (
-          <span style={{ fontSize: 12, color: VAR.textDim, fontFamily: VAR.font }}>
+          <span className="text-xs text-muted font-mono">
             {progress.detail}
           </span>
         )}
-        <span style={{ marginLeft: 'auto', fontSize: 12, color: VAR.textDim, fontFamily: VAR.font }}>
+        <span className="ml-auto text-xs text-muted font-mono">
           {pct}%
         </span>
       </div>
 
       {/* Bar */}
-      <div style={{ height: 6, borderRadius: 3, background: VAR.border, overflow: 'hidden' }}>
+      <div className="h-1.5 rounded-sm bg-border overflow-hidden">
         <div
-          style={{
-            height: '100%',
-            width: `${pct}%`,
-            background: barColor,
-            borderRadius: 3,
-            transition: 'width 0.3s ease',
-          }}
+          className={`h-full rounded-sm transition-[width] duration-300 ease-out ${barColorClass}`}
+          style={{ width: `${pct}%` }}
         />
       </div>
 
       {/* Iteration info + elapsed */}
-      <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 11, color: VAR.textDim, fontFamily: VAR.font }}>
+      <div className="flex gap-4 mt-2 text-[11px] text-muted font-mono">
         {progress.iterationInfo && (
           <span>迭代 {progress.iterationInfo.current}/{progress.iterationInfo.max}</span>
         )}
@@ -71,28 +52,11 @@ function ProgressBar({ progress }: { progress: ProgressState }) {
 
 // ---- Stat card ----
 
-function StatCard({ label, value, color }: { label: string; value: string; color?: string }) {
+function StatCard({ label, value, colorClass }: { label: string; value: string; colorClass?: string }) {
   return (
-    <div
-      style={{
-        padding: '12px 16px',
-        background: VAR.surface,
-        borderRadius: 8,
-        border: `1px solid ${VAR.border}`,
-        flex: '1 1 120px',
-      }}
-    >
-      <div style={{ fontSize: 11, color: VAR.textDim, marginBottom: 4, fontFamily: VAR.uiFont }}>
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: 18,
-          fontWeight: 700,
-          color: color ?? VAR.text,
-          fontFamily: VAR.font,
-        }}
-      >
+    <div className="p-3 bg-surface rounded-lg border border-border flex-1 min-w-[120px]">
+      <div className="text-[11px] text-muted mb-1">{label}</div>
+      <div className={`text-lg font-bold font-mono ${colorClass ?? 'text-foreground'}`}>
         {value}
       </div>
     </div>
@@ -115,12 +79,12 @@ function formatCost(tokens: number): string {
 // ---- Session state ----
 
 const STATUS_COLORS: Record<string, string> = {
-  idle: VAR.textDim,
-  thinking: VAR.yellow,
-  'tool-executing': VAR.accent,
-  streaming: VAR.green,
-  'waiting-approval': VAR.yellow,
-  error: VAR.red,
+  idle: 'text-muted',
+  thinking: 'text-warning',
+  'tool-executing': 'text-accent',
+  streaming: 'text-success',
+  'waiting-approval': 'text-warning',
+  error: 'text-danger',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -134,15 +98,15 @@ const STATUS_LABELS: Record<string, string> = {
 
 function SessionStateSection({ state }: { state: SessionUIState }) {
   return (
-    <div style={{ padding: '12px 20px' }}>
-      <h3 style={{ fontSize: 13, color: VAR.textDim, margin: '0 0 12px', fontFamily: VAR.uiFont }}>
+    <div className="px-5 py-3">
+      <h3 className="text-[13px] text-muted mb-3">
         📊 会话状态
       </h3>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+      <div className="flex flex-wrap gap-2.5">
         <StatCard
           label="状态"
           value={STATUS_LABELS[state.status] ?? state.status}
-          color={STATUS_COLORS[state.status]}
+          colorClass={STATUS_COLORS[state.status]}
         />
         <StatCard
           label="消息数"
@@ -151,10 +115,10 @@ function SessionStateSection({ state }: { state: SessionUIState }) {
         <StatCard
           label="活跃工具"
           value={String(state.currentToolCalls.length)}
-          color={state.currentToolCalls.length > 0 ? VAR.accent : undefined}
+          colorClass={state.currentToolCalls.length > 0 ? 'text-accent' : undefined}
         />
         {state.activeAgent && (
-          <StatCard label="当前代理" value={state.activeAgent} color={VAR.accent} />
+          <StatCard label="当前代理" value={state.activeAgent} colorClass="text-accent" />
         )}
       </div>
     </div>
@@ -168,37 +132,36 @@ function TokenSection({ state }: { state: SessionUIState }) {
   // Context usage bar (assume 128k context)
   const maxContext = 128000;
   const usageRatio = Math.min(total / maxContext, 1);
-  const barWidth = 200;
+
+  const barColorClass =
+    usageRatio > 0.8 ? 'bg-danger'
+    : usageRatio > 0.5 ? 'bg-warning'
+    : 'bg-success';
 
   return (
-    <div style={{ padding: '12px 20px' }}>
-      <h3 style={{ fontSize: 13, color: VAR.textDim, margin: '0 0 12px', fontFamily: VAR.uiFont }}>
+    <div className="px-5 py-3">
+      <h3 className="text-[13px] text-muted mb-3">
         🪙 Token 使用量
       </h3>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+      <div className="flex flex-wrap gap-2.5 mb-3">
         <StatCard label="Prompt" value={formatTokens(tokenUsage.prompt)} />
         <StatCard label="Completion" value={formatTokens(tokenUsage.completion)} />
-        <StatCard label="总计" value={formatTokens(total)} color={VAR.accent} />
-        <StatCard label="估算成本" value={formatCost(total)} color={VAR.green} />
+        <StatCard label="总计" value={formatTokens(total)} colorClass="text-accent" />
+        <StatCard label="估算成本" value={formatCost(total)} colorClass="text-success" />
       </div>
 
       {/* Context usage bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 11, color: VAR.textDim, fontFamily: VAR.font, width: 80 }}>
+      <div className="flex items-center gap-2.5">
+        <span className="text-[11px] text-muted font-mono w-20">
           上下文:
         </span>
-        <div style={{ width: barWidth, height: 8, borderRadius: 4, background: VAR.border }}>
+        <div className="w-[200px] h-2 rounded bg-border">
           <div
-            style={{
-              height: '100%',
-              width: `${usageRatio * 100}%`,
-              borderRadius: 4,
-              background: usageRatio > 0.8 ? VAR.red : usageRatio > 0.5 ? VAR.yellow : VAR.green,
-              transition: 'width 0.3s ease',
-            }}
+            className={`h-full rounded transition-[width] duration-300 ease-out ${barColorClass}`}
+            style={{ width: `${usageRatio * 100}%` }}
           />
         </div>
-        <span style={{ fontSize: 11, color: VAR.textDim, fontFamily: VAR.font }}>
+        <span className="text-[11px] text-muted font-mono">
           {formatTokens(total)} / {formatTokens(maxContext)}
         </span>
       </div>
@@ -213,46 +176,38 @@ function ToolCallsSection({ state }: { state: SessionUIState }) {
   if (allToolCalls.length === 0) return null;
 
   return (
-    <div style={{ padding: '12px 20px' }}>
-      <h3 style={{ fontSize: 13, color: VAR.textDim, margin: '0 0 12px', fontFamily: VAR.uiFont }}>
+    <div className="px-5 py-3">
+      <h3 className="text-[13px] text-muted mb-3">
         🔧 活跃工具调用
       </h3>
-      <div style={{ borderRadius: 8, border: `1px solid ${VAR.border}`, overflow: 'hidden' }}>
-        {allToolCalls.map((tc) => (
-          <div
-            key={tc.id}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '8px 12px',
-              borderBottom: `1px solid ${VAR.border}`,
-              fontSize: 12,
-              fontFamily: VAR.font,
-            }}
-          >
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background:
-                  tc.status === 'running' ? VAR.yellow
-                  : tc.status === 'completed' ? VAR.green
-                  : VAR.red,
-                flexShrink: 0,
-                animation: tc.status === 'running' ? 'agent-pulse 1.2s ease-in-out infinite' : 'none',
-              }}
-            />
-            <span style={{ color: VAR.accent, fontWeight: 600, minWidth: 100 }}>{tc.name}</span>
-            <span style={{ color: VAR.textDim, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {JSON.stringify(tc.args).slice(0, 80)}
-            </span>
-            {tc.durationMs !== undefined && (
-              <span style={{ color: VAR.textDim }}>{tc.durationMs}ms</span>
-            )}
-          </div>
-        ))}
+      <div className="rounded-lg border border-border overflow-hidden">
+        {allToolCalls.map((tc) => {
+          const dotColorClass =
+            tc.status === 'running' ? 'bg-warning'
+            : tc.status === 'completed' ? 'bg-success'
+            : 'bg-danger';
+
+          return (
+            <div
+              key={tc.id}
+              className="flex items-center gap-2.5 px-3 py-2 border-b border-border text-xs font-mono"
+            >
+              <span
+                className={`w-2 h-2 rounded-full shrink-0 ${dotColorClass}`}
+                style={{
+                  animation: tc.status === 'running' ? 'agent-pulse 1.2s ease-in-out infinite' : 'none',
+                }}
+              />
+              <span className="text-accent font-semibold min-w-[100px]">{tc.name}</span>
+              <span className="text-muted flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                {JSON.stringify(tc.args).slice(0, 80)}
+              </span>
+              {tc.durationMs !== undefined && (
+                <span className="text-muted">{tc.durationMs}ms</span>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -270,22 +225,22 @@ export interface ObservabilityPanelProps {
 
 export function ObservabilityPanel({ progress, sessionState, eventCount }: ObservabilityPanelProps) {
   return (
-    <div style={{ height: '100%', overflowY: 'auto', background: VAR.bg }}>
+    <div className="h-full overflow-y-auto bg-background">
       <style>{`@keyframes agent-pulse{0%,100%{opacity:.35}50%{opacity:1}}`}</style>
 
       {/* Progress */}
       <ProgressBar progress={progress} />
 
-      <div style={{ height: 1, background: VAR.border }} />
+      <div className="h-px bg-border" />
 
       {/* Quick stats */}
-      <div style={{ padding: '12px 20px' }}>
-        <h3 style={{ fontSize: 13, color: VAR.textDim, margin: '0 0 12px', fontFamily: VAR.uiFont }}>
+      <div className="px-5 py-3">
+        <h3 className="text-[13px] text-muted mb-3">
           ⚡ 概览
         </h3>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+        <div className="flex flex-wrap gap-2.5">
           <StatCard label="事件总数" value={String(eventCount)} />
-          <StatCard label="阶段" value={progress.phase} color={STATUS_COLORS[progress.phase] ?? VAR.text} />
+          <StatCard label="阶段" value={progress.phase} colorClass={STATUS_COLORS[progress.phase] ?? 'text-foreground'} />
           <StatCard
             label="耗时"
             value={progress.elapsed > 0 ? `${(progress.elapsed / 1000).toFixed(1)}s` : '—'}
@@ -293,21 +248,21 @@ export function ObservabilityPanel({ progress, sessionState, eventCount }: Obser
         </div>
       </div>
 
-      <div style={{ height: 1, background: VAR.border }} />
+      <div className="h-px bg-border" />
 
       {/* Session state */}
       {sessionState && (
         <>
           <SessionStateSection state={sessionState} />
-          <div style={{ height: 1, background: VAR.border }} />
+          <div className="h-px bg-border" />
           <TokenSection state={sessionState} />
-          <div style={{ height: 1, background: VAR.border }} />
+          <div className="h-px bg-border" />
           <ToolCallsSection state={sessionState} />
         </>
       )}
 
       {!sessionState && (
-        <div style={{ padding: 40, textAlign: 'center', color: VAR.textDim, fontSize: 13, fontFamily: VAR.uiFont }}>
+        <div className="p-10 text-center text-muted text-sm">
           发送消息或运行场景以查看可观测数据。
         </div>
       )}
