@@ -405,7 +405,7 @@ ipcMain.handle('agent:stream-start', async (event, request: StreamRequest) => {
         type: 'agent:tool-call',
         toolName: chunk.content_block.name,
         toolCallId: chunk.content_block.id,
-        args: JSON.stringify(chunk.content_block.input ?? {}),
+        args: chunk.content_block.input ?? {},
         runId: requestId,
         timestamp: Date.now(),
       } satisfies AgentToolCallEvent);
