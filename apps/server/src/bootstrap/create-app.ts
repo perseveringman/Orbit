@@ -1,5 +1,8 @@
 import { Hono } from 'hono';
 
+import { createAuthMiddleware } from '../http/middleware/auth.js';
+import { createErrorHandler } from '../http/middleware/error-handler.js';
+import { createRateLimiter, DEFAULT_RATE_LIMITS } from '../http/middleware/rate-limiter.js';
 import { createAuthRoutes } from '../http/routes/auth.js';
 import { createAdminRoutes } from '../http/routes/admin.js';
 import { createBlobRoutes } from '../http/routes/blob.js';
@@ -24,6 +27,19 @@ export const createApp = () => {
 
   const app = new Hono();
   const api = new Hono();
+
+  // Global error handler
+  app.use('*', createErrorHandler());
+
+  // Rate limiting
+  app.use('*', createRateLimiter(DEFAULT_RATE_LIMITS));
+
+  // Auth middleware for protected routes
+  const authMiddleware = createAuthMiddleware(infra.tokenService);
+  api.use('/device/*', authMiddleware);
+  api.use('/sync/*', authMiddleware);
+  api.use('/blob/*', authMiddleware);
+  api.use('/admin/*', authMiddleware);
 
   app.get('/', (c) =>
     c.json(
