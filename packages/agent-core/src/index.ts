@@ -126,3 +126,6 @@ export * from './memory/index.js';
 
 // Observability & DevTools
 export * from './observability/index.js';
+
+// Built-in Tools (M8)
+export * from './tools/index.js';
