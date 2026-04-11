@@ -1,7 +1,7 @@
 /* Orbit Desktop Host — Design System */
-
-/* HeroUI v3 styles (includes Tailwind CSS v4 internally) */
-@import '@heroui/react/styles';
+/* Per HeroUI docs: tailwindcss first, then @heroui/styles */
+@import "tailwindcss";
+@import "@heroui/styles";
 
 /* Scan our source files for Tailwind utility classes */
 @source "../src/**/*.{ts,tsx}";

@@ -41,6 +41,9 @@ importers:
       '@heroui/react':
         specifier: ^3.0.2
         version: 3.0.2(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(tailwindcss@4.2.2)
+      '@heroui/styles':
+        specifier: ^3.0.2
+        version: 3.0.2(tailwind-merge@3.4.0)(tailwindcss@4.2.2)
       '@orbit/feature-workbench':
         specifier: workspace:*
         version: link:../../packages/feature-workbench

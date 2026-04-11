@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@heroui/react": "^3.0.2",
+    "@heroui/styles": "^3.0.2",
     "@orbit/feature-workbench": "workspace:*",
     "@orbit/platform-electron": "workspace:*",
     "@orbit/ui-dom": "workspace:*",
