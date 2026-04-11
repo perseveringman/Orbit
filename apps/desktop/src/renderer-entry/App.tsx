@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import type { ProjectRecord, TaskRecord } from '@orbit/domain';
 import { createWorkbenchDomModule, mountWorkbench } from '@orbit/feature-workbench';
@@ -7,6 +7,7 @@ import { setTheme, getCurrentTheme, setStyleVariant } from '@orbit/ui-dom';
 import type { OrbitThemeMode, OrbitStyleVariant } from '@orbit/ui-tokens';
 
 import { createFallbackDesktopBridge } from '../shared/contracts';
+import { AgentDevTools } from './agent-devtools/AgentDevTools';
 
 const CURRENT_DATE = '2026-04-09';
 const ACTIVE_SECTION = 'today' as const;
@@ -133,6 +134,21 @@ export function App() {
   const [themeMode, setThemeMode] = useState<OrbitThemeMode>(getCurrentTheme());
   const [styleVariant, setStyleVariantState] = useState<OrbitStyleVariant>(savedStyle);
   const [activeNav, setActiveNav] = useState(ACTIVE_SECTION as string);
+  const [showDevTools, setShowDevTools] = useState(false);
+
+  // Keyboard shortcut: Cmd/Ctrl + Shift + A to toggle Agent DevTools
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'a') {
+        e.preventDefault();
+        setShowDevTools((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  const handleCloseDevTools = useCallback(() => setShowDevTools(false), []);
 
   const workbenchInput = {
     host: {
@@ -168,6 +184,23 @@ export function App() {
 
   return (
     <div className="app">
+      {/* ===== AGENT DEVTOOLS PANEL ===== */}
+      {showDevTools && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            width: 520,
+            height: '100vh',
+            zIndex: 9999,
+            boxShadow: '-4px 0 24px rgba(0,0,0,0.4)',
+          }}
+        >
+          <AgentDevTools onClose={handleCloseDevTools} />
+        </div>
+      )}
+
       {/* ===== SIDEBAR ===== */}
       <aside className="sidebar">
         <div className="sidebar-header">
@@ -243,6 +276,14 @@ export function App() {
           </button>
           <button className="icon-btn" onClick={cycleStyle} title={`Style: ${styleVariant}`}>
             {STYLE_LABELS[styleVariant].split(' ')[0]}
+          </button>
+          <button
+            className="icon-btn"
+            onClick={() => setShowDevTools((v) => !v)}
+            title="Agent DevTools (⌘⇧A)"
+            style={showDevTools ? { background: 'var(--bg-button-primary)', borderRadius: 6 } : undefined}
+          >
+            🔬
           </button>
           <button className="icon-btn">👤</button>
         </div>
