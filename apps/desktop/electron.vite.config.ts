@@ -33,12 +33,17 @@ export default defineConfig({
     base: './',
     plugins: [react(), tailwindcss(), tsconfigPaths({ projects: [rootTsconfig] })],
     resolve: {
-      alias: {
-        'node:child_process': resolve(__dirname, 'src/renderer-entry/node-stubs.ts'),
-        'node:fs/promises': resolve(__dirname, 'src/renderer-entry/node-stubs.ts'),
-        'node:fs': resolve(__dirname, 'src/renderer-entry/node-stubs.ts'),
-        'node:path': resolve(__dirname, 'src/renderer-entry/node-stubs.ts'),
-      }
+      alias: [
+        { find: /^@orbit\/ui-dom$/, replacement: resolve(__dirname, '../../packages/ui-dom/src/index.ts') },
+        { find: /^@orbit\/ui-dom\/(.*)$/, replacement: resolve(__dirname, '../../packages/ui-dom/$1') },
+        { find: 'node:child_process', replacement: resolve(__dirname, 'src/renderer-entry/node-stubs.ts') },
+        { find: 'node:fs/promises', replacement: resolve(__dirname, 'src/renderer-entry/node-stubs.ts') },
+        { find: 'node:fs', replacement: resolve(__dirname, 'src/renderer-entry/node-stubs.ts') },
+        { find: 'node:path', replacement: resolve(__dirname, 'src/renderer-entry/node-stubs.ts') },
+      ]
+    },
+    optimizeDeps: {
+      exclude: ['@orbit/ui-dom', '@orbit/ui-tokens']
     },
     build: {
       outDir: resolve(__dirname, 'dist/renderer-entry'),
