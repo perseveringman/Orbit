@@ -20,3 +20,12 @@ export {
   type CompressionOptions,
   type CompressionResult,
 } from './compression-engine.js';
+
+// 5-Level Compression (Wave 2-B)
+export {
+  createCompressionStrategy,
+  COMPRESSION_LEVEL_NAMES,
+  type CompressionLevel,
+  type CompressionLevelResult,
+  type CompressionStrategy as LevelCompressionStrategy,
+} from './compression-levels.js';

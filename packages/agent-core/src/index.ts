@@ -160,3 +160,6 @@ export * from './tasks/index.js';
 
 // UX – Dialogue & Progress System (M11)
 export * from './ux/index.js';
+
+// Learning Loop (M9 – Wave 2-B)
+export * from './learning/index.js';
