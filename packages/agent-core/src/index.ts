@@ -33,7 +33,7 @@ export {
 export {
   ContextCompressor,
   type CompressionConfig,
-  type CompressionResult,
+  type CompressionResult as ContextCompressionResult,
 } from './context-compressor.js';
 
 // Safety Gate
@@ -127,5 +127,11 @@ export * from './memory/index.js';
 // Observability & DevTools
 export * from './observability/index.js';
 
+// Safety subsystem (M3-lite)
+export * from './safety/index.js';
+
 // Built-in Tools (M8)
 export * from './tools/index.js';
+
+// Session & Compression Engine (M5)
+export * from './session/index.js';
