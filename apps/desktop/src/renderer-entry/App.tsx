@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Button, Card, Chip, Tabs, Separator } from '@heroui/react';
 
 import type { ProjectRecord, TaskRecord } from '@orbit/domain';
 import { createWorkbenchDomModule, mountWorkbench } from '@orbit/feature-workbench';
 import { createElectronRuntimeAdapter } from '@orbit/platform-electron';
-import { setTheme, getCurrentTheme, setStyleVariant } from '@orbit/ui-dom';
-import type { OrbitThemeMode, OrbitStyleVariant } from '@orbit/ui-tokens';
+import { setTheme, getCurrentTheme, type OrbitThemeMode } from '@orbit/ui-dom';
 
 import { createFallbackDesktopBridge } from '../shared/contracts';
 import { AgentDevTools } from './agent-devtools/AgentDevTools';
@@ -16,18 +16,6 @@ const USER_INTENT = '交付 Orbit 桌面端 P0：让项目与任务自然落到 
 const FOCUS_BRIEF = `# Focus brief
 先锁定唯一活跃项目与开放任务。
 把 Today、Focus、Review 收拢成一张可信的桌面工作面。`;
-
-const STYLE_VARIANTS: OrbitStyleVariant[] = ['default', 'notion', 'spaceship', 'library'];
-const STYLE_LABELS: Record<OrbitStyleVariant, string> = {
-  default: '🎨 Default',
-  notion: '📝 Notion',
-  spaceship: '🚀 Spaceship',
-  library: '📚 Library'
-};
-
-const savedStyle = (typeof localStorage !== 'undefined'
-  ? localStorage.getItem('orbit-style') as OrbitStyleVariant | null
-  : null) ?? 'default';
 
 const TASK_STATUS_LABELS: Record<TaskRecord['status'], string> = {
   todo: '待做',
@@ -133,7 +121,6 @@ export function App() {
   const runtime = createElectronRuntimeAdapter();
 
   const [themeMode, setThemeMode] = useState<OrbitThemeMode>(getCurrentTheme());
-  const [styleVariant, setStyleVariantState] = useState<OrbitStyleVariant>(savedStyle);
   const [activeNav, setActiveNav] = useState(ACTIVE_SECTION as string);
   const [showDevTools, setShowDevTools] = useState(false);
   const [showAgentHub, setShowAgentHub] = useState(false);
@@ -178,20 +165,13 @@ export function App() {
     setThemeMode(next);
   };
 
-  const cycleStyle = () => {
-    const currentIdx = STYLE_VARIANTS.indexOf(styleVariant);
-    const next = STYLE_VARIANTS[(currentIdx + 1) % STYLE_VARIANTS.length];
-    setStyleVariant(next);
-    setStyleVariantState(next);
-  };
-
   // If Agent Hub is active, render it full-screen
   if (showAgentHub) {
     return <AgentHub onClose={handleCloseAgentHub} />;
   }
 
   return (
-    <div className="app">
+    <div className="flex h-screen bg-background text-foreground">
       {/* ===== AGENT DEVTOOLS PANEL ===== */}
       {showDevTools && (
         <div
@@ -210,9 +190,9 @@ export function App() {
       )}
 
       {/* ===== SIDEBAR ===== */}
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <div className="sidebar-logo">
+      <aside className="flex flex-col w-60 border-r border-border bg-surface shrink-0">
+        <div data-titlebar className="flex items-center gap-2 px-4 py-3">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
             <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
               <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="2" />
               <circle cx="10" cy="10" r="3" />
@@ -221,20 +201,22 @@ export function App() {
           </div>
         </div>
 
-        <div style={{ padding: '8px 10px' }}>
-          <button className="sidebar-new-btn">
-            <span>+</span> New Object
-          </button>
+        <div className="px-2 pb-2">
+          <Button variant="primary" fullWidth>+ New Object</Button>
         </div>
 
-        <div className="sidebar-content">
+        <div className="flex-1 overflow-y-auto px-2">
           {workbench.shell.sections.map((section) => (
-            <div
+            <button
               key={section.id}
-              className={`sidebar-nav-item${activeNav === section.id ? ' active' : ''}`}
+              className={`flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm transition-colors ${
+                activeNav === section.id
+                  ? 'bg-accent-soft text-accent font-medium'
+                  : 'text-muted hover:bg-surface-secondary'
+              }`}
               onClick={() => setActiveNav(section.id)}
             >
-              <span className="icon">
+              <span>
                 {section.id === 'projects'
                   ? '📁'
                   : section.id === 'tasks'
@@ -246,69 +228,70 @@ export function App() {
                         : '📊'}
               </span>
               {section.label}
-              <span className="count">{section.count}</span>
-            </div>
+              <span className="ml-auto text-xs text-muted">{section.count}</span>
+            </button>
           ))}
 
-          <div className="sidebar-divider" />
+          <Separator />
 
-          <div className="sidebar-section">
-            <div className="sidebar-section-header">
+          <div className="mt-2">
+            <div className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-muted uppercase tracking-wide">
               <span>📦</span> Object types
             </div>
-            <div className="sidebar-nav-item" data-type="project">
-              <span className="icon" style={{ background: 'var(--type-project-bg)', color: 'var(--type-project-text)' }}>
-                P
-              </span>
+            <button className="flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm text-muted hover:bg-surface-secondary transition-colors">
+              <Chip size="sm" variant="soft" color="accent">P</Chip>
               Projects
-            </div>
-            <div className="sidebar-nav-item" data-type="daily">
-              <span className="icon" style={{ background: 'var(--type-daily-bg)', color: 'var(--type-daily-text)' }}>
-                D
-              </span>
+            </button>
+            <button className="flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm text-muted hover:bg-surface-secondary transition-colors">
+              <Chip size="sm" variant="soft" color="default">D</Chip>
               Daily Notes
-            </div>
+            </button>
           </div>
         </div>
 
-        <div className="sidebar-footer">
-          <div className="sidebar-divider" />
-          <div className="sidebar-footer-item">🗑 Trash</div>
-          <div className="sidebar-footer-item">📖 Documentation</div>
+        <div className="px-2 pb-2">
+          <Separator />
+          <button className="flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm text-muted hover:bg-surface-secondary transition-colors">
+            🗑 Trash
+          </button>
+          <button className="flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm text-muted hover:bg-surface-secondary transition-colors">
+            📖 Documentation
+          </button>
         </div>
 
-        <div className="sidebar-bottom-icons">
-          <button className="icon-btn">⚙️</button>
-          <button className="icon-btn" onClick={toggleTheme}>
+        <div className="flex items-center justify-center gap-1 px-2 py-2 border-t border-border">
+          <Button variant="ghost" isIconOnly size="sm">⚙️</Button>
+          <Button variant="ghost" isIconOnly size="sm" onPress={toggleTheme}>
             {themeMode === 'light' ? '🌙' : '☀️'}
-          </button>
-          <button className="icon-btn" onClick={cycleStyle} title={`Style: ${styleVariant}`}>
-            {STYLE_LABELS[styleVariant].split(' ')[0]}
-          </button>
-          <button
-            className="icon-btn"
-            onClick={() => setShowAgentHub(true)}
-            title="Agent Hub (⌘⇧A)"
+          </Button>
+          <Button
+            variant="ghost"
+            isIconOnly
+            size="sm"
+            onPress={() => setShowAgentHub(true)}
+            aria-label="Agent Hub (⌘⇧A)"
           >
             🤖
-          </button>
-          <button
-            className="icon-btn"
-            onClick={() => setShowDevTools((v) => !v)}
-            title="Agent DevTools"
-            style={showDevTools ? { background: 'var(--bg-button-primary)', borderRadius: 6 } : undefined}
+          </Button>
+          <Button
+            variant="ghost"
+            isIconOnly
+            size="sm"
+            onPress={() => setShowDevTools((v) => !v)}
+            aria-label="Agent DevTools"
+            className={showDevTools ? 'bg-accent rounded-md' : undefined}
           >
             🔬
-          </button>
-          <button className="icon-btn">👤</button>
+          </Button>
+          <Button variant="ghost" isIconOnly size="sm">👤</Button>
         </div>
       </aside>
 
       {/* ===== MAIN CONTENT ===== */}
-      <div className="main-content">
-        <div className="page-header">
-          <div className="page-header-left">
-            <span className="page-title">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-3 border-b border-border">
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-semibold text-foreground">
               {activeNav === 'today'
                 ? `Today · ${CURRENT_DATE}`
                 : activeNav === 'focus'
@@ -316,159 +299,168 @@ export function App() {
                   : activeNav === 'review'
                     ? 'Review'
                     : 'Tasks'}
-            </span>
-            <div className="page-header-nav">
-              <button className="nav-arrow-btn">‹</button>
-              <button className="today-btn">Today</button>
-              <button className="nav-arrow-btn">›</button>
+            </h1>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" isIconOnly size="sm">‹</Button>
+              <Button variant="secondary" size="sm">Today</Button>
+              <Button variant="ghost" isIconOnly size="sm">›</Button>
             </div>
           </div>
-          <div className="page-header-right">
-            <button className="toolbar-btn">🔍</button>
-            <button className="toolbar-btn">⋯</button>
-            <button className="btn-primary">+ New</button>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" isIconOnly size="sm">🔍</Button>
+            <Button variant="ghost" isIconOnly size="sm">⋯</Button>
+            <Button variant="primary" size="sm">+ New</Button>
           </div>
         </div>
 
-        <div className="tab-bar">
-          <div className="tab-item active">Overview</div>
-          <div className="tab-item">
-            All <span className="tab-count"># {workbench.shell.today.length}</span>
-          </div>
-        </div>
+        <Tabs className="px-6 pt-2">
+          <Tabs.List>
+            <Tabs.Tab>Overview</Tabs.Tab>
+            <Tabs.Tab>{`All # ${workbench.shell.today.length}`}</Tabs.Tab>
+          </Tabs.List>
+        </Tabs>
 
-        <div className="page-body">
-          <div className="page-body-content">
+        <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
             {/* Planner */}
-            <div className="object-card">
-              <div className="object-card-header">
-                <span className="type-label project">📋 Planner</span>
-              </div>
-              <div className="object-card-title">{workbench.shell.planner.summary}</div>
-              <div className="object-card-body">
-                <p>{workbench.shell.planner.intent}</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+            <Card>
+              <Card.Header>
+                <Chip variant="soft" color="accent">📋 Planner</Chip>
+              </Card.Header>
+              <Card.Content>
+                <Card.Title>{workbench.shell.planner.summary}</Card.Title>
+                <Card.Description>{workbench.shell.planner.intent}</Card.Description>
+                <div className="flex flex-wrap gap-2 mt-3">
                   {workbench.shell.planner.metrics.map((m) => (
-                    <span key={m.id} className="tag-badge">
+                    <Chip key={m.id} size="sm" variant="soft">
                       {m.label}: {m.value}
-                    </span>
+                    </Chip>
                   ))}
                 </div>
-              </div>
-            </div>
+              </Card.Content>
+            </Card>
 
             {/* Today tasks */}
             {workbench.shell.today.map((task) => (
-              <div key={task.id} className="object-card">
-                <div className="object-card-header">
-                  <span className={`type-label ${task.status === 'doing' ? 'atomic' : 'daily'}`}>
+              <Card key={task.id}>
+                <Card.Header>
+                  <Chip
+                    variant="soft"
+                    color={task.status === 'doing' ? 'warning' : 'default'}
+                  >
                     {task.status === 'doing' ? '🔥 进行中' : '📝 待做'}
-                  </span>
-                </div>
-                <div className="object-card-title">{task.title}</div>
-                <div className="object-card-footer">
-                  <span className="tags-row">
-                    <span className="tag-badge">{task.projectTitle ?? 'No project'}</span>
-                    {task.focusRank && <span className="tag-badge">Focus #{task.focusRank}</span>}
-                  </span>
-                </div>
-              </div>
+                  </Chip>
+                </Card.Header>
+                <Card.Content>
+                  <Card.Title>{task.title}</Card.Title>
+                </Card.Content>
+                <Card.Footer>
+                  <div className="flex flex-wrap gap-2">
+                    <Chip size="sm" variant="soft">{task.projectTitle ?? 'No project'}</Chip>
+                    {task.focusRank && <Chip size="sm" variant="soft">Focus #{task.focusRank}</Chip>}
+                  </div>
+                </Card.Footer>
+              </Card>
             ))}
 
             {/* Focus */}
             {focus && (
-              <div className="object-card" style={{ borderLeft: '3px solid var(--bg-button-primary)' }}>
-                <div className="object-card-header">
-                  <span className="type-label project">🎯 Focus</span>
-                </div>
-                <div className="object-card-title">{focus.title}</div>
-                <div className="object-card-body">
-                  <p>
+              <Card className="border-l-3 border-accent">
+                <Card.Header>
+                  <Chip variant="soft" color="accent">🎯 Focus</Chip>
+                </Card.Header>
+                <Card.Content>
+                  <Card.Title>{focus.title}</Card.Title>
+                  <Card.Description>
                     {focus.projectTitle} · rank {focus.focusRank}
-                  </p>
-                  {workbench.editor.document.blocks.map((block) =>
-                    block.kind === 'heading' ? (
-                      <strong key={block.id} style={{ display: 'block', marginBottom: '8px' }}>
-                        {block.text}
-                      </strong>
-                    ) : (
-                      <p key={block.id} style={{ margin: '0 0 8px' }}>
-                        {block.text}
-                      </p>
-                    )
-                  )}
-                </div>
-              </div>
+                  </Card.Description>
+                  <div className="mt-2">
+                    {workbench.editor.document.blocks.map((block) =>
+                      block.kind === 'heading' ? (
+                        <strong key={block.id} className="block mb-2">
+                          {block.text}
+                        </strong>
+                      ) : (
+                        <p key={block.id} className="mb-2">
+                          {block.text}
+                        </p>
+                      )
+                    )}
+                  </div>
+                </Card.Content>
+              </Card>
             )}
 
             {/* Review */}
-            <div className="object-card">
-              <div className="object-card-header">
-                <span className="type-label tag">📊 Review</span>
-              </div>
-              <div className="object-card-title">{workbench.shell.review.summary}</div>
-              <div className="object-card-body">
-                {workbench.shell.review.completedToday.map((t) => (
-                  <p key={t.id}>✓ {t.title}</p>
-                ))}
-                {workbench.shell.review.carryForward.map((t) => (
-                  <p key={t.id}>→ {t.title}</p>
-                ))}
-                {workbench.shell.review.tasksNeedingReview.map((t) => (
-                  <p key={t.id}>⚠ 任务 · {t.title}</p>
-                ))}
-              </div>
-            </div>
+            <Card>
+              <Card.Header>
+                <Chip variant="soft" color="success">📊 Review</Chip>
+              </Card.Header>
+              <Card.Content>
+                <Card.Title>{workbench.shell.review.summary}</Card.Title>
+                <div className="mt-2 space-y-1 text-sm">
+                  {workbench.shell.review.completedToday.map((t) => (
+                    <p key={t.id}>✓ {t.title}</p>
+                  ))}
+                  {workbench.shell.review.carryForward.map((t) => (
+                    <p key={t.id}>→ {t.title}</p>
+                  ))}
+                  {workbench.shell.review.tasksNeedingReview.map((t) => (
+                    <p key={t.id}>⚠ 任务 · {t.title}</p>
+                  ))}
+                </div>
+              </Card.Content>
+            </Card>
           </div>
 
           {/* RIGHT PANEL */}
-          <div className="right-panel">
-            <div className="right-panel-tabs">
-              <div className="right-panel-tab active">Project</div>
-              <div className="right-panel-tab">Runtime</div>
-            </div>
-            <div className="right-panel-content">
+          <div className="w-72 border-l border-border bg-surface overflow-y-auto shrink-0">
+            <Tabs className="px-4 pt-3">
+              <Tabs.List>
+                <Tabs.Tab>Project</Tabs.Tab>
+                <Tabs.Tab>Runtime</Tabs.Tab>
+              </Tabs.List>
+            </Tabs>
+            <div className="p-4">
               {activeProject ? (
                 <div>
-                  <div className="detail-type-label">
-                    <span className="type-label project">📁 Project</span>
-                  </div>
-                  <div className="detail-title">{activeProject.title}</div>
-                  <div className="detail-properties">
-                    <div className="detail-prop">
-                      <span className="detail-prop-label">Open tasks</span>
-                      <span className="detail-prop-value">{activeProject.openTaskCount}</span>
+                  <Chip variant="soft" color="accent">📁 Project</Chip>
+                  <h2 className="text-base font-semibold text-foreground mt-2">{activeProject.title}</h2>
+                  <div className="mt-3 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted">Open tasks</span>
+                      <span className="text-foreground font-medium">{activeProject.openTaskCount}</span>
                     </div>
-                    <div className="detail-prop">
-                      <span className="detail-prop-label">Today</span>
-                      <span className="detail-prop-value">{activeProject.todayCount}</span>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted">Today</span>
+                      <span className="text-foreground font-medium">{activeProject.todayCount}</span>
                     </div>
-                    <div className="detail-prop">
-                      <span className="detail-prop-label">Done</span>
-                      <span className="detail-prop-value">{activeProject.doneTaskCount}</span>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted">Done</span>
+                      <span className="text-foreground font-medium">{activeProject.doneTaskCount}</span>
                     </div>
                   </div>
 
-                  <div className="detail-backlinks-title">Runtime</div>
-                  <div className="detail-properties">
-                    <div className="detail-prop">
-                      <span className="detail-prop-label">Platform</span>
-                      <span className="detail-prop-value">{bridge.host.platform}</span>
+                  <h3 className="text-sm font-semibold text-foreground mt-4 mb-2">Runtime</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted">Platform</span>
+                      <span className="text-foreground font-medium">{bridge.host.platform}</span>
                     </div>
-                    <div className="detail-prop">
-                      <span className="detail-prop-label">Electron</span>
-                      <span className="detail-prop-value">{bridge.host.electronVersion}</span>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted">Electron</span>
+                      <span className="text-foreground font-medium">{bridge.host.electronVersion}</span>
                     </div>
-                    <div className="detail-prop">
-                      <span className="detail-prop-label">Capabilities</span>
-                      <span className="detail-prop-value">{capabilities.join(', ')}</span>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted">Capabilities</span>
+                      <span className="text-foreground font-medium">{capabilities.join(', ')}</span>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="empty-state">
-                  <div className="empty-state-icon">📁</div>
-                  <div className="empty-state-title">No active project</div>
+                <div className="flex flex-col items-center justify-center py-8 text-muted">
+                  <div className="text-3xl mb-2">📁</div>
+                  <div className="text-sm">No active project</div>
                 </div>
               )}
             </div>

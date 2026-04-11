@@ -1,19 +1,12 @@
 import { createRoot } from 'react-dom/client';
-import { injectTheme, getCurrentTheme } from '@orbit/ui-dom';
+import { getCurrentTheme, setTheme } from '@orbit/ui-dom';
 import { App } from './App';
 import { createDesktopShellDescriptor } from '../shared/contracts';
 import './styles.css';
 
 // Initialize design system
 const savedTheme = getCurrentTheme();
-document.documentElement.dataset.theme = savedTheme;
-injectTheme(savedTheme);
-
-// Initialize style variant
-const savedStyle = localStorage.getItem('orbit-style');
-if (savedStyle) {
-  document.documentElement.dataset.style = savedStyle;
-}
+setTheme(savedTheme);
 
 const shellDescriptor = createDesktopShellDescriptor();
 const container = document.getElementById(shellDescriptor.rendererMountId);
