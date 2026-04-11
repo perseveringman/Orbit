@@ -12,3 +12,4 @@ apps/ios/.next
 apps/ios/ios
 apps/ios/android
 *.tsbuildinfo
+.superpowers/
