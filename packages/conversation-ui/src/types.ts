@@ -62,9 +62,9 @@ export function getToolCategory(toolName: string): ToolCategory {
 
 export const TOOL_COLORS: Readonly<Record<ToolCategory, { bg: string; text: string; chipColor: string }>> = {
   read:   { bg: 'bg-success/10', text: 'text-success', chipColor: 'success' },
-  edit:   { bg: 'bg-secondary/10', text: 'text-secondary', chipColor: 'secondary' },
+  edit:   { bg: 'bg-danger/10', text: 'text-danger', chipColor: 'danger' },
   bash:   { bg: 'bg-warning/10', text: 'text-warning', chipColor: 'warning' },
-  search: { bg: 'bg-primary/10', text: 'text-primary', chipColor: 'primary' },
+  search: { bg: 'bg-accent/10', text: 'text-accent', chipColor: 'accent' },
   other:  { bg: 'bg-default/10', text: 'text-default-500', chipColor: 'default' },
 };
 
