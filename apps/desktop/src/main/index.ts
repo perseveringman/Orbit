@@ -12,7 +12,8 @@ const runtimeProcess = globalThis as {
 };
 
 function getPreloadEntry(): string {
-  return fileURLToPath(new URL('../preload/index.js', import.meta.url));
+  // electron-vite outputs .mjs when package.json "type": "module"
+  return fileURLToPath(new URL('../preload/index.mjs', import.meta.url));
 }
 
 function getRendererHtml(): string {
