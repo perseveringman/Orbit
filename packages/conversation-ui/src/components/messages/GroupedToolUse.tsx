@@ -21,7 +21,7 @@ function statusIcon(status: RenderableToolCall['status']): React.ReactNode {
     case 'error':
       return <span className="text-danger text-xs">✗</span>;
     case 'pending':
-      return <span className="text-default-400 text-xs">⏳</span>;
+      return <span className="text-muted text-xs">⏳</span>;
   }
 }
 
@@ -47,24 +47,24 @@ export const GroupedToolUse = React.memo(function GroupedToolUse({
     return (
       <>
         {text.slice(0, idx)}
-        <mark className="bg-warning/30 rounded-sm">{text.slice(idx, idx + searchQuery.length)}</mark>
+        <mark className="bg-warning-soft rounded-sm">{text.slice(idx, idx + searchQuery.length)}</mark>
         {text.slice(idx + searchQuery.length)}
       </>
     );
   };
 
   return (
-    <Card className="bg-default-50 border-none shadow-sm">
+    <Card className="bg-surface border-none shadow-sm">
       <Card.Header className="pb-0">
         <button
           type="button"
           className="flex items-center gap-2 w-full text-left cursor-pointer hover:opacity-80 transition-opacity"
           onClick={handleToggle}
         >
-          <span className="text-default-500 text-sm">
+          <span className="text-muted text-sm">
             {isCollapsed ? '▶' : '▼'}
           </span>
-          <span className="text-default-500 text-sm font-medium">
+          <span className="text-muted text-sm font-medium">
             {count} 个工具调用
           </span>
         </button>
@@ -80,7 +80,7 @@ export const GroupedToolUse = React.memo(function GroupedToolUse({
               return (
                 <div
                   key={tc.id}
-                  className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-default-100 transition-colors"
+                  className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-surface-secondary transition-colors"
                 >
                   <Chip color={colors.chipColor as ChipColor} size="sm">
                     {highlightMatch(tc.name)}
@@ -89,7 +89,7 @@ export const GroupedToolUse = React.memo(function GroupedToolUse({
                   {statusIcon(tc.status)}
 
                   {tc.durationMs != null && (
-                    <span className="text-default-400 text-xs ml-auto">
+                    <span className="text-muted text-xs ml-auto">
                       {tc.durationMs}ms
                     </span>
                   )}

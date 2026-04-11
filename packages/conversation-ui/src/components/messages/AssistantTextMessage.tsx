@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
-// AssistantTextMessage – Left-aligned assistant message with avatar
+// AssistantTextMessage – Left-aligned assistant message with avatar + markdown
 // ---------------------------------------------------------------------------
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { RenderableMessage } from '../../types.js';
 
 export interface AssistantTextMessageProps {
@@ -10,34 +10,72 @@ export interface AssistantTextMessageProps {
   readonly searchQuery?: string;
 }
 
-/** Wrap occurrences of `query` in `<mark>` tags for visual highlighting. */
-function highlightText(text: string, query: string | undefined): React.ReactNode {
-  if (!query || query.length === 0) return text;
+/** Lightweight markdown → React nodes. Handles code blocks, inline code, bold, italic. */
+function renderMarkdown(text: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  // Split by fenced code blocks first
+  const codeBlockRegex = /```(\w*)\n?([\s\S]*?)```/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
 
-  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const regex = new RegExp(`(${escaped})`, 'gi');
-  const parts = text.split(regex);
+  while ((match = codeBlockRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(...renderInline(text.slice(lastIndex, match.index), nodes.length));
+    }
+    nodes.push(
+      <pre key={`cb-${nodes.length}`} className="my-2 overflow-x-auto rounded-md bg-surface-tertiary p-3 text-xs">
+        <code>{match[2]}</code>
+      </pre>,
+    );
+    lastIndex = match.index + match[0].length;
+  }
 
-  if (parts.length === 1) return text;
+  if (lastIndex < text.length) {
+    nodes.push(...renderInline(text.slice(lastIndex), nodes.length));
+  }
 
-  return parts.map((part, i) =>
-    regex.test(part) ? (
-      <mark key={i} className="bg-warning/40 text-inherit rounded-sm px-0.5">
-        {part}
-      </mark>
-    ) : (
-      part
-    ),
-  );
+  return nodes;
+}
+
+/** Render inline markdown: bold, italic, inline code. */
+function renderInline(text: string, keyOffset: number): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const inlineRegex = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  let lastIdx = 0;
+  let m: RegExpExecArray | null;
+
+  while ((m = inlineRegex.exec(text)) !== null) {
+    if (m.index > lastIdx) {
+      parts.push(text.slice(lastIdx, m.index));
+    }
+    const raw = m[0];
+    const k = `il-${keyOffset}-${parts.length}`;
+    if (raw.startsWith('`')) {
+      parts.push(<code key={k} className="rounded bg-surface-tertiary px-1 py-0.5 text-xs">{raw.slice(1, -1)}</code>);
+    } else if (raw.startsWith('**')) {
+      parts.push(<strong key={k}>{raw.slice(2, -2)}</strong>);
+    } else if (raw.startsWith('*')) {
+      parts.push(<em key={k}>{raw.slice(1, -1)}</em>);
+    }
+    lastIdx = m.index + raw.length;
+  }
+
+  if (lastIdx < text.length) {
+    parts.push(text.slice(lastIdx));
+  }
+
+  return parts;
 }
 
 export const AssistantTextMessage = React.memo<AssistantTextMessageProps>(
   function AssistantTextMessage({ message, searchQuery }) {
+    const renderedContent = useMemo(() => renderMarkdown(message.content), [message.content]);
+
     return (
       <div className="flex w-full items-start gap-3" data-testid={`assistant-text-${message.id}`}>
         {/* Avatar */}
         <div
-          className="flex-shrink-0 w-8 h-8 rounded-full bg-default-100 flex items-center justify-center text-base select-none"
+          className="flex-shrink-0 w-8 h-8 rounded-full bg-surface-secondary flex items-center justify-center text-base select-none"
           aria-hidden="true"
         >
           🤖
@@ -45,13 +83,13 @@ export const AssistantTextMessage = React.memo<AssistantTextMessageProps>(
 
         {/* Message body */}
         <div className="max-w-[85%] min-w-0">
-          <div className="rounded-2xl rounded-tl-sm bg-default-100 text-foreground px-4 py-2.5 shadow-sm">
-            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
-              {highlightText(message.content, searchQuery)}
-            </p>
+          <div className="rounded-2xl rounded-tl-sm bg-surface-secondary text-foreground px-4 py-2.5 shadow-sm">
+            <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+              {renderedContent}
+            </div>
           </div>
           <time
-            className="block text-[10px] text-default-400 mt-1 ml-1"
+            className="block text-[10px] text-muted mt-1 ml-1"
             dateTime={message.timestamp}
           >
             {new Date(message.timestamp).toLocaleTimeString([], {

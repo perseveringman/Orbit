@@ -17,9 +17,9 @@ export const ConversationHeader = React.memo(function ConversationHeader({
   isSearchOpen,
 }: ConversationHeaderProps) {
   return (
-    <header className="flex h-12 shrink-0 items-center justify-between border-b border-divider px-4">
+    <header className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
       {/* Model label */}
-      <span className="text-sm text-default-500">
+      <span className="text-sm text-muted">
         {modelName ?? 'Model'}
       </span>
 
@@ -33,7 +33,7 @@ export const ConversationHeader = React.memo(function ConversationHeader({
           aria-label="Toggle search"
           aria-pressed={isSearchOpen}
           onPress={onToggleSearch}
-          className={isSearchOpen ? 'text-primary' : 'text-default-500'}
+          className={isSearchOpen ? 'text-accent' : 'text-muted'}
         >
           🔍
         </Button>
@@ -44,7 +44,7 @@ export const ConversationHeader = React.memo(function ConversationHeader({
           size="sm"
           isIconOnly
           aria-label="Settings"
-          className="text-default-500"
+          className="text-muted"
         >
           ⚙️
         </Button>

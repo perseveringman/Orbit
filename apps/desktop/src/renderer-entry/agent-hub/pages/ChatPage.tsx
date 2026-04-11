@@ -4,7 +4,6 @@ import { PROVIDER_CATALOG } from '@orbit/agent-core';
 import type { AgentMessage } from '@orbit/agent-core';
 import {
   ConversationStream,
-  ConversationHeader,
   PromptInput,
   normalizeMessages,
   useConversationSearch,
@@ -139,20 +138,16 @@ export function ChatPage(): ReactElement {
           {totalTokens > 0 && (
             <span className="text-xs text-muted">Tokens: {totalTokens.toLocaleString()}</span>
           )}
+          <Button size="sm" variant="ghost" onPress={search.state.isOpen ? search.close : search.open}>
+            🔍
+          </Button>
           <Button size="sm" variant="ghost" onPress={handleClear}>清空</Button>
         </div>
       </div>
 
-      {/* Conversation header (search toggle) */}
-      <ConversationHeader
-        modelName={modelName}
-        onToggleSearch={search.state.isOpen ? search.close : search.open}
-        isSearchOpen={search.state.isOpen}
-      />
-
       {/* Message stream */}
       {renderableMessages.length === 0 && !isLoading ? (
-        <div className="flex flex-1 items-center justify-center text-default-300">
+        <div className="flex flex-1 items-center justify-center text-muted">
           <div className="text-center">
             <p className="text-4xl">💬</p>
             <p className="mt-2 text-sm">发送消息开始对话</p>

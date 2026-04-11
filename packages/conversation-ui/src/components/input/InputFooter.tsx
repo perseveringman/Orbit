@@ -23,7 +23,7 @@ export const InputFooter = React.memo(function InputFooter({
   if (segments.length === 0) return null;
 
   return (
-    <div className="flex items-center gap-1.5 px-3 pb-2 text-xs text-default-400">
+    <div className="flex items-center gap-1.5 px-3 pb-2 text-xs text-muted">
       {segments.map((seg, i) => (
         <React.Fragment key={i}>
           {i > 0 && <span aria-hidden="true">·</span>}

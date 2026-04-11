@@ -13,14 +13,14 @@ export const SystemMessage = React.memo<SystemMessageProps>(
   function SystemMessage({ message }) {
     return (
       <div
-        className="border-l-2 border-default-300 pl-3 py-1.5 my-1"
+        className="border-l-2 border-border pl-3 py-1.5 my-1"
         data-testid={`system-${message.id}`}
       >
-        <p className="text-default-400 text-sm whitespace-pre-wrap break-words leading-relaxed">
+        <p className="text-muted text-sm whitespace-pre-wrap break-words leading-relaxed">
           {message.content}
         </p>
         <time
-          className="block text-[10px] text-default-300 mt-1"
+          className="block text-[10px] text-muted mt-1"
           dateTime={message.timestamp}
         >
           {new Date(message.timestamp).toLocaleTimeString([], {

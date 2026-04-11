@@ -25,17 +25,17 @@ export const ThinkingBlock = React.memo(function ThinkingBlock({
   };
 
   return (
-    <Card className="bg-default-50 border-none shadow-sm">
+    <Card className="bg-surface border-none shadow-sm">
       <Card.Header className="pb-0">
         <button
           type="button"
           className="flex items-center gap-2 w-full text-left cursor-pointer hover:opacity-80 transition-opacity"
           onClick={handleToggle}
         >
-          <span className="text-default-500 text-sm">
+          <span className="text-muted text-sm">
             {isCollapsed ? '▶' : '▼'}
           </span>
-          <span className="text-default-500 text-sm font-medium">
+          <span className="text-muted text-sm font-medium">
             思考中…{durationLabel}
           </span>
         </button>
@@ -43,7 +43,7 @@ export const ThinkingBlock = React.memo(function ThinkingBlock({
 
       {!isCollapsed && (
         <Card.Content className="pt-2">
-          <p className="text-default-400 text-sm italic whitespace-pre-wrap">
+          <p className="text-muted text-sm italic whitespace-pre-wrap">
             {message.content}
           </p>
         </Card.Content>

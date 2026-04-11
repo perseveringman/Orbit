@@ -49,7 +49,7 @@ export const ConversationStream = React.memo(function ConversationStream({
   return (
     <div
       ref={scrollRef}
-      className="flex flex-1 flex-col overflow-y-auto"
+      className="flex flex-1 flex-col gap-4 overflow-y-auto p-4"
     >
       {messages.map((msg) => (
         <MessageRow

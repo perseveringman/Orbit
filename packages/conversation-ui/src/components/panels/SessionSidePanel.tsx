@@ -43,7 +43,7 @@ export const SessionSidePanel = React.memo(function SessionSidePanel({
         aria-label={isOpen ? '收起侧栏' : '展开侧栏'}
         aria-expanded={isOpen}
         onPress={onToggle}
-        className="fixed right-2 top-2 z-50 text-default-500"
+        className="fixed right-2 top-2 z-50 text-muted"
       >
         {isOpen ? '▶' : '◀'}
       </Button>
@@ -51,7 +51,7 @@ export const SessionSidePanel = React.memo(function SessionSidePanel({
       {/* Panel */}
       {isOpen && (
         <aside
-          className="flex w-[240px] shrink-0 flex-col gap-3 overflow-y-auto border-l border-divider bg-content1 p-3"
+          className="flex w-[240px] shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-surface p-3"
           aria-label="会话侧栏"
         >
           {/* Session stats */}

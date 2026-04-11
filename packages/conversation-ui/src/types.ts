@@ -61,11 +61,11 @@ export function getToolCategory(toolName: string): ToolCategory {
 }
 
 export const TOOL_COLORS: Readonly<Record<ToolCategory, { bg: string; text: string; chipColor: string }>> = {
-  read:   { bg: 'bg-success/10', text: 'text-success', chipColor: 'success' },
-  edit:   { bg: 'bg-danger/10', text: 'text-danger', chipColor: 'danger' },
-  bash:   { bg: 'bg-warning/10', text: 'text-warning', chipColor: 'warning' },
-  search: { bg: 'bg-accent/10', text: 'text-accent', chipColor: 'accent' },
-  other:  { bg: 'bg-default/10', text: 'text-default-500', chipColor: 'default' },
+  read:   { bg: 'bg-success-soft', text: 'text-success', chipColor: 'success' },
+  edit:   { bg: 'bg-danger-soft', text: 'text-danger', chipColor: 'danger' },
+  bash:   { bg: 'bg-warning-soft', text: 'text-warning', chipColor: 'warning' },
+  search: { bg: 'bg-accent-soft', text: 'text-accent', chipColor: 'accent' },
+  other:  { bg: 'bg-surface-secondary', text: 'text-muted', chipColor: 'default' },
 };
 
 // ---- Streaming state (UI-layer, distinct from agent-core StreamingState) ----

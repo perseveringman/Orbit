@@ -24,7 +24,7 @@ function StatusIcon({ status }: { status: RenderableToolCall['status'] }) {
       return <Spinner size="sm" />;
     case 'pending':
     default:
-      return <span className="text-default-400 text-xs">⏳</span>;
+      return <span className="text-muted text-xs">⏳</span>;
   }
 }
 
@@ -34,17 +34,17 @@ export const ToolCallTimeline = React.memo(function ToolCallTimeline({
   if (toolCalls.length === 0) {
     return (
       <div className="flex flex-col gap-2">
-        <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wide">
+        <h3 className="text-xs font-semibold text-muted uppercase tracking-wide">
           工具调用
         </h3>
-        <p className="text-xs text-default-400">暂无工具调用</p>
+        <p className="text-xs text-muted">暂无工具调用</p>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wide">
+      <h3 className="text-xs font-semibold text-muted uppercase tracking-wide">
         工具调用
       </h3>
 
@@ -62,7 +62,7 @@ export const ToolCallTimeline = React.memo(function ToolCallTimeline({
               </Chip>
 
               {tc.durationMs != null && (
-                <span className="text-default-400 text-xs ml-auto">
+                <span className="text-muted text-xs ml-auto">
                   {tc.durationMs}ms
                 </span>
               )}

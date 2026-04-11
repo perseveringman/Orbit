@@ -18,15 +18,23 @@ export const StreamingMessage = React.memo(function StreamingMessage({
   message,
 }: StreamingMessageProps) {
   return (
-    <div className="flex w-full justify-start px-4 py-2">
-      <div className="max-w-[85%] rounded-lg px-3 py-2 text-foreground">
-        <span className="whitespace-pre-wrap">{message.content}</span>
-        <span
-          className="ml-0.5 inline-block animate-pulse text-primary"
-          aria-hidden="true"
-        >
-          ▊
-        </span>
+    <div className="flex w-full items-start gap-3">
+      <div
+        className="flex-shrink-0 w-8 h-8 rounded-full bg-surface-secondary flex items-center justify-center text-base select-none"
+        aria-hidden="true"
+      >
+        🤖
+      </div>
+      <div className="max-w-[85%] min-w-0">
+        <div className="rounded-2xl rounded-tl-sm bg-surface-secondary text-foreground px-4 py-2.5 shadow-sm">
+          <span className="whitespace-pre-wrap text-sm">{message.content}</span>
+          <span
+            className="ml-0.5 inline-block animate-pulse text-accent"
+            aria-hidden="true"
+          >
+            ▊
+          </span>
+        </div>
       </div>
     </div>
   );

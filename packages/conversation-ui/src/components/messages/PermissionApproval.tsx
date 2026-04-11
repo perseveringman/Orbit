@@ -23,7 +23,7 @@ export const PermissionApproval = React.memo(function PermissionApproval({
       </Card.Header>
 
       <Card.Content className="pt-0">
-        <p className="text-default-700 text-sm whitespace-pre-wrap">
+        <p className="text-foreground text-sm whitespace-pre-wrap">
           {message.content}
         </p>
       </Card.Content>

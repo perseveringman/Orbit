@@ -117,11 +117,11 @@ export const PromptInput = React.memo(function PromptInput({
 
   // ---- Render -------------------------------------------------------------
   return (
-    <div className="border-t border-divider bg-default-50">
+    <div className="border-t border-border bg-surface">
       <div className="flex items-end gap-2 px-3 pt-3">
         <textarea
           ref={textareaRef}
-          className="min-h-[2.5rem] max-h-[50vh] flex-1 resize-none rounded-lg bg-default-100 px-3 py-2 text-sm text-foreground placeholder:text-default-400 outline-none focus:ring-2 focus:ring-primary/40"
+          className="min-h-[2.5rem] max-h-[50vh] flex-1 resize-none rounded-lg bg-surface-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted outline-none focus:ring-2 focus:ring-accent"
           rows={1}
           value={value}
           disabled={disabled && !isStreaming}

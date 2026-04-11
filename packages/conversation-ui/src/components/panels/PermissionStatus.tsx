@@ -32,17 +32,17 @@ export const PermissionStatus = React.memo(function PermissionStatus({
   if (permissions.length === 0) {
     return (
       <div className="flex flex-col gap-2">
-        <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wide">
+        <h3 className="text-xs font-semibold text-muted uppercase tracking-wide">
           权限状态
         </h3>
-        <p className="text-xs text-default-400">暂无权限配置</p>
+        <p className="text-xs text-muted">暂无权限配置</p>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wide">
+      <h3 className="text-xs font-semibold text-muted uppercase tracking-wide">
         权限状态
       </h3>
 
@@ -50,7 +50,7 @@ export const PermissionStatus = React.memo(function PermissionStatus({
         {permissions.map((perm) => (
           <li key={perm.name} className="flex items-center gap-2 text-sm">
             <PermissionIcon allowed={perm.allowed} requiresApproval={perm.requiresApproval} />
-            <span className="text-default-700">{perm.name}</span>
+            <span className="text-foreground">{perm.name}</span>
             <span className="ml-auto">
               <PermissionLabel allowed={perm.allowed} requiresApproval={perm.requiresApproval} />
             </span>

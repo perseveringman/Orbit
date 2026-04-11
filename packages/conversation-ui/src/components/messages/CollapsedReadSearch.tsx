@@ -60,7 +60,7 @@ export const CollapsedReadSearch = React.memo(function CollapsedReadSearch({
       {!isCollapsed && filePaths.length > 0 && (
         <div className="ml-2 mt-1 flex flex-col gap-0.5">
           {filePaths.map((fp, idx) => (
-            <span key={idx} className="text-xs text-default-500 font-mono truncate">
+            <span key={idx} className="text-xs text-muted font-mono truncate">
               {fp}
             </span>
           ))}

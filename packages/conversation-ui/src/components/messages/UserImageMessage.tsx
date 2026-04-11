@@ -22,7 +22,7 @@ export const UserImageMessage = React.memo<UserImageMessageProps>(
 
     return (
       <div className="flex w-full justify-end" data-testid={`user-image-${message.id}`}>
-        <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-primary text-primary-foreground px-4 py-2.5 shadow-sm">
+        <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-accent text-accent-foreground px-4 py-2.5 shadow-sm">
           <img
             src={imageUrl}
             alt={message.content || 'User-attached image'}
@@ -35,7 +35,7 @@ export const UserImageMessage = React.memo<UserImageMessageProps>(
             </p>
           )}
           <time
-            className="block text-[10px] text-primary-foreground/60 mt-1 text-right"
+            className="block text-[10px] opacity-60 mt-1 text-right"
             dateTime={message.timestamp}
           >
             {new Date(message.timestamp).toLocaleTimeString([], {

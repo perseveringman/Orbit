@@ -38,7 +38,7 @@ export const ErrorMessage = React.memo<ErrorMessageProps>(
           <ErrorIcon />
           <div className="min-w-0 flex-1">
             <p className="text-danger text-sm font-medium mb-0.5">Error</p>
-            <p className="text-default-600 text-sm whitespace-pre-wrap break-words leading-relaxed">
+            <p className="text-foreground text-sm whitespace-pre-wrap break-words leading-relaxed">
               {message.content}
             </p>
           </div>

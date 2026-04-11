@@ -42,7 +42,7 @@ export const AssistantToolUseMessage = React.memo(function AssistantToolUseMessa
     return (
       <>
         {text.slice(0, idx)}
-        <mark className="bg-warning/30 rounded-sm">{text.slice(idx, idx + searchQuery.length)}</mark>
+        <mark className="bg-warning-soft rounded-sm">{text.slice(idx, idx + searchQuery.length)}</mark>
         {text.slice(idx + searchQuery.length)}
       </>
     );
@@ -73,7 +73,7 @@ export const AssistantToolUseMessage = React.memo(function AssistantToolUseMessa
               )}
 
               {tc.durationMs != null && (
-                <span className="text-default-400 text-xs ml-auto">
+                <span className="text-muted text-xs ml-auto">
                   {tc.durationMs}ms
                 </span>
               )}
@@ -83,28 +83,28 @@ export const AssistantToolUseMessage = React.memo(function AssistantToolUseMessa
               {/* Collapsible arguments */}
               <button
                 type="button"
-                className="text-default-400 text-xs hover:text-default-600 transition-colors cursor-pointer"
+                className="text-muted text-xs hover:text-foreground transition-colors cursor-pointer"
                 onClick={() => toggleArgs(tc.id)}
               >
                 {isExpanded ? '▼' : '▶'} 参数
               </button>
 
               {isExpanded && (
-                <pre className="mt-1 text-xs text-default-500 bg-default-100 rounded-md p-2 overflow-x-auto max-h-48">
+                <pre className="mt-1 text-xs text-muted bg-surface-secondary rounded-md p-2 overflow-x-auto max-h-48">
                   {JSON.stringify(tc.arguments, null, 2)}
                 </pre>
               )}
 
               {/* Error message */}
               {tc.status === 'error' && tc.errorMessage && (
-                <div className="mt-2 text-danger text-xs bg-danger/10 rounded-md p-2">
+                <div className="mt-2 text-danger text-xs bg-danger-soft rounded-md p-2">
                   {tc.errorMessage}
                 </div>
               )}
 
               {/* Result */}
               {tc.result != null && (
-                <pre className="mt-2 text-xs text-default-600 bg-default-50 rounded-md p-2 overflow-x-auto max-h-64 whitespace-pre-wrap">
+                <pre className="mt-2 text-xs text-foreground bg-surface rounded-md p-2 overflow-x-auto max-h-64 whitespace-pre-wrap">
                   {highlightMatch(tc.result)}
                 </pre>
               )}
