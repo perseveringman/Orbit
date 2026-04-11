@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button, Chip } from '@heroui/react';
+import { MessageCircle, Radio, BarChart3, Settings, Microscope, RefreshCw, X, Drama, Bot, type LucideIcon } from 'lucide-react';
 import { AgentChatPanel } from '@orbit/feature-workbench';
 import { DevAgentService } from './DevAgentService';
 import { EventStreamPanel } from './EventStreamPanel';
@@ -14,11 +15,11 @@ import { SCENARIOS, type ScenarioInfo } from './mock-scenarios';
 
 type Tab = 'chat' | 'events' | 'observe' | 'config';
 
-const TAB_ITEMS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'chat', label: '对话', icon: '💬' },
-  { id: 'events', label: '事件流', icon: '📡' },
-  { id: 'observe', label: '可观测', icon: '📊' },
-  { id: 'config', label: 'LLM 配置', icon: '⚙️' },
+const TAB_ITEMS: { id: Tab; label: string; icon: LucideIcon }[] = [
+  { id: 'chat', label: '对话', icon: MessageCircle },
+  { id: 'events', label: '事件流', icon: Radio },
+  { id: 'observe', label: '可观测', icon: BarChart3 },
+  { id: 'config', label: 'LLM 配置', icon: Settings },
 ];
 
 const CHAT_MODE_STORAGE_KEY = 'orbit:agent-devtools:chat-mode';
@@ -118,7 +119,7 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
       {/* Header */}
       <div className="flex flex-col gap-2.5 px-4 py-2.5 bg-surface-secondary border-b border-border shrink-0">
         <div className="flex items-center gap-2 w-full min-w-0">
-          <span className="text-base">🔬</span>
+          <Microscope size={16} />
           <strong className="text-sm">Agent DevTools</strong>
           <span className="flex-1" />
 
@@ -128,7 +129,7 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
             title="重置所有状态"
             className="px-2.5 py-1 rounded-md border border-border bg-transparent text-muted text-[11px] cursor-pointer shrink-0 hover:bg-surface-secondary transition-colors"
           >
-            🔄 重置
+            <RefreshCw size={14} className="inline" /> 重置
           </button>
 
           {/* Event count badge */}
@@ -138,7 +139,7 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
 
           {/* Close */}
           <Button variant="ghost" isIconOnly size="sm" onPress={onClose} aria-label="关闭">
-            ✕
+            <X size={16} />
           </Button>
         </div>
 
@@ -154,7 +155,7 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
                     : 'bg-transparent text-muted'
                 }`}
               >
-                🎭 Mock
+                <Drama size={14} className="inline" /> Mock
               </button>
               <button
                 onClick={() => setChatMode('real')}
@@ -164,7 +165,7 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
                     : 'bg-transparent text-muted'
                 }`}
               >
-                🤖 Real LLM
+                <Bot size={14} className="inline" /> Real LLM
               </button>
             </div>
 
@@ -223,7 +224,7 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
                 : 'border-b-transparent text-muted'
             }`}
           >
-            {t.icon} {t.label}
+            <t.icon size={14} /> {t.label}
           </button>
         ))}
       </div>

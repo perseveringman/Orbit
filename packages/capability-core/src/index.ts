@@ -33,3 +33,13 @@ export function supportsPermission(
 ): boolean {
   return manifest.permissions.some((permission) => permission.resource === resource && permission.access === access);
 }
+
+// Wave 2-C re-exports
+export * from './capability-interface.js';
+export * from './domain-registry.js';
+export * from './mcp-server.js';
+export * from './mcp-client.js';
+export * from './policy-engine.js';
+export * from './audit-sink.js';
+export * from './confirmation-model.js';
+export * from './sensitive-isolation.js';

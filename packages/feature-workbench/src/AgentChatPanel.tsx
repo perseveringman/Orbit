@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { X, ChevronRight } from 'lucide-react';
 import type { AgentChatViewModel, AgentChatMessageViewModel } from './agent-chat-dom-module';
 
 // ---------------------------------------------------------------------------
@@ -121,7 +122,7 @@ function ToolCallCard({
           textAlign: 'left',
         }}
       >
-        <span style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>▶</span>
+        <span style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}><ChevronRight size={14} /></span>
         <span style={{ fontWeight: 600 }}>{msg.toolName ?? 'tool'}</span>
         <span style={{ color: VAR.textSecondary, marginLeft: 'auto', fontSize: 11 }}>
           {msg.formattedTime}
@@ -308,7 +309,7 @@ export function AgentChatPanel({
               padding: '2px 6px',
             }}
           >
-            ✕
+            <X size={18} />
           </button>
         )}
       </div>

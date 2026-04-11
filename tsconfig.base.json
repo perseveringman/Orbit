@@ -31,6 +31,9 @@
       "@orbit/capability-core": [
         "packages/capability-core/src/index.ts"
       ],
+      "@orbit/conversation-ui": [
+        "packages/conversation-ui/src/index.ts"
+      ],
       "@orbit/data-protocol": [
         "packages/data-protocol/src/index.ts"
       ],

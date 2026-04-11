@@ -1,4 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import {
+  FolderOpen, ClipboardList, Calendar, Crosshair, BarChart3,
+  Flame, FileEdit, Settings, Moon, Sun, User, Search,
+  MoreHorizontal, ChevronLeft, ChevronRight, Package,
+  Trash2, BookOpen, Bot, Microscope, Check, ArrowRight, AlertTriangle
+} from 'lucide-react';
 import { Button, Card, Chip, Tabs, Separator } from '@heroui/react';
 
 import type { ProjectRecord, TaskRecord } from '@orbit/domain';
@@ -218,14 +224,14 @@ export function App() {
             >
               <span>
                 {section.id === 'projects'
-                  ? '📁'
+                  ? <FolderOpen size={16} />
                   : section.id === 'tasks'
-                    ? '📋'
+                    ? <ClipboardList size={16} />
                     : section.id === 'today'
-                      ? '📅'
+                      ? <Calendar size={16} />
                       : section.id === 'focus'
-                        ? '🎯'
-                        : '📊'}
+                        ? <Crosshair size={16} />
+                        : <BarChart3 size={16} />}
               </span>
               {section.label}
               <span className="ml-auto text-xs text-muted">{section.count}</span>
@@ -236,7 +242,7 @@ export function App() {
 
           <div className="mt-2">
             <div className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-muted uppercase tracking-wide">
-              <span>📦</span> Object types
+              <Package size={14} className="inline" /> Object types
             </div>
             <button className="flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm text-muted hover:bg-surface-secondary transition-colors">
               <Chip size="sm" variant="soft" color="accent">P</Chip>
@@ -252,17 +258,17 @@ export function App() {
         <div className="px-2 pb-2">
           <Separator />
           <button className="flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm text-muted hover:bg-surface-secondary transition-colors">
-            🗑 Trash
+            <Trash2 size={14} className="inline" /> Trash
           </button>
           <button className="flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm text-muted hover:bg-surface-secondary transition-colors">
-            📖 Documentation
+            <BookOpen size={14} className="inline" /> Documentation
           </button>
         </div>
 
         <div className="flex items-center justify-center gap-1 px-2 py-2 border-t border-border">
-          <Button variant="ghost" isIconOnly size="sm">⚙️</Button>
+          <Button variant="ghost" isIconOnly size="sm"><Settings size={16} /></Button>
           <Button variant="ghost" isIconOnly size="sm" onPress={toggleTheme}>
-            {themeMode === 'light' ? '🌙' : '☀️'}
+            {themeMode === 'light' ? <Moon size={16} /> : <Sun size={16} />}
           </Button>
           <Button
             variant="ghost"
@@ -271,7 +277,7 @@ export function App() {
             onPress={() => setShowAgentHub(true)}
             aria-label="Agent Hub (⌘⇧A)"
           >
-            🤖
+            <Bot size={16} />
           </Button>
           <Button
             variant="ghost"
@@ -281,9 +287,9 @@ export function App() {
             aria-label="Agent DevTools"
             className={showDevTools ? 'bg-accent rounded-md' : undefined}
           >
-            🔬
+            <Microscope size={16} />
           </Button>
-          <Button variant="ghost" isIconOnly size="sm">👤</Button>
+          <Button variant="ghost" isIconOnly size="sm"><User size={16} /></Button>
         </div>
       </aside>
 
@@ -301,14 +307,14 @@ export function App() {
                     : 'Tasks'}
             </h1>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" isIconOnly size="sm">‹</Button>
+              <Button variant="ghost" isIconOnly size="sm"><ChevronLeft size={16} /></Button>
               <Button variant="secondary" size="sm">Today</Button>
-              <Button variant="ghost" isIconOnly size="sm">›</Button>
+              <Button variant="ghost" isIconOnly size="sm"><ChevronRight size={16} /></Button>
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" isIconOnly size="sm">🔍</Button>
-            <Button variant="ghost" isIconOnly size="sm">⋯</Button>
+            <Button variant="ghost" isIconOnly size="sm"><Search size={16} /></Button>
+            <Button variant="ghost" isIconOnly size="sm"><MoreHorizontal size={16} /></Button>
             <Button variant="primary" size="sm">+ New</Button>
           </div>
         </div>
@@ -325,7 +331,7 @@ export function App() {
             {/* Planner */}
             <Card>
               <Card.Header>
-                <Chip variant="soft" color="accent">📋 Planner</Chip>
+                <Chip variant="soft" color="accent"><ClipboardList size={14} className="inline" /> Planner</Chip>
               </Card.Header>
               <Card.Content>
                 <Card.Title>{workbench.shell.planner.summary}</Card.Title>
@@ -348,7 +354,7 @@ export function App() {
                     variant="soft"
                     color={task.status === 'doing' ? 'warning' : 'default'}
                   >
-                    {task.status === 'doing' ? '🔥 进行中' : '📝 待做'}
+                    {task.status === 'doing' ? <><Flame size={14} className="inline" /> 进行中</> : <><FileEdit size={14} className="inline" /> 待做</>}
                   </Chip>
                 </Card.Header>
                 <Card.Content>
@@ -367,7 +373,7 @@ export function App() {
             {focus && (
               <Card className="border-l-3 border-accent">
                 <Card.Header>
-                  <Chip variant="soft" color="accent">🎯 Focus</Chip>
+                  <Chip variant="soft" color="accent"><Crosshair size={14} className="inline" /> Focus</Chip>
                 </Card.Header>
                 <Card.Content>
                   <Card.Title>{focus.title}</Card.Title>
@@ -394,19 +400,19 @@ export function App() {
             {/* Review */}
             <Card>
               <Card.Header>
-                <Chip variant="soft" color="success">📊 Review</Chip>
+                <Chip variant="soft" color="success"><BarChart3 size={14} className="inline" /> Review</Chip>
               </Card.Header>
               <Card.Content>
                 <Card.Title>{workbench.shell.review.summary}</Card.Title>
                 <div className="mt-2 space-y-1 text-sm">
                   {workbench.shell.review.completedToday.map((t) => (
-                    <p key={t.id}>✓ {t.title}</p>
+                    <p key={t.id}><Check size={14} className="inline" /> {t.title}</p>
                   ))}
                   {workbench.shell.review.carryForward.map((t) => (
-                    <p key={t.id}>→ {t.title}</p>
+                    <p key={t.id}><ArrowRight size={14} className="inline" /> {t.title}</p>
                   ))}
                   {workbench.shell.review.tasksNeedingReview.map((t) => (
-                    <p key={t.id}>⚠ 任务 · {t.title}</p>
+                    <p key={t.id}><AlertTriangle size={14} className="inline" /> 任务 · {t.title}</p>
                   ))}
                 </div>
               </Card.Content>
@@ -424,7 +430,7 @@ export function App() {
             <div className="p-4">
               {activeProject ? (
                 <div>
-                  <Chip variant="soft" color="accent">📁 Project</Chip>
+                  <Chip variant="soft" color="accent"><FolderOpen size={14} className="inline" /> Project</Chip>
                   <h2 className="text-base font-semibold text-foreground mt-2">{activeProject.title}</h2>
                   <div className="mt-3 space-y-2">
                     <div className="flex justify-between text-sm">
@@ -459,7 +465,7 @@ export function App() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-muted">
-                  <div className="text-3xl mb-2">📁</div>
+                  <div className="mb-2"><FolderOpen size={20} /></div>
                   <div className="text-sm">No active project</div>
                 </div>
               )}

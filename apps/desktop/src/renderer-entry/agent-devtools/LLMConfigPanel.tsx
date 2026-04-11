@@ -5,6 +5,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { Button, Chip } from '@heroui/react';
+import { EyeOff, Eye, Loader2, Link, MessageCircle, CheckCircle, XCircle, KeyRound, AlertTriangle, Lock, Settings, Lightbulb, ChevronDown, Check } from 'lucide-react';
 import {
   PROVIDER_CATALOG,
   type ProviderCatalogEntry,
@@ -150,9 +151,9 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
 
         {!isApiKeyAuth && (
           <span className="text-[10px] text-muted">
-            {entry.authType === 'oauth_device_code' ? '🔐 OAuth' :
-             entry.authType === 'oauth_external' ? '🔐 OAuth (ext)' :
-             entry.authType === 'external_process' ? '⚙️ 外部进程' : entry.authType}
+            {entry.authType === 'oauth_device_code' ? <><Lock size={14} className="inline" /> OAuth</> :
+             entry.authType === 'oauth_external' ? <><Lock size={14} className="inline" /> OAuth (ext)</> :
+             entry.authType === 'external_process' ? <><Settings size={14} className="inline" /> 外部进程</> : entry.authType}
           </span>
         )}
 
@@ -163,11 +164,11 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
         )}
 
         {showSaved && (
-          <span className="text-[10px] text-success font-semibold animate-[fadeIn_0.2s]">✓ 已保存</span>
+          <span className="text-[10px] text-success font-semibold animate-[fadeIn_0.2s]"><Check size={14} className="inline" /> 已保存</span>
         )}
 
         <span className={`text-xs text-muted transition-transform ${expanded ? 'rotate-180' : ''}`}>
-          ▾
+          <ChevronDown size={14} />
         </span>
       </div>
 
@@ -206,7 +207,7 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
                   className="flex-1 px-2.5 py-1.5 rounded-md border border-border bg-surface-tertiary text-foreground text-xs font-mono outline-none focus:ring-1 focus:ring-focus"
                 />
                 <Button variant="ghost" size="sm" isIconOnly onPress={() => setShowApiKey(!showApiKey)}>
-                  {showApiKey ? '🙈' : '👁'}
+                  {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
                 </Button>
               </div>
             </div>
@@ -262,7 +263,7 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
               isDisabled={isTesting || (!hasApiKey && isApiKeyAuth)}
               className={isTesting ? 'text-warning' : 'text-accent'}
             >
-              {isTesting ? '⏳ 测试中...' : '🔗 测试连通性'}
+              {isTesting ? <><Loader2 size={14} className="inline animate-spin" /> 测试中...</> : <><Link size={14} className="inline" /> 测试连通性</>}
             </Button>
 
             {/* Test chat */}
@@ -274,7 +275,7 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
                 isDisabled={isChatTesting || !hasApiKey}
                 className={isChatTesting ? 'text-warning' : 'text-success'}
               >
-                {isChatTesting ? '⏳ 调用中...' : '💬 测试对话'}
+                {isChatTesting ? <><Loader2 size={14} className="inline animate-spin" /> 调用中...</> : <><MessageCircle size={14} className="inline" /> 测试对话</>}
               </Button>
             )}
           </div>
@@ -291,7 +292,7 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
               }`}
             >
               <span className="min-w-0 break-all">
-                {testResult.status === 'success' ? '✅' : testResult.status === 'auth_error' ? '🔑' : '⚠️'}
+                {testResult.status === 'success' ? <CheckCircle size={14} className="inline" /> : testResult.status === 'auth_error' ? <KeyRound size={14} className="inline" /> : <AlertTriangle size={14} className="inline" />}
                 {' '}
                 {testResult.message}
               </span>
@@ -308,7 +309,7 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
                   : 'bg-danger/10 text-danger border-danger/20'
               }`}
             >
-              {chatResult.success ? '✅' : '❌'}{' '}
+              {chatResult.success ? <CheckCircle size={14} className="inline" /> : <XCircle size={14} className="inline" />}{' '}
               {chatResult.success
                 ? `${chatResult.response} (${chatResult.latencyMs}ms)`
                 : `${chatResult.error} (${chatResult.latencyMs}ms)`}
@@ -434,7 +435,7 @@ export function LLMConfigPanel({ onConfigChanged }: LLMConfigPanelProps) {
 
       {/* Footer tip */}
       <div className="px-3.5 py-2 border-t border-border text-[11px] text-muted text-center shrink-0">
-        💡 配置 API Key 并启用后，可在「对话」标签页中使用真实 LLM 模型进行测试
+        <Lightbulb size={14} className="inline" /> 配置 API Key 并启用后，可在「对话」标签页中使用真实 LLM 模型进行测试
       </div>
     </div>
   );

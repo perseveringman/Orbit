@@ -1,40 +1,22 @@
-export type EditorBlockKind = 'heading' | 'paragraph';
+import type { Block } from './block-schema.js';
+import { parseFrontmatter, type OrbitFrontmatter } from './frontmatter.js';
+import { parseMarkdown } from './markdown-parser.js';
+import { ensureBlockId } from './block-id.js';
 
-        export interface EditorBlock {
-          id: string;
-          kind: EditorBlockKind;
-          text: string;
-        }
+export interface EditorDocumentState {
+  readonly rawText: string;
+  readonly frontmatter: OrbitFrontmatter;
+  readonly blocks: readonly Block[];
+}
 
-        export interface EditorDocumentState {
-          rawText: string;
-          blocks: EditorBlock[];
-        }
+export function createEditorDocumentState(draft: string): EditorDocumentState {
+  const { frontmatter, body } = parseFrontmatter(draft);
+  const rawBlocks = parseMarkdown(body);
+  const blocks = rawBlocks.map(ensureBlockId);
 
-        export function createEditorDocumentState(draft: string): EditorDocumentState {
-          const lines = draft
-            .split(/\n+/)
-            .map((line) => line.trim())
-            .filter(Boolean);
-
-          const blocks = lines.map((line, index) => {
-            if (line.startsWith('# ')) {
-              return {
-                id: `block-${index + 1}`,
-                kind: 'heading' as const,
-                text: line.slice(2)
-              };
-            }
-
-            return {
-              id: `block-${index + 1}`,
-              kind: 'paragraph' as const,
-              text: line
-            };
-          });
-
-          return {
-            rawText: draft,
-            blocks
-          };
-        }
+  return {
+    rawText: draft,
+    frontmatter,
+    blocks,
+  };
+}

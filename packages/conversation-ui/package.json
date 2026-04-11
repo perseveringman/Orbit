@@ -1,0 +1,43 @@
+{
+  "name": "@orbit/conversation-ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Conversation UI — Claude Code interaction model with HeroUI v3",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint \"src/**/*.ts\" \"src/**/*.tsx\" \"tests/**/*.ts\"",
+    "test": "vitest run ./tests/",
+    "clean": "rm -rf dist coverage"
+  },
+  "dependencies": {
+    "@orbit/agent-core": "workspace:*"
+  },
+  "peerDependencies": {
+    "@heroui/react": "^3.0.0",
+    "@heroui/styles": "^3.0.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@heroui/react": "^3.0.2",
+    "@heroui/styles": "^3.0.2",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "vitest": "^3.1.1",
+    "typescript": "^5.8.3"
+  }
+}

@@ -16,19 +16,31 @@ const aliases = new Map([
 ]);
 
 function tryResolveRelativeTs(specifier, parentURL) {
-  if (!parentURL || !(specifier.startsWith('./') || specifier.startsWith('../')) || extname(specifier)) {
+  if (!parentURL || !(specifier.startsWith('./') || specifier.startsWith('../'))) {
     return null;
   }
 
-  const candidate = fileURLToPath(new URL(`${specifier}.ts`, parentURL));
-  if (!existsSync(candidate)) {
+  const ext = extname(specifier);
+
+  // Handle extensionless imports: ./foo → ./foo.ts
+  if (!ext) {
+    const candidate = fileURLToPath(new URL(`${specifier}.ts`, parentURL));
+    if (existsSync(candidate)) {
+      return { shortCircuit: true, url: pathToFileURL(candidate).href };
+    }
     return null;
   }
 
-  return {
-    shortCircuit: true,
-    url: pathToFileURL(candidate).href
-  };
+  // Handle .js → .ts resolution: ./foo.js → ./foo.ts
+  if (ext === '.js') {
+    const tsSpecifier = specifier.replace(/\.js$/, '.ts');
+    const candidate = fileURLToPath(new URL(tsSpecifier, parentURL));
+    if (existsSync(candidate)) {
+      return { shortCircuit: true, url: pathToFileURL(candidate).href };
+    }
+  }
+
+  return null;
 }
 
 export async function resolve(specifier, context, defaultResolve) {

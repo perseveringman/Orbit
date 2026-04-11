@@ -18,6 +18,7 @@
     "@orbit/feature-workbench": "workspace:*",
     "@orbit/platform-web": "workspace:*",
     "@orbit/ui-dom": "workspace:*",
+    "lucide-react": "^1.8.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   },

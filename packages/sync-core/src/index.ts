@@ -38,3 +38,14 @@ export function shouldRequestAnotherPage(response: SyncPullResponseDto): boolean
 export function getNextCheckpoint(response: Pick<SyncPullResponseDto, 'checkpoint'>): SyncCheckpointDto {
   return response.checkpoint;
 }
+
+// ── Wave 2-D re-exports ────────────────────────────────────────────
+export * from './sync-channels.js';
+export * from './sync-types.js';
+export * from './lww-merge.js';
+export * from './three-way-merge.js';
+export * from './encryption.js';
+export * from './blob-cas.js';
+export * from './recovery-phrase.js';
+export * from './outbox.js';
+export * from './non-sync-items.js';
