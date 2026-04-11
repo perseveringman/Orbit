@@ -35,6 +35,8 @@ export interface ProviderCatalogEntry {
   readonly docUrl?: string;
   /** Whether health check uses x-api-key header instead of Bearer. */
   readonly usesXApiKey?: boolean;
+  /** Whether to use Authorization: Bearer instead of x-api-key for Anthropic-compatible endpoints. */
+  readonly useBearerAuth?: boolean;
 }
 
 // ---- Provider Catalog (19 providers matching hermes-agent) ----
@@ -82,7 +84,7 @@ export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = [
     defaultBaseUrl: 'https://api.deepseek.com/v1',
     baseUrlEnvVar: 'DEEPSEEK_BASE_URL',
     apiKeyEnvVars: ['DEEPSEEK_API_KEY'],
-    healthCheckUrl: 'https://api.deepseek.com/v1/models',
+    healthCheckUrl: 'https://api.deepseek.com/models',
     defaultModel: 'deepseek-chat',
     description: 'DeepSeek Reasoner & Chat models',
     docUrl: 'https://platform.deepseek.com/docs',
@@ -111,28 +113,29 @@ export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = [
     transport: 'openai_chat',
     authType: 'api_key',
     isAggregator: false,
-    defaultBaseUrl: 'https://api.moonshot.ai/v1',
+    defaultBaseUrl: 'https://api.kimi.com/coding/v1',
     baseUrlEnvVar: 'KIMI_BASE_URL',
     apiKeyEnvVars: ['KIMI_API_KEY'],
-    healthCheckUrl: 'https://api.moonshot.ai/v1/models',
+    healthCheckUrl: 'https://api.kimi.com/coding/v1/models',
     defaultModel: 'kimi-k2-0711',
-    description: 'Moonshot AI Kimi models — coding-optimized',
+    description: 'Kimi coding-optimized models',
     docUrl: 'https://platform.moonshot.cn/docs',
   },
 
-  // 6. MiniMax
+  // 6. MiniMax (global)
   {
     id: 'minimax',
     displayName: 'MiniMax',
     transport: 'anthropic_messages',
     authType: 'api_key',
     isAggregator: false,
-    defaultBaseUrl: 'https://api.minimax.chat/v1',
+    defaultBaseUrl: 'https://api.minimax.io/anthropic/v1',
     baseUrlEnvVar: 'MINIMAX_BASE_URL',
     apiKeyEnvVars: ['MINIMAX_API_KEY'],
-    defaultModel: 'MiniMax-M1',
-    description: 'MiniMax language models (global endpoint)',
-    docUrl: 'https://platform.minimaxi.com/document',
+    defaultModel: 'MiniMax-M2.7',
+    description: 'MiniMax language models (global endpoint, Bearer auth)',
+    docUrl: 'https://platform.minimax.io/docs/api-reference/text-anthropic-api',
+    useBearerAuth: true,
   },
 
   // 7. MiniMax China
@@ -142,12 +145,13 @@ export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = [
     transport: 'anthropic_messages',
     authType: 'api_key',
     isAggregator: false,
-    defaultBaseUrl: 'https://api.minimax.chat/v1',
+    defaultBaseUrl: 'https://api.minimaxi.com/anthropic/v1',
     baseUrlEnvVar: 'MINIMAX_CN_BASE_URL',
     apiKeyEnvVars: ['MINIMAX_CN_API_KEY'],
-    defaultModel: 'MiniMax-M1',
-    description: 'MiniMax — China endpoint',
-    docUrl: 'https://platform.minimaxi.com/document',
+    defaultModel: 'MiniMax-M2.7',
+    description: 'MiniMax — China domestic endpoint (Bearer auth)',
+    docUrl: 'https://platform.minimax.io/docs/api-reference/text-anthropic-api',
+    useBearerAuth: true,
   },
 
   // 8. Alibaba / DashScope (Qwen)
@@ -157,10 +161,10 @@ export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = [
     transport: 'openai_chat',
     authType: 'api_key',
     isAggregator: false,
-    defaultBaseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    defaultBaseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
     baseUrlEnvVar: 'DASHSCOPE_BASE_URL',
     apiKeyEnvVars: ['DASHSCOPE_API_KEY'],
-    healthCheckUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1/models',
+    healthCheckUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/models',
     defaultModel: 'qwen-max',
     description: 'Alibaba Cloud — Qwen series via DashScope',
     docUrl: 'https://help.aliyun.com/zh/dashscope',
@@ -234,7 +238,7 @@ export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = [
     transport: 'openai_chat',
     authType: 'api_key',
     isAggregator: true,
-    defaultBaseUrl: 'https://api.opencode.ai/v1',
+    defaultBaseUrl: 'https://opencode.ai/zen/v1',
     baseUrlEnvVar: 'OPENCODE_ZEN_BASE_URL',
     apiKeyEnvVars: ['OPENCODE_ZEN_API_KEY'],
     defaultModel: 'claude-sonnet-4',
@@ -248,7 +252,7 @@ export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = [
     transport: 'openai_chat',
     authType: 'api_key',
     isAggregator: true,
-    defaultBaseUrl: 'https://go.opencode.ai/v1',
+    defaultBaseUrl: 'https://opencode.ai/zen/go/v1',
     baseUrlEnvVar: 'OPENCODE_GO_BASE_URL',
     apiKeyEnvVars: ['OPENCODE_GO_API_KEY'],
     defaultModel: 'claude-sonnet-4',
@@ -262,7 +266,7 @@ export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = [
     transport: 'openai_chat',
     authType: 'api_key',
     isAggregator: true,
-    defaultBaseUrl: 'https://api.kilocode.ai/v1',
+    defaultBaseUrl: 'https://api.kilo.ai/api/gateway',
     baseUrlEnvVar: 'KILOCODE_BASE_URL',
     apiKeyEnvVars: ['KILOCODE_API_KEY'],
     defaultModel: 'claude-sonnet-4',

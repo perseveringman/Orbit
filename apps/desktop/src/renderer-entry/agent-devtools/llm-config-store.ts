@@ -31,6 +31,27 @@ export interface ConnectivityResult {
   readonly modelCount?: number;
 }
 
+// ---- Helpers ----
+
+function getDesktopBridge(): any {
+  return (window as any).orbitDesktop;
+}
+
+/** Build auth headers for a provider entry. */
+function buildAuthHeaders(entry: ProviderCatalogEntry, apiKey: string): Record<string, string> {
+  if (!apiKey) return {};
+  // MiniMax and similar providers use Bearer auth even on Anthropic-compatible endpoints
+  if (entry.useBearerAuth) {
+    return { 'Authorization': `Bearer ${apiKey}` };
+  }
+  // Anthropic native endpoints use x-api-key
+  if (entry.usesXApiKey || entry.transport === 'anthropic_messages') {
+    return { 'x-api-key': apiKey };
+  }
+  // OpenAI-compatible uses Bearer
+  return { 'Authorization': `Bearer ${apiKey}` };
+}
+
 // ---- Storage Key ----
 
 const STORAGE_KEY = 'orbit:agent-devtools:llm-configs';
@@ -59,6 +80,17 @@ export class LLMConfigStore {
   /** Save/update config for a provider. */
   static set(config: LLMProviderUserConfig): void {
     const all = LLMConfigStore.getAll();
+
+    // If enabling this provider, disable all others
+    if (config.enabled) {
+      for (const c of all) {
+        if (c.providerId !== config.providerId && c.enabled) {
+          const idx = all.indexOf(c);
+          all[idx] = { ...c, enabled: false };
+        }
+      }
+    }
+
     const idx = all.findIndex((c) => c.providerId === config.providerId);
     if (idx >= 0) {
       all[idx] = config;
@@ -82,15 +114,20 @@ export class LLMConfigStore {
   // ---- Connectivity Test ----
 
   /**
-   * Test connectivity for a provider by calling its health check endpoint
-   * (typically GET /models).
+   * Test connectivity for a provider.
+   *
+   * Strategy:
+   * - If the provider has a healthCheckUrl → GET that endpoint
+   * - For Anthropic-transport providers without healthCheckUrl (e.g. MiniMax),
+   *   POST an empty body to the messages endpoint. A 401 means the endpoint
+   *   is reachable (key is wrong); a 400 means key + endpoint both work.
+   * - Otherwise fallback to GET {baseUrl}/models
    */
   static async testConnectivity(
     entry: ProviderCatalogEntry,
     config: LLMProviderUserConfig,
   ): Promise<ConnectivityResult> {
-    const baseUrl = config.baseUrl || entry.defaultBaseUrl;
-    const healthUrl = entry.healthCheckUrl ?? `${baseUrl}/models`;
+    const baseUrl = (config.baseUrl || entry.defaultBaseUrl).replace(/\/+$/, '');
 
     if (baseUrl.startsWith('acp://') || entry.authType === 'external_process') {
       return {
@@ -108,73 +145,109 @@ export class LLMConfigStore {
       };
     }
 
+    // Decide URL and method
+    const isAnthropicWithoutHealthCheck =
+      entry.transport === 'anthropic_messages' && !entry.healthCheckUrl;
+
+    let healthUrl: string;
+    let method: 'GET' | 'POST';
+    let body: string | undefined;
+
+    if (isAnthropicWithoutHealthCheck) {
+      // MiniMax etc.: probe the messages endpoint with an empty POST
+      healthUrl = baseUrl.endsWith('/v1')
+        ? `${baseUrl}/messages`
+        : `${baseUrl}/v1/messages`;
+      method = 'POST';
+      body = JSON.stringify({ model: entry.defaultModel, max_tokens: 1, messages: [] });
+    } else {
+      healthUrl = entry.healthCheckUrl ?? `${baseUrl}/models`;
+      method = 'GET';
+    }
+
     const start = performance.now();
 
     try {
-      const headers: Record<string, string> = {};
-      if (config.apiKey) {
-        if (entry.usesXApiKey) {
-          headers['x-api-key'] = config.apiKey;
-        } else {
-          headers['Authorization'] = `Bearer ${config.apiKey}`;
-        }
+      const reqHeaders: Record<string, string> = {
+        ...buildAuthHeaders(entry, config.apiKey),
+      };
+      // Anthropic API always requires anthropic-version header
+      if (entry.transport === 'anthropic_messages') {
+        reqHeaders['anthropic-version'] = '2023-06-01';
+      }
+      if (method === 'POST') {
+        reqHeaders['Content-Type'] = 'application/json';
       }
 
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10_000);
+      const bridge = getDesktopBridge();
+      let status: number;
+      let responseBody = '';
 
-      const response = await fetch(healthUrl, {
-        method: 'GET',
-        headers,
-        signal: controller.signal,
-      });
+      if (bridge?.llmProxy) {
+        const proxyResult = await bridge.llmProxy({
+          url: healthUrl,
+          method,
+          headers: reqHeaders,
+          body,
+          timeoutMs: 10_000,
+        });
+        status = proxyResult.status;
+        responseBody = proxyResult.body;
+      } else {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10_000);
+        const response = await fetch(healthUrl, {
+          method,
+          headers: reqHeaders,
+          body,
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        status = response.status;
+        responseBody = await response.text().catch(() => '');
+      }
 
-      clearTimeout(timeout);
       const latencyMs = Math.round(performance.now() - start);
 
-      if (response.ok) {
+      // For the POST-probe strategy: any non-404 response proves the endpoint exists
+      if (isAnthropicWithoutHealthCheck) {
+        if (status === 401 || status === 403) {
+          return { status: 'auth_error', latencyMs, message: `连接成功，但认证失败 (HTTP ${status}) — 请检查 API Key` };
+        }
+        if (status >= 200 && status < 500) {
+          // 200, 400 (bad request body) etc. all mean the endpoint is reachable
+          return { status: 'success', latencyMs, message: `连接成功 (${latencyMs}ms)` };
+        }
+        return { status: 'error', latencyMs, message: `HTTP ${status}: ${responseBody.slice(0, 200)}` };
+      }
+
+      // Standard GET /models health check
+      if (status >= 200 && status < 300) {
         let modelCount: number | undefined;
         try {
-          const json = await response.json() as Record<string, unknown>;
+          const json = JSON.parse(responseBody) as Record<string, unknown>;
           const data = json['data'] as unknown[] | undefined;
-          if (Array.isArray(data)) {
-            modelCount = data.length;
-          }
-        } catch {
-          // Some endpoints don't return JSON
-        }
-
+          if (Array.isArray(data)) modelCount = data.length;
+        } catch {}
         return {
           status: 'success',
           latencyMs,
-          message: modelCount
-            ? `连接成功 — ${modelCount} 个模型可用`
-            : '连接成功',
+          message: modelCount ? `连接成功 — ${modelCount} 个模型可用` : '连接成功',
           modelCount,
         };
       }
 
-      if (response.status === 401 || response.status === 403) {
-        return {
-          status: 'auth_error',
-          latencyMs,
-          message: `认证失败 (HTTP ${response.status}) — 请检查 API Key`,
-        };
+      if (status === 401 || status === 403) {
+        return { status: 'auth_error', latencyMs, message: `认证失败 (HTTP ${status}) — 请检查 API Key` };
       }
 
-      return {
-        status: 'error',
-        latencyMs,
-        message: `HTTP ${response.status}: ${response.statusText}`,
-      };
+      return { status: 'error', latencyMs, message: `HTTP ${status}: ${responseBody.slice(0, 200)}` };
     } catch (error) {
       const latencyMs = Math.round(performance.now() - start);
       const msg = error instanceof Error ? error.message : String(error);
-
       if (msg.includes('abort') || msg.includes('AbortError')) {
         return { status: 'timeout', latencyMs, message: '请求超时 (10s)' };
       }
-
       return { status: 'error', latencyMs, message: `网络错误: ${msg}` };
     }
   }
@@ -206,7 +279,10 @@ export class LLMConfigStore {
         return new OpenAIProvider(providerConfig);
 
       case 'anthropic_messages':
-        return new AnthropicProvider(providerConfig);
+        return new AnthropicProvider({
+          ...providerConfig,
+          useBearerAuth: entry.useBearerAuth ?? false,
+        });
 
       case 'codex_responses':
         // Codex Responses API not implemented — uses different protocol
@@ -218,39 +294,78 @@ export class LLMConfigStore {
   }
 
   /**
-   * Quick chat completion test — sends a minimal message and returns the response.
+   * Quick chat completion test — sends a minimal message via IPC proxy.
    */
   static async testChatCompletion(
     entry: ProviderCatalogEntry,
     config: LLMProviderUserConfig,
   ): Promise<{ success: boolean; response?: string; error?: string; latencyMs: number }> {
-    const start = performance.now();
-    const provider = LLMConfigStore.createProvider(config);
-
-    if (!provider) {
-      return {
-        success: false,
-        error: `Transport "${entry.transport}" 不支持直接调用`,
-        latencyMs: 0,
-      };
+    if (entry.transport === 'codex_responses') {
+      return { success: false, error: `Transport "${entry.transport}" 不支持直接调用`, latencyMs: 0 };
     }
 
+    const start = performance.now();
+    const baseUrl = (config.baseUrl || entry.defaultBaseUrl).replace(/\/+$/, '');
+    const model = config.defaultModel || entry.defaultModel;
+
     try {
-      const model = config.defaultModel || entry.defaultModel;
-      const result = await provider.chatCompletion({
-        model,
-        messages: [
-          {
-            id: 'test-1',
-            role: 'user',
-            content: 'Say "Hello from Orbit!" in one short sentence.',
-            timestamp: new Date().toISOString(),
-          },
-        ],
-      });
+      const isAnthropic = entry.transport === 'anthropic_messages';
+      const url = isAnthropic
+        ? (baseUrl.endsWith('/v1') ? `${baseUrl}/messages` : `${baseUrl}/v1/messages`)
+        : `${baseUrl}/chat/completions`;
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...buildAuthHeaders(entry, config.apiKey),
+      };
+      if (isAnthropic) {
+        headers['anthropic-version'] = '2023-06-01';
+      }
+
+      const body = isAnthropic
+        ? JSON.stringify({
+            model,
+            max_tokens: 256,
+            messages: [{ role: 'user', content: 'Say "Hello from Orbit!" in one short sentence.' }],
+          })
+        : JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: 'Say "Hello from Orbit!" in one short sentence.' }],
+          });
+
+      const bridge = getDesktopBridge();
+      let responseBody: string;
+
+      if (bridge?.llmProxy) {
+        const proxyResult = await bridge.llmProxy({ url, method: 'POST', headers, body, timeoutMs: 30_000 });
+        if (!proxyResult.ok) {
+          const latencyMs = Math.round(performance.now() - start);
+          return { success: false, error: `HTTP ${proxyResult.status}: ${proxyResult.body.slice(0, 200)}`, latencyMs };
+        }
+        responseBody = proxyResult.body;
+      } else {
+        const resp = await fetch(url, { method: 'POST', headers, body });
+        if (!resp.ok) {
+          const latencyMs = Math.round(performance.now() - start);
+          const errText = await resp.text().catch(() => '');
+          return { success: false, error: `HTTP ${resp.status}: ${errText.slice(0, 200)}`, latencyMs };
+        }
+        responseBody = await resp.text();
+      }
 
       const latencyMs = Math.round(performance.now() - start);
-      const text = result.choices[0]?.message?.content ?? '(empty response)';
+      const json = JSON.parse(responseBody) as Record<string, unknown>;
+
+      // Parse response based on transport
+      let text: string;
+      if (isAnthropic) {
+        const content = json['content'] as readonly Record<string, unknown>[] | undefined;
+        text = content?.map((b) => (b['text'] as string) ?? '').join('') ?? '(empty)';
+      } else {
+        const choices = json['choices'] as readonly Record<string, unknown>[] | undefined;
+        const msg = choices?.[0]?.['message'] as Record<string, unknown> | undefined;
+        text = (msg?.['content'] as string) ?? '(empty)';
+      }
 
       return { success: true, response: text, latencyMs };
     } catch (error) {
@@ -258,6 +373,84 @@ export class LLMConfigStore {
       const msg = error instanceof Error ? error.message : String(error);
       return { success: false, error: msg, latencyMs };
     }
+  }
+
+  /**
+   * Send a chat completion via IPC proxy. Returns the full response text.
+   * Used by DevAgentService for real LLM calls.
+   */
+  static async chatViaProxy(
+    config: LLMProviderUserConfig,
+    messages: Array<{ role: string; content: string }>,
+  ): Promise<{ text: string; latencyMs: number }> {
+    const entry = getCatalogEntry(config.providerId);
+    if (!entry) throw new Error(`Unknown provider: ${config.providerId}`);
+
+    const baseUrl = (config.baseUrl || entry.defaultBaseUrl).replace(/\/+$/, '');
+    const model = config.defaultModel || entry.defaultModel;
+    const isAnthropic = entry.transport === 'anthropic_messages';
+
+    const url = isAnthropic
+      ? (baseUrl.endsWith('/v1') ? `${baseUrl}/messages` : `${baseUrl}/v1/messages`)
+      : `${baseUrl}/chat/completions`;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...buildAuthHeaders(entry, config.apiKey),
+    };
+    if (isAnthropic) {
+      headers['anthropic-version'] = '2023-06-01';
+    }
+
+    // Build request body
+    const systemMsgs = messages.filter((m) => m.role === 'system');
+    const nonSystemMsgs = messages.filter((m) => m.role !== 'system');
+
+    const body = isAnthropic
+      ? JSON.stringify({
+          model,
+          max_tokens: 4096,
+          ...(systemMsgs.length > 0 ? { system: systemMsgs.map((m) => m.content).join('\n\n') } : {}),
+          messages: nonSystemMsgs.map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content })),
+        })
+      : JSON.stringify({
+          model,
+          messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        });
+
+    const start = performance.now();
+    const bridge = getDesktopBridge();
+    let responseBody: string;
+
+    if (bridge?.llmProxy) {
+      const proxyResult = await bridge.llmProxy({ url, method: 'POST', headers, body, timeoutMs: 60_000 });
+      if (!proxyResult.ok) {
+        throw new Error(`HTTP ${proxyResult.status}: ${proxyResult.body.slice(0, 300)}`);
+      }
+      responseBody = proxyResult.body;
+    } else {
+      const resp = await fetch(url, { method: 'POST', headers, body });
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => '');
+        throw new Error(`HTTP ${resp.status}: ${errText.slice(0, 300)}`);
+      }
+      responseBody = await resp.text();
+    }
+
+    const latencyMs = Math.round(performance.now() - start);
+    const json = JSON.parse(responseBody) as Record<string, unknown>;
+
+    let text: string;
+    if (isAnthropic) {
+      const content = json['content'] as readonly Record<string, unknown>[] | undefined;
+      text = content?.map((b) => (b['text'] as string) ?? '').join('') ?? '';
+    } else {
+      const choices = json['choices'] as readonly Record<string, unknown>[] | undefined;
+      const msg = choices?.[0]?.['message'] as Record<string, unknown> | undefined;
+      text = (msg?.['content'] as string) ?? '';
+    }
+
+    return { text, latencyMs };
   }
 }
 

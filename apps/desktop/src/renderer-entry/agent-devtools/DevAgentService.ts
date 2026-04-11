@@ -71,6 +71,22 @@ function stateToViewModel(state: SessionUIState): AgentChatViewModel {
     });
   }
 
+  // Show error as a system message
+  if (state.status === 'error' && state.error) {
+    messages.push({
+      id: 'error-msg',
+      role: 'assistant',
+      content: `❌ ${state.error}`,
+      timestamp: new Date().toISOString(),
+      isToolCall: false,
+      toolName: undefined,
+      toolArgs: undefined,
+      toolResult: undefined,
+      roleLabel: '系统',
+      formattedTime: formatTimestamp(Date.now()),
+    });
+  }
+
   return {
     surface: 'global-chat',
     sessionId: state.sessionId,
@@ -252,7 +268,7 @@ export class DevAgentService {
     return this.activeProviderName;
   }
 
-  /** Send a message using the real LLM provider (streaming). */
+  /** Send a message using the real LLM provider via IPC proxy. */
   async sendRealMessage(content: string): Promise<void> {
     if (!this.sessionState) {
       this.createSession();
@@ -263,9 +279,11 @@ export class DevAgentService {
       this.refreshLLMProviders();
     }
 
-    const runId = this.sessionId ?? 'devtools';
+    const runId = `run_real_${Date.now().toString(36)}`;
+    const enabled = LLMConfigStore.getEnabled();
+    const providerConfig = enabled[0];
 
-    if (!this.realProvider) {
+    if (!providerConfig) {
       this.sessionState!.addUserMessage(content);
       this.bridge.getEventBus().emit({
         type: 'agent:error',
@@ -290,6 +308,9 @@ export class DevAgentService {
       timestamp: new Date().toISOString(),
     });
 
+    const entry = PROVIDER_CATALOG.find((e) => e.id === providerConfig.providerId);
+    const model = providerConfig.defaultModel || entry?.defaultModel || '';
+
     // Emit orchestrator started
     this.bridge.getEventBus().emit({
       type: 'orchestrator:started',
@@ -297,6 +318,22 @@ export class DevAgentService {
       timestamp: Date.now(),
       sessionId: this.sessionId!,
       surface: 'global-chat',
+    });
+
+    this.bridge.getEventBus().emit({
+      type: 'orchestrator:routed',
+      runId,
+      timestamp: Date.now(),
+      domain: 'planning',
+      reason: `Real LLM: ${this.activeProviderName}`,
+    });
+
+    this.bridge.getEventBus().emit({
+      type: 'agent:started',
+      runId,
+      timestamp: Date.now(),
+      domain: 'planning',
+      model,
     });
 
     // Emit agent reasoning (thinking indicator)
@@ -308,44 +345,14 @@ export class DevAgentService {
     });
 
     try {
-      // Get the enabled config to determine model
-      const enabled = LLMConfigStore.getEnabled();
-      const providerConfig = enabled[0];
-      const entry = PROVIDER_CATALOG.find((e) => e.id === providerConfig?.providerId);
-      const model = providerConfig?.defaultModel || entry?.defaultModel || '';
+      // Use IPC proxy for the actual call (bypasses CORS)
+      const chatMessages = this.conversationHistory.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
 
-      // Try streaming first
-      let fullResponse = '';
-      const startMs = Date.now();
-
-      try {
-        const stream = this.realProvider.chatCompletionStream({
-          model,
-          messages: this.conversationHistory,
-        });
-
-        for await (const chunk of stream) {
-          if (chunk.type === 'text-delta') {
-            fullResponse += chunk.text;
-            this.bridge.getEventBus().emit({
-              type: 'agent:stream-delta',
-              runId,
-              timestamp: Date.now(),
-              delta: chunk.text,
-            });
-          }
-          // usage chunk is informational, tracked internally
-        }
-      } catch {
-        // Streaming not supported or failed — fall back to non-streaming
-        const result = await this.realProvider.chatCompletion({
-          model,
-          messages: this.conversationHistory,
-        });
-        fullResponse = result.choices[0]?.message?.content ?? '';
-      }
-
-      const durationMs = Date.now() - startMs;
+      const { text: fullResponse, latencyMs: durationMs } =
+        await LLMConfigStore.chatViaProxy(providerConfig, chatMessages);
 
       // Emit agent completed with the full response
       if (fullResponse) {

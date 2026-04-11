@@ -18,6 +18,8 @@ export interface ProviderConfig {
   readonly timeoutMs: number;
   readonly maxRetries: number;
   readonly headers?: Readonly<Record<string, string>>;
+  /** When true, use Authorization: Bearer instead of x-api-key (e.g. MiniMax). */
+  readonly useBearerAuth?: boolean;
 }
 
 // ---- Stream chunk types ----

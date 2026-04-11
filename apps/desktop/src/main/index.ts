@@ -1,7 +1,7 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { fileURLToPath } from 'node:url';
 
-import { createDesktopShellDescriptor } from '../shared/contracts';
+import { createDesktopShellDescriptor, type LLMProxyRequest } from '../shared/contracts';
 
 const shellDescriptor = createDesktopShellDescriptor();
 const runtimeProcess = globalThis as {
@@ -56,6 +56,45 @@ function createMainWindow(): BrowserWindow {
   void loadRenderer(window);
   return window;
 }
+
+ipcMain.handle('llm:proxy', async (_event, request: LLMProxyRequest) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), request.timeoutMs ?? 60_000);
+
+  try {
+    const response = await fetch(request.url, {
+      method: request.method,
+      headers: request.headers,
+      body: request.body,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    const responseHeaders: Record<string, string> = {};
+    response.headers.forEach((value, key) => { responseHeaders[key] = value; });
+
+    const body = await response.text();
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders,
+      body,
+    };
+  } catch (error) {
+    clearTimeout(timeout);
+    const msg = error instanceof Error ? error.message : String(error);
+    return {
+      ok: false,
+      status: 0,
+      statusText: msg.includes('abort') ? 'Request Timeout' : 'Network Error',
+      headers: {},
+      body: JSON.stringify({ error: msg }),
+    };
+  }
+});
 
 void app.whenReady().then(() => {
   createMainWindow();

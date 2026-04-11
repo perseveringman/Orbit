@@ -11,6 +11,22 @@ export interface DesktopShellDescriptor {
   layers: DesktopHostLayer[];
 }
 
+export interface LLMProxyRequest {
+  url: string;
+  method: 'GET' | 'POST';
+  headers: Record<string, string>;
+  body?: string;
+  timeoutMs?: number;
+}
+
+export interface LLMProxyResponse {
+  ok: boolean;
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  body: string;
+}
+
 export interface DesktopBridge {
   host: {
     appVersion: string;
@@ -19,6 +35,7 @@ export interface DesktopBridge {
   };
   ping(): Promise<'pong'>;
   describeShell(): DesktopShellDescriptor;
+  llmProxy(request: LLMProxyRequest): Promise<LLMProxyResponse>;
 }
 
 export const HOST_LAYERS: DesktopHostLayer[] = [
@@ -52,6 +69,13 @@ export function createFallbackDesktopBridge(): DesktopBridge {
       platform: 'unknown'
     },
     ping: async () => 'pong',
-    describeShell: () => createDesktopShellDescriptor()
+    describeShell: () => createDesktopShellDescriptor(),
+    llmProxy: async () => ({
+      ok: false,
+      status: 0,
+      statusText: 'Fallback bridge – no IPC available',
+      headers: {},
+      body: JSON.stringify({ error: 'llmProxy unavailable in fallback bridge' })
+    })
   };
 }

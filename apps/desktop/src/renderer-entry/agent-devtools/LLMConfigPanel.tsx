@@ -115,6 +115,8 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
   const [isTesting, setIsTesting] = useState(false);
   const [isChatTesting, setIsChatTesting] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const isApiKeyAuth = entry.authType === 'api_key';
   const hasApiKey = config.apiKey.length > 0;
@@ -127,6 +129,13 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
       onConfigChanged();
       return next;
     });
+    // Show saved indicator
+    setShowSaved(true);
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setShowSaved(false), 1500);
+    // Clear stale test results
+    setTestResult(null);
+    setChatResult(null);
   }, [entry.id, onConfigChanged]);
 
   const handleTestConnectivity = useCallback(async () => {
@@ -199,6 +208,10 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
 
         {isConfigured && (
           <span style={{ fontSize: 10, color: V.green, fontWeight: 600 }}>● 已配置</span>
+        )}
+
+        {showSaved && (
+          <span style={{ fontSize: 10, color: V.green, fontWeight: 600, animation: 'fadeIn 0.2s' }}>✓ 已保存</span>
         )}
 
         <span style={{ fontSize: 12, color: V.textDim, transition: 'transform 0.15s', transform: expanded ? 'rotate(180deg)' : 'none' }}>
@@ -333,7 +346,7 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
             <span style={{ flex: 1 }} />
 
             {/* Test connectivity */}
-            {entry.healthCheckUrl && (
+            {(
               <button
                 onClick={handleTestConnectivity}
                 disabled={isTesting || (!hasApiKey && isApiKeyAuth)}

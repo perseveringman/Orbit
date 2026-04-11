@@ -1,8 +1,9 @@
-import { contextBridge } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
 
 import {
   createDesktopShellDescriptor,
-  type DesktopBridge
+  type DesktopBridge,
+  type LLMProxyRequest
 } from '../shared/contracts';
 
 const runtimeProcess = globalThis as {
@@ -19,7 +20,8 @@ const desktopBridge: DesktopBridge = {
     platform: runtimeProcess.process?.platform ?? 'unknown'
   },
   ping: async () => 'pong',
-  describeShell: () => createDesktopShellDescriptor()
+  describeShell: () => createDesktopShellDescriptor(),
+  llmProxy: (request: LLMProxyRequest) => ipcRenderer.invoke('llm:proxy', request)
 };
 
 contextBridge.exposeInMainWorld('orbitDesktop', desktopBridge);

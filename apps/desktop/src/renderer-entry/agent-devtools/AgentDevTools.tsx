@@ -55,6 +55,11 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
     return unsub;
   }, [service]);
 
+  // Load saved LLM providers on startup
+  useEffect(() => {
+    service.refreshLLMProviders();
+  }, [service]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {

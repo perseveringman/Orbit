@@ -44,7 +44,15 @@ export class AnthropicProvider implements LLMProvider {
       timeoutMs: config.timeoutMs ?? 60_000,
       maxRetries: config.maxRetries ?? 2,
       headers: config.headers,
+      useBearerAuth: config.useBearerAuth,
     };
+  }
+
+  private messagesUrl(): string {
+    const base = this.config.baseUrl.replace(/\/+$/, '');
+    return base.endsWith('/v1')
+      ? `${base}/messages`
+      : `${base}/v1/messages`;
   }
 
   // ---- Non-streaming completion ----
@@ -52,7 +60,7 @@ export class AnthropicProvider implements LLMProvider {
   async chatCompletion(request: ChatCompletionRequest): Promise<ChatCompletionResponse> {
     const body = this.buildRequestBody(request, false);
     const response = await this.fetchWithRetry(
-      `${this.config.baseUrl}/v1/messages`,
+      this.messagesUrl(),
       body,
     );
 
@@ -65,7 +73,7 @@ export class AnthropicProvider implements LLMProvider {
   async *chatCompletionStream(request: ChatCompletionRequest): AsyncGenerator<StreamChunk> {
     const body = this.buildRequestBody(request, true);
     const response = await this.fetchWithRetry(
-      `${this.config.baseUrl}/v1/messages`,
+      this.messagesUrl(),
       body,
     );
 
@@ -224,6 +232,8 @@ export class AnthropicProvider implements LLMProvider {
     const reader = body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    // Track index → actual tool call ID from content_block_start
+    const blockIdMap = new Map<number, string>();
 
     try {
       for (;;) {
@@ -257,7 +267,7 @@ export class AnthropicProvider implements LLMProvider {
               continue;
             }
 
-            yield* this.mapAnthropicEvent(currentEventType, data);
+            yield* this.mapAnthropicEvent(currentEventType, data, blockIdMap);
           }
         }
       }
@@ -269,14 +279,20 @@ export class AnthropicProvider implements LLMProvider {
   private *mapAnthropicEvent(
     eventType: string,
     data: Record<string, unknown>,
+    blockIdMap: Map<number, string>,
   ): Generator<StreamChunk> {
     switch (eventType) {
       case 'content_block_start': {
+        const index = data['index'] as number | undefined;
         const block = data['content_block'] as Record<string, unknown> | undefined;
         if (block?.['type'] === 'tool_use') {
+          const toolCallId = (block['id'] as string) ?? '';
+          if (index !== undefined) {
+            blockIdMap.set(index, toolCallId);
+          }
           yield {
             type: 'tool-call-start',
-            toolCallId: (block['id'] as string) ?? '',
+            toolCallId,
             name: (block['name'] as string) ?? '',
           };
         }
@@ -292,11 +308,11 @@ export class AnthropicProvider implements LLMProvider {
         } else if (delta['type'] === 'thinking_delta') {
           yield { type: 'thinking-delta', text: (delta['thinking'] as string) ?? '' };
         } else if (delta['type'] === 'input_json_delta') {
-          // Find the current tool call block index to build id
           const index = data['index'] as number | undefined;
+          const toolCallId = blockIdMap.get(index ?? 0) ?? `block_${index ?? 0}`;
           yield {
             type: 'tool-call-delta',
-            toolCallId: `block_${index ?? 0}`,
+            toolCallId,
             arguments: (delta['partial_json'] as string) ?? '',
           };
         }
@@ -305,8 +321,8 @@ export class AnthropicProvider implements LLMProvider {
 
       case 'content_block_stop': {
         const index = data['index'] as number | undefined;
-        // We emit tool-call-end; consumer should match by index if needed
-        yield { type: 'tool-call-end', toolCallId: `block_${index ?? 0}` };
+        const toolCallId = blockIdMap.get(index ?? 0) ?? `block_${index ?? 0}`;
+        yield { type: 'tool-call-end', toolCallId };
         break;
       }
 
@@ -365,7 +381,11 @@ export class AnthropicProvider implements LLMProvider {
       ...this.config.headers,
     };
     if (this.config.apiKey) {
-      headers['x-api-key'] = this.config.apiKey;
+      if (this.config.useBearerAuth) {
+        headers['Authorization'] = `Bearer ${this.config.apiKey}`;
+      } else {
+        headers['x-api-key'] = this.config.apiKey;
+      }
     }
     return headers;
   }

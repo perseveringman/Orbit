@@ -20,7 +20,10 @@ export default defineConfig({
     build: {
       outDir: 'dist/preload',
       rollupOptions: {
-        input: resolve(__dirname, 'src/preload/index.ts')
+        input: resolve(__dirname, 'src/preload/index.ts'),
+        output: {
+          entryFileNames: '[name].js'
+        }
       }
     }
   },
@@ -28,6 +31,14 @@ export default defineConfig({
     root: resolve(__dirname, 'src/renderer-entry'),
     base: './',
     plugins: [react(), tsconfigPaths({ projects: [rootTsconfig] })],
+    resolve: {
+      alias: {
+        'node:child_process': resolve(__dirname, 'src/renderer-entry/node-stubs.ts'),
+        'node:fs/promises': resolve(__dirname, 'src/renderer-entry/node-stubs.ts'),
+        'node:fs': resolve(__dirname, 'src/renderer-entry/node-stubs.ts'),
+        'node:path': resolve(__dirname, 'src/renderer-entry/node-stubs.ts'),
+      }
+    },
     build: {
       outDir: resolve(__dirname, 'dist/renderer-entry'),
       rollupOptions: {
