@@ -21,7 +21,22 @@ const desktopBridge: DesktopBridge = {
   },
   ping: async () => 'pong',
   describeShell: () => createDesktopShellDescriptor(),
-  llmProxy: (request: LLMProxyRequest) => ipcRenderer.invoke('llm:proxy', request)
+  llmProxy: (request: LLMProxyRequest) => ipcRenderer.invoke('llm:proxy', request),
+  startStream: (streamId: string, request: LLMProxyRequest) => {
+    ipcRenderer.send('llm:stream-start', streamId, request);
+  },
+  cancelStream: (streamId: string) => {
+    ipcRenderer.send('llm:stream-cancel', streamId);
+  },
+  onStreamChunk: (callback: (streamId: string, chunk: string, done: boolean) => void) => {
+    const handler = (_event: unknown, streamId: string, chunk: string, done: boolean) => {
+      callback(streamId, chunk, done);
+    };
+    ipcRenderer.on('llm:stream-chunk', handler);
+    return () => {
+      ipcRenderer.removeListener('llm:stream-chunk', handler);
+    };
+  },
 };
 
 contextBridge.exposeInMainWorld('orbitDesktop', desktopBridge);

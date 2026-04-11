@@ -108,6 +108,11 @@ export interface AgentStreamDeltaEvent extends BaseEvent {
   readonly delta: string;
 }
 
+export interface AgentThinkingDeltaEvent extends BaseEvent {
+  readonly type: 'agent:thinking-delta';
+  readonly delta: string;
+}
+
 export interface AgentToolCallEvent extends BaseEvent {
   readonly type: 'agent:tool-call';
   readonly toolName: string;
@@ -149,6 +154,7 @@ export type AgentEvent =
   | AgentStartedEvent
   | AgentReasoningEvent
   | AgentStreamDeltaEvent
+  | AgentThinkingDeltaEvent
   | AgentToolCallEvent
   | AgentToolResultEvent
   | AgentIterationEvent

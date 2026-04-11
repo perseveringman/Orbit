@@ -11,6 +11,9 @@ const runtimeProcess = globalThis as {
   };
 };
 
+/** Active stream controllers keyed by streamId, for cancellation. */
+const activeStreams = new Map<string, AbortController>();
+
 function getPreloadEntry(): string {
   return fileURLToPath(new URL('../preload/index.cjs', import.meta.url));
 }
@@ -93,6 +96,61 @@ ipcMain.handle('llm:proxy', async (_event, request: LLMProxyRequest) => {
       headers: {},
       body: JSON.stringify({ error: msg }),
     };
+  }
+});
+
+// ---- Streaming SSE handler ----
+
+ipcMain.on('llm:stream-start', async (event, streamId: string, request: LLMProxyRequest) => {
+  const controller = new AbortController();
+  activeStreams.set(streamId, controller);
+
+  try {
+    const response = await fetch(request.url, {
+      method: request.method,
+      headers: request.headers,
+      body: request.body,
+      signal: controller.signal,
+    });
+
+    if (!response.ok || !response.body) {
+      const body = await response.text().catch(() => '');
+      event.sender.send('llm:stream-chunk', streamId, JSON.stringify({
+        error: true,
+        status: response.status,
+        statusText: response.statusText,
+        body,
+      }), true);
+      activeStreams.delete(streamId);
+      return;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        event.sender.send('llm:stream-chunk', streamId, '', true);
+        break;
+      }
+      event.sender.send('llm:stream-chunk', streamId, decoder.decode(value, { stream: true }), false);
+    }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (!msg.includes('abort')) {
+      event.sender.send('llm:stream-chunk', streamId, JSON.stringify({ error: true, message: msg }), true);
+    }
+  } finally {
+    activeStreams.delete(streamId);
+  }
+});
+
+ipcMain.on('llm:stream-cancel', (_event, streamId: string) => {
+  const controller = activeStreams.get(streamId);
+  if (controller) {
+    controller.abort();
+    activeStreams.delete(streamId);
   }
 });
 

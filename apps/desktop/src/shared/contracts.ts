@@ -36,6 +36,12 @@ export interface DesktopBridge {
   ping(): Promise<'pong'>;
   describeShell(): DesktopShellDescriptor;
   llmProxy(request: LLMProxyRequest): Promise<LLMProxyResponse>;
+  /** Start an SSE streaming fetch — returns immediately, chunks arrive via onStreamChunk. */
+  startStream(streamId: string, request: LLMProxyRequest): void;
+  /** Cancel an in-flight stream. */
+  cancelStream(streamId: string): void;
+  /** Subscribe to streaming chunks from main process. Returns unsubscribe function. */
+  onStreamChunk(callback: (streamId: string, chunk: string, done: boolean) => void): () => void;
 }
 
 export const HOST_LAYERS: DesktopHostLayer[] = [
@@ -76,6 +82,9 @@ export function createFallbackDesktopBridge(): DesktopBridge {
       statusText: 'Fallback bridge – no IPC available',
       headers: {},
       body: JSON.stringify({ error: 'llmProxy unavailable in fallback bridge' })
-    })
+    }),
+    startStream: () => {},
+    cancelStream: () => {},
+    onStreamChunk: () => () => {},
   };
 }
