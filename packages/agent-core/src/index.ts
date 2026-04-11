@@ -130,8 +130,20 @@ export * from './observability/index.js';
 // Safety subsystem (M3-lite)
 export * from './safety/index.js';
 
+// Orchestration – Multi-Agent (M6)
+export * from './orchestration/index.js';
+
 // Built-in Tools (M8)
 export * from './tools/index.js';
 
 // Session & Compression Engine (M5)
 export * from './session/index.js';
+
+// Frontend Integration Layer (M10)
+export * from './frontend/index.js';
+
+// Async Tasks & Domain Agent Profiles (M7)
+export * from './tasks/index.js';
+
+// UX – Dialogue & Progress System (M11)
+export * from './ux/index.js';
