@@ -100,3 +100,29 @@ export {
   type OrchestratorInput,
   type OrchestratorOutput,
 } from './orchestrator.js';
+
+// Capability Registry (M2)
+export {
+  CapabilityRegistry,
+  type CapabilityDefinition,
+  type CapabilityHandler,
+  type CapabilityResult,
+  type CapabilityFilter,
+  type CapabilityExample,
+  type ParameterSchema,
+  type PropertySchema,
+  type ReturnSchema,
+} from './capability-registry.js';
+
+// Capability Validator (M2)
+export {
+  validateArgs,
+  validateCapabilityDefinition,
+  type ValidationResult,
+} from './capability-validator.js';
+
+// Memory subsystem (M4)
+export * from './memory/index.js';
+
+// Observability & DevTools
+export * from './observability/index.js';
