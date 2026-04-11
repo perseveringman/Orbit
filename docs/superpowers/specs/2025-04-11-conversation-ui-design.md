@@ -165,9 +165,11 @@ export type ToolCategory = 'read' | 'edit' | 'bash' | 'search' | 'other';
  * useStreamingState hook 负责将 agent-core 的 Map<string, ToolCallState>
  * 转换为 RenderableToolCall[]。
  *
- * 注意：当前 StreamingAccumulator 不累积 thinking 内容（忽略 thinking-delta 事件）。
- * useStreamingState 需直接从原始 OrbitAgentEvent 流中提取 thinking-delta，
- * 在 hook 内部自行累积 thinking 文本，而非依赖 StreamingAccumulator。
+ * 前置条件：Phase 4 实施时需在 @orbit/agent-core events.ts 中新增：
+ *   interface AgentThinkingDeltaEvent { type: 'agent:thinking-delta'; delta: string; runId: string; timestamp: number; }
+ * 并将其加入 OrbitAgentEvent 联合类型。当前 thinking-delta 仅存在于 StreamChunk（llm-provider.ts）
+ * 层级，在 stream-utils.ts 聚合时被丢弃，未提升为 agent event。
+ * useStreamingState 需依赖此新事件类型来累积 thinking 文本。
  */
 export interface UIStreamingState {
   readonly content: string;
@@ -359,6 +361,15 @@ interface DesktopBridge {
   cancelStream(requestId: string): void;
   onStreamEvent(callback: (event: OrbitAgentEvent) => void): () => void; // returns unsubscribe
 }
+
+/** 流式请求参数 */
+interface StreamRequest {
+  readonly requestId: string;
+  readonly provider: string;
+  readonly messages: readonly AgentMessage[];
+  readonly tools?: readonly AgentToolDefinition[];
+  readonly model?: string;
+}
 ```
 
 这些方法在 preload 脚本中通过 `contextBridge.exposeInMainWorld` 安全暴露，renderer 不直接访问 `ipcRenderer`。
@@ -366,7 +377,7 @@ interface DesktopBridge {
 ### 5.2 Main Process 处理
 
 ```typescript
-// main process handler — 通过 ipcMain.handle 接收请求，通过 event.sender.send 发送 BackendMessage
+// main process handler（简化伪代码，实际字段映射需适配 provider 响应格式）
 ipcMain.handle('agent:stream-start', async (event, request: StreamRequest) => {
   const { requestId, provider, messages, tools } = request;
   const response = await fetch(providerUrl, { method: 'POST', body, headers });
@@ -375,24 +386,42 @@ ipcMain.handle('agent:stream-start', async (event, request: StreamRequest) => {
   // 逐 chunk 转发为 OrbitAgentEvent
   for await (const chunk of parseSSEStream(reader)) {
     if (chunk.type === 'content_block_delta') {
-      const agentEvent: AgentStreamDeltaEvent = {
-        type: 'agent:stream-delta', delta: chunk.delta.text,
-        runId: requestId, timestamp: Date.now()
-      };
-      event.sender.send('agent:event', agentEvent);
+      event.sender.send('agent:event', {
+        type: 'agent:stream-delta',
+        delta: chunk.delta.text,
+        runId: requestId,
+        timestamp: Date.now(),
+      } satisfies AgentStreamDeltaEvent);
+    } else if (chunk.type === 'thinking_delta') {
+      // 前置条件：AgentThinkingDeltaEvent 已添加到 events.ts
+      event.sender.send('agent:event', {
+        type: 'agent:thinking-delta',
+        delta: chunk.thinking,
+        runId: requestId,
+        timestamp: Date.now(),
+      });
     } else if (chunk.type === 'content_block_start' && chunk.content_block.type === 'tool_use') {
-      const agentEvent: AgentToolCallEvent = {
-        type: 'agent:tool-call', ...chunk.content_block,
-        runId: requestId, timestamp: Date.now()
-      };
-      event.sender.send('agent:event', agentEvent);
+      event.sender.send('agent:event', {
+        type: 'agent:tool-call',
+        toolName: chunk.content_block.name,
+        toolCallId: chunk.content_block.id,
+        args: JSON.stringify(chunk.content_block.input ?? {}),
+        runId: requestId,
+        timestamp: Date.now(),
+      } satisfies AgentToolCallEvent);
     }
   }
-  const doneEvent: AgentCompletedEvent = {
-    type: 'agent:completed', runId: requestId,
-    usage: finalUsage, timestamp: Date.now()
-  };
-  event.sender.send('agent:event', doneEvent);
+  // 注意：AgentCompletedEvent 的实际字段为 domain, responseContent, totalTokens, totalDurationMs
+  // 此处为简化示意，实现时需按 events.ts 定义填充所有必需字段
+  event.sender.send('agent:event', {
+    type: 'agent:completed',
+    domain: 'chat',
+    responseContent: '',
+    totalTokens: finalUsage.totalTokens,
+    totalDurationMs: Date.now() - startTime,
+    runId: requestId,
+    timestamp: Date.now(),
+  } satisfies AgentCompletedEvent);
 });
 ```
 
@@ -407,9 +436,9 @@ export function useStreamingState() {
   const accumulator = useRef(new StreamingAccumulator());
 
   useEffect(() => {
-    let thinkingBuffer = '';  // hook 内部累积 thinking（StreamingAccumulator 不处理）
+    let thinkingBuffer = '';
     const unsubscribe = window.orbitDesktop.onStreamEvent((agentEvent: OrbitAgentEvent) => {
-      // thinking-delta 事件由 hook 自行累积
+      // 前置条件：AgentThinkingDeltaEvent 已添加到 events.ts 的 OrbitAgentEvent 联合类型
       if (agentEvent.type === 'agent:thinking-delta') {
         thinkingBuffer += agentEvent.delta;
         setState(prev => ({ ...prev, thinking: thinkingBuffer, lastUpdate: Date.now() }));
@@ -608,9 +637,10 @@ interface AutoScrollState {
 - 实现 hooks: `useAutoScroll`, `useConversationHistory`
 
 ### Phase 4: 流式 IPC
+- **前置**：在 `@orbit/agent-core` events.ts 新增 `AgentThinkingDeltaEvent` 类型并加入 `OrbitAgentEvent` 联合
 - 扩展 `DesktopBridge` 接口（`startStream`, `cancelStream`, `onStreamEvent`）
 - 扩展 preload 脚本通过 `contextBridge` 安全暴露流式方法
-- Main process 接收 `agent:stream-start`，通过 `agent:event` 频道转发 `OrbitAgentEvent`
+- Main process 接收 `agent:stream-start`，通过 `agent:event` 频道转发 `OrbitAgentEvent`（含 thinking-delta）
 - `useStreamingState` hook 通过 `DesktopBridge.onStreamEvent` 订阅事件
 - `StreamingMessage` 组件动画
 
