@@ -34,21 +34,21 @@ function highlightText(text: string, query: string | undefined): React.ReactNode
 export const UserTextMessage = React.memo<UserTextMessageProps>(
   function UserTextMessage({ message, searchQuery }) {
     return (
-      <div className="flex w-full justify-end" data-testid={`user-text-${message.id}`}>
-        <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-accent text-accent-foreground px-4 py-2.5 shadow-sm">
+      <div className="self-end max-w-[80%]" data-testid={`user-text-${message.id}`}>
+        <div className="rounded-2xl rounded-br-sm bg-accent text-accent-foreground px-4 py-2.5 shadow-sm">
           <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
             {highlightText(message.content, searchQuery)}
           </p>
-          <time
-            className="block text-[10px] opacity-60 mt-1 text-right"
-            dateTime={message.timestamp}
-          >
-            {new Date(message.timestamp).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </time>
         </div>
+        <time
+          className="block text-[10px] text-muted mt-1 text-right mr-1"
+          dateTime={message.timestamp}
+        >
+          {new Date(message.timestamp).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+        </time>
       </div>
     );
   },
