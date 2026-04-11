@@ -163,7 +163,11 @@ export type ToolCategory = 'read' | 'edit' | 'bash' | 'search' | 'other';
 /**
  * UI 层流式状态 — 区别于 @orbit/agent-core 的 StreamingState。
  * useStreamingState hook 负责将 agent-core 的 Map<string, ToolCallState>
- * 转换为 RenderableToolCall[]，并提取 thinking 字段。
+ * 转换为 RenderableToolCall[]。
+ *
+ * 注意：当前 StreamingAccumulator 不累积 thinking 内容（忽略 thinking-delta 事件）。
+ * useStreamingState 需直接从原始 OrbitAgentEvent 流中提取 thinking-delta，
+ * 在 hook 内部自行累积 thinking 文本，而非依赖 StreamingAccumulator。
  */
 export interface UIStreamingState {
   readonly content: string;
@@ -338,10 +342,10 @@ interface PromptInputProps {
 // 已有协议（ipc-protocol.ts）
 FrontendMessage: 'agent:send' | 'agent:cancel' | 'agent:approve' | ...
 BackendMessage:  'agent:event' (wraps OrbitAgentEvent including agent:stream-delta, agent:tool-call, agent:completed, agent:error)
-MessageTransport: { send(msg), onMessage(cb), destroy() }
+MessageTransport: { send(msg), onMessage(cb): Unsubscribe }
 ```
 
-`useStreamingState` 通过 `MessageTransport.onMessage()` 订阅 `BackendMessage`，根据内部 `OrbitAgentEvent.type` 分发到 `StreamingAccumulator`。不需要新增 Electron IPC 频道。
+Main process 内部使用 `MessageTransport` 处理后端事件分发。Renderer 端通过 `DesktopBridge` 暴露的安全方法（`onStreamEvent`）订阅事件，不直接使用 `MessageTransport`（后者是 backend-side 抽象）。不需要新增 Electron IPC 频道。
 
 对于 Desktop 端，需要扩展 `DesktopBridge`（`preload/index.ts` + `contracts.ts`）来暴露流式方法：
 
@@ -349,7 +353,7 @@ MessageTransport: { send(msg), onMessage(cb), destroy() }
 // 扩展 DesktopBridge 接口
 interface DesktopBridge {
   // 已有
-  llmProxy(request: ChatCompletionRequest): Promise<ChatCompletionResponse>;
+  llmProxy(request: LLMProxyRequest): Promise<LLMProxyResponse>;
   // 新增 — 流式
   startStream(request: StreamRequest): void;
   cancelStream(requestId: string): void;
@@ -403,15 +407,21 @@ export function useStreamingState() {
   const accumulator = useRef(new StreamingAccumulator());
 
   useEffect(() => {
-    // 通过 DesktopBridge 安全订阅（非直接 ipcRenderer）
+    let thinkingBuffer = '';  // hook 内部累积 thinking（StreamingAccumulator 不处理）
     const unsubscribe = window.orbitDesktop.onStreamEvent((agentEvent: OrbitAgentEvent) => {
+      // thinking-delta 事件由 hook 自行累积
+      if (agentEvent.type === 'agent:thinking-delta') {
+        thinkingBuffer += agentEvent.delta;
+        setState(prev => ({ ...prev, thinking: thinkingBuffer, lastUpdate: Date.now() }));
+        return;
+      }
       const coreState = accumulator.current.processEvent(agentEvent);
       // 将 agent-core 的 Map<string, ToolCallState> 转换为 RenderableToolCall[]
       const toolCalls: RenderableToolCall[] = Array.from(coreState.toolCalls.entries()).map(
         ([id, tc]) => ({
           id,
           name: tc.name,
-          arguments: safeJsonParse(tc.args),  // B1 补充: string → Record<string, unknown>
+          arguments: safeJsonParse(tc.args),
           status: tc.complete ? 'success' : 'running',
         })
       );
@@ -419,7 +429,7 @@ export function useStreamingState() {
         content: coreState.content,
         isStreaming: coreState.isStreaming,
         toolCalls,
-        thinking: coreState.thinking ?? undefined,
+        thinking: thinkingBuffer || undefined,
         lastUpdate: Date.now(),
       });
     });
