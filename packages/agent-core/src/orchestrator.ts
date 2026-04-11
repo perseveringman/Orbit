@@ -21,6 +21,8 @@ import { ContextCompressor } from './context-compressor.js';
 import { SafetyGate } from './safety-gate.js';
 import type { LLMAdapter } from './llm-adapter.js';
 import { DOMAIN_AGENT_CONFIGS } from './domain-agents.js';
+import type { OrbitAgentEvent } from './events.js';
+import { createEvent } from './events.js';
 
 // ---- Public types ----
 
@@ -139,8 +141,24 @@ export class Orchestrator {
   /**
    * Execute a full agent run: route intent, assemble context, loop
    * through LLM calls and tool invocations until done.
+   *
+   * Internally delegates to executeStream() for backward compatibility.
    */
   async execute(input: OrchestratorInput): Promise<OrchestratorOutput> {
+    const stream = this.executeStream(input);
+    let result: IteratorResult<OrbitAgentEvent, OrchestratorOutput>;
+    do {
+      result = await stream.next();
+    } while (!result.done);
+    return result.value;
+  }
+
+  /**
+   * Streaming variant of execute(). Yields OrbitAgentEvents as the run
+   * progresses and returns the final OrchestratorOutput.
+   */
+  async *executeStream(input: OrchestratorInput): AsyncGenerator<OrbitAgentEvent, OrchestratorOutput> {
+    const startTime = Date.now();
     const domain = this.routeIntent(input.userMessage, input.session.surface);
     const runId = generateId('run');
     const steps: AgentStep[] = [];
@@ -153,15 +171,41 @@ export class Orchestrator {
       totalTokens: 0,
     };
 
+    // Emit orchestrator:started
+    yield createEvent<import('./events.js').OrchestratorStartedEvent>(
+      'orchestrator:started', runId, {
+        sessionId: input.session.id,
+        surface: input.session.surface,
+      },
+    );
+
+    // Emit orchestrator:routed
+    yield createEvent<import('./events.js').OrchestratorRoutedEvent>(
+      'orchestrator:routed', runId, {
+        domain,
+        reason: 'keyword-or-surface-default',
+      },
+    );
+
     // Build context with memory
     const contextMessages = await this.assembleContext(input.session);
     const memoryBlock = this.memory.buildContextBlock(input.availableContext);
+
+    const domainConfig = DOMAIN_AGENT_CONFIGS[domain];
+
+    // Emit agent:started
+    yield createEvent<import('./events.js').AgentStartedEvent>(
+      'agent:started', runId, {
+        domain,
+        model: domainConfig?.model ?? this.config.defaultModel,
+      },
+    );
 
     const systemMsg: AgentMessage = {
       id: generateId('msg'),
       role: 'system',
       content:
-        (DOMAIN_AGENT_CONFIGS[domain]?.systemPrompt ?? '') +
+        (domainConfig?.systemPrompt ?? '') +
         (memoryBlock ? `\n\n${memoryBlock}` : ''),
       timestamp: new Date().toISOString(),
     };
@@ -183,7 +227,6 @@ export class Orchestrator {
     let iterations = 0;
     let lastAssistantMessage: AgentMessage = userMsg; // placeholder
 
-    const domainConfig = DOMAIN_AGENT_CONFIGS[domain];
     const availableTools = this.registry.getDefinitions({
       domain,
       surface: input.session.surface,
@@ -202,6 +245,15 @@ export class Orchestrator {
       accUsage.completionTokens += response.usage.completionTokens;
       accUsage.totalTokens += response.usage.totalTokens;
 
+      // Emit agent:iteration
+      yield createEvent<import('./events.js').AgentIterationEvent>(
+        'agent:iteration', runId, {
+          iteration: iterations,
+          maxIterations: this.config.maxIterations,
+          tokenUsage: { ...accUsage },
+        },
+      );
+
       const choice = response.choices[0];
       if (!choice) break;
 
@@ -217,6 +269,10 @@ export class Orchestrator {
           content: choice.message.content,
           timestamp: new Date().toISOString(),
         });
+
+        yield createEvent<import('./events.js').AgentReasoningEvent>(
+          'agent:reasoning', runId, { content: choice.message.content },
+        );
       }
 
       // If no tool calls, we're done
@@ -257,6 +313,14 @@ export class Orchestrator {
               approvalRequestId: approval.id,
               timestamp: new Date().toISOString(),
             });
+
+            yield createEvent<import('./events.js').SafetyApprovalRequiredEvent>(
+              'safety:approval-required', runId, {
+                capabilityName: tc.name,
+                tier: check.tier,
+                reason: check.reason ?? 'Requires approval',
+              },
+            );
             continue;
           }
 
@@ -269,8 +333,24 @@ export class Orchestrator {
               timestamp: new Date().toISOString(),
             };
             conversation.push(errorMsg);
+
+            yield createEvent<import('./events.js').SafetyBlockedEvent>(
+              'safety:blocked', runId, {
+                capabilityName: tc.name,
+                reason: check.reason ?? 'Not allowed',
+                threats: check.threats,
+              },
+            );
             continue;
           }
+
+          // Safety passed
+          yield createEvent<import('./events.js').SafetyCheckPassedEvent>(
+            'safety:check-passed', runId, {
+              capabilityName: tc.name,
+              tier: check.tier,
+            },
+          );
         }
 
         // Dispatch tool
@@ -291,7 +371,17 @@ export class Orchestrator {
           args = {};
         }
 
+        // Emit capability:started
+        yield createEvent<import('./events.js').CapabilityStartedEvent>(
+          'capability:started', runId, {
+            capabilityName: tc.name,
+            args,
+          },
+        );
+
+        const toolStart = Date.now();
         const result = await this.registry.dispatch(tc.name, args);
+        const toolDuration = Date.now() - toolStart;
 
         steps.push({
           id: generateId('step'),
@@ -303,6 +393,43 @@ export class Orchestrator {
           timestamp: new Date().toISOString(),
         });
 
+        if (result.success) {
+          yield createEvent<import('./events.js').CapabilityCompletedEvent>(
+            'capability:completed', runId, {
+              capabilityName: tc.name,
+              result: result.output,
+              durationMs: toolDuration,
+            },
+          );
+        } else {
+          yield createEvent<import('./events.js').CapabilityErrorEvent>(
+            'capability:error', runId, {
+              capabilityName: tc.name,
+              error: result.error ?? 'Unknown error',
+              durationMs: toolDuration,
+            },
+          );
+        }
+
+        // Emit agent:tool-call and agent:tool-result
+        yield createEvent<import('./events.js').AgentToolCallEvent>(
+          'agent:tool-call', runId, {
+            toolName: tc.name,
+            args,
+            toolCallId: tc.id,
+          },
+        );
+
+        yield createEvent<import('./events.js').AgentToolResultEvent>(
+          'agent:tool-result', runId, {
+            toolName: tc.name,
+            toolCallId: tc.id,
+            success: result.success,
+            result: result.success ? result.output : (result.error ?? 'Unknown error'),
+            durationMs: toolDuration,
+          },
+        );
+
         const toolResultMsg: AgentMessage = {
           id: generateId('msg'),
           role: 'tool',
@@ -313,6 +440,8 @@ export class Orchestrator {
         conversation.push(toolResultMsg);
       }
     }
+
+    const totalDurationMs = Date.now() - startTime;
 
     const usage: TokenUsage = {
       promptTokens: accUsage.promptTokens,
@@ -331,6 +460,25 @@ export class Orchestrator {
       createdAt: new Date().toISOString(),
       completedAt: pendingApprovals.length > 0 ? undefined : new Date().toISOString(),
     };
+
+    // Emit agent:completed
+    yield createEvent<import('./events.js').AgentCompletedEvent>(
+      'agent:completed', runId, {
+        domain,
+        responseContent: lastAssistantMessage.content,
+        totalTokens: accUsage.totalTokens,
+        totalDurationMs,
+      },
+    );
+
+    // Emit orchestrator:completed
+    yield createEvent<import('./events.js').OrchestratorCompletedEvent>(
+      'orchestrator:completed', runId, {
+        sessionId: input.session.id,
+        totalTokens: accUsage.totalTokens,
+        totalDurationMs,
+      },
+    );
 
     return {
       run,
