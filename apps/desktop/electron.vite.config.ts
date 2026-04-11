@@ -19,10 +19,10 @@ export default defineConfig({
     plugins: [tsconfigPaths({ projects: [rootTsconfig] }), externalizeDepsPlugin()],
     build: {
       outDir: 'dist/preload',
+      lib: { entry: resolve(__dirname, 'src/preload/index.ts'), formats: ['cjs'] },
       rollupOptions: {
-        input: resolve(__dirname, 'src/preload/index.ts'),
         output: {
-          entryFileNames: '[name].js'
+          entryFileNames: '[name].cjs'
         }
       }
     }

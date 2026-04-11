@@ -154,12 +154,16 @@ export class LLMConfigStore {
     let body: string | undefined;
 
     if (isAnthropicWithoutHealthCheck) {
-      // MiniMax etc.: probe the messages endpoint with an empty POST
+      // MiniMax/Kimi etc.: probe the messages endpoint with a minimal POST
       healthUrl = baseUrl.endsWith('/v1')
         ? `${baseUrl}/messages`
         : `${baseUrl}/v1/messages`;
       method = 'POST';
-      body = JSON.stringify({ model: entry.defaultModel, max_tokens: 1, messages: [] });
+      body = JSON.stringify({
+        model: entry.defaultModel,
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'ping' }],
+      });
     } else {
       healthUrl = entry.healthCheckUrl ?? `${baseUrl}/models`;
       method = 'GET';
@@ -193,6 +197,13 @@ export class LLMConfigStore {
         });
         status = proxyResult.status;
         responseBody = proxyResult.body;
+        // IPC proxy returns status 0 on network errors
+        if (status === 0) {
+          const latencyMs = Math.round(performance.now() - start);
+          let detail = '';
+          try { detail = JSON.parse(responseBody)?.error ?? ''; } catch {}
+          return { status: 'error', latencyMs, message: `网络错误: ${detail || proxyResult.statusText || '无法连接'}` };
+        }
       } else {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10_000);
@@ -338,6 +349,12 @@ export class LLMConfigStore {
 
       if (bridge?.llmProxy) {
         const proxyResult = await bridge.llmProxy({ url, method: 'POST', headers, body, timeoutMs: 30_000 });
+        if (proxyResult.status === 0) {
+          const latencyMs = Math.round(performance.now() - start);
+          let detail = '';
+          try { detail = JSON.parse(proxyResult.body)?.error ?? ''; } catch {}
+          return { success: false, error: `网络错误: ${detail || '无法连接'}`, latencyMs };
+        }
         if (!proxyResult.ok) {
           const latencyMs = Math.round(performance.now() - start);
           return { success: false, error: `HTTP ${proxyResult.status}: ${proxyResult.body.slice(0, 200)}`, latencyMs };
@@ -424,6 +441,11 @@ export class LLMConfigStore {
 
     if (bridge?.llmProxy) {
       const proxyResult = await bridge.llmProxy({ url, method: 'POST', headers, body, timeoutMs: 60_000 });
+      if (proxyResult.status === 0) {
+        let detail = '';
+        try { detail = JSON.parse(proxyResult.body)?.error ?? ''; } catch {}
+        throw new Error(`网络错误: ${detail || '无法连接'}`);
+      }
       if (!proxyResult.ok) {
         throw new Error(`HTTP ${proxyResult.status}: ${proxyResult.body.slice(0, 300)}`);
       }
