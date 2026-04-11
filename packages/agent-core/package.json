@@ -17,7 +17,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "test": "vitest run ./tests/index.test.ts",
+    "test": "vitest run ./tests/index.test.ts ./tests/m1-events.test.ts ./tests/m05-llm-provider.test.ts",
     "clean": "rm -rf dist coverage"
   }
 }

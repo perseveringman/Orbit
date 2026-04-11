@@ -151,6 +151,8 @@ export interface TokenUsage {
   readonly promptTokens: number;
   readonly completionTokens: number;
   readonly totalTokens: number;
+  readonly cacheReadTokens?: number;
+  readonly cacheWriteTokens?: number;
 }
 
 export interface AgentRun {

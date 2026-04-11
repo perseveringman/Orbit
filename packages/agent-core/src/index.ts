@@ -5,6 +5,12 @@
 // Types & constants
 export * from './types.js';
 
+// Events (M1)
+export * from './events.js';
+
+// Execution Context (M1)
+export { createExecutionContext, type ExecutionContext } from './execution-context.js';
+
 // Tool Registry
 export {
   ToolRegistry,
@@ -40,9 +46,53 @@ export {
 // Domain Agents
 export { DOMAIN_AGENT_CONFIGS } from './domain-agents.js';
 
-// LLM Adapter
+// LLM Adapter (legacy)
 export type { LLMAdapter } from './llm-adapter.js';
-export { toOpenAIMessages, fromOpenAIResponse, toOpenAITools } from './llm-adapter.js';
+export {
+  LLMAdapterFromProvider,
+  toOpenAIMessages,
+  fromOpenAIResponse,
+  toOpenAITools,
+} from './llm-adapter.js';
+
+// LLM Provider (M0.5)
+export {
+  ProviderRegistry,
+  type LLMProvider,
+  type ProviderConfig,
+  type StreamChunk,
+} from './llm-provider.js';
+
+// Providers
+export { OpenAIProvider, OpenAIAPIError } from './providers/openai-provider.js';
+export { AnthropicProvider, AnthropicAPIError } from './providers/anthropic-provider.js';
+export { OllamaProvider } from './providers/ollama-provider.js';
+
+// Model Metadata
+export {
+  MODEL_CATALOG,
+  getModelMetadata,
+  estimateCost,
+  type ModelMetadata,
+} from './model-metadata.js';
+
+// Cost Tracker
+export {
+  CostTracker,
+  type CostRecord,
+  type BudgetConfig,
+  type BudgetStatus,
+} from './cost-tracker.js';
+
+// Rate Limiter
+export {
+  RateLimiter,
+  jitteredBackoff,
+  type RateLimitState,
+} from './rate-limiter.js';
+
+// Stream Utilities
+export { parseSSEStream, collectStreamToResponse } from './stream-utils.js';
 
 // Orchestrator
 export {

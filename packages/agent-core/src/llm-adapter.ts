@@ -1,5 +1,9 @@
 // ---------------------------------------------------------------------------
 // @orbit/agent-core – LLM Adapter
+//
+// NOTE: LLMAdapter is superseded by the LLMProvider interface in
+// llm-provider.ts, which adds streaming and multi-provider support.
+// This file is kept for backward compatibility.
 // ---------------------------------------------------------------------------
 
 import type {
@@ -11,11 +15,28 @@ import type {
   TokenUsage,
   ToolDefinition,
 } from './types.js';
+import type { LLMProvider } from './llm-provider.js';
 
 // ---- LLM Adapter interface ----
 
+/**
+ * @deprecated Use {@link LLMProvider} instead.
+ */
 export interface LLMAdapter {
   chatCompletion(request: ChatCompletionRequest): Promise<ChatCompletionResponse>;
+}
+
+// ---- Compatibility adapter ----
+
+/**
+ * Wraps an LLMProvider to satisfy the legacy LLMAdapter interface.
+ */
+export class LLMAdapterFromProvider implements LLMAdapter {
+  constructor(private readonly provider: LLMProvider) {}
+
+  async chatCompletion(request: ChatCompletionRequest): Promise<ChatCompletionResponse> {
+    return this.provider.chatCompletion(request);
+  }
 }
 
 // ---- Orbit → OpenAI format converters ----
