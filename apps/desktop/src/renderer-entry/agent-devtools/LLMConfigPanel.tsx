@@ -115,7 +115,7 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
   const [isChatTesting, setIsChatTesting] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
-  const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const isApiKeyAuth = entry.authType === 'api_key';
   const hasApiKey = config.apiKey.length > 0;

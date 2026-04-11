@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { AgentChatViewModel, AgentChatMessageViewModel } from './agent-chat-dom-module';
 
@@ -227,7 +228,7 @@ export function AgentChatPanel({
   onApprove,
   onReject,
   onClose,
-}: AgentChatPanelProps): JSX.Element {
+}: AgentChatPanelProps): ReactElement {
   const [draft, setDraft] = useState('');
   const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);

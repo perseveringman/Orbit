@@ -1,4 +1,6 @@
 /* Orbit Desktop Host — Design System */
+@import 'tailwindcss';
+@import '@heroui/react/styles';
 @import '@orbit/ui-dom/src/orbit-design-system.css';
 
 /* Electron-specific: frameless titlebar drag region */

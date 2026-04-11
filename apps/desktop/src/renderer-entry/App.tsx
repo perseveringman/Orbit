@@ -8,6 +8,7 @@ import type { OrbitThemeMode, OrbitStyleVariant } from '@orbit/ui-tokens';
 
 import { createFallbackDesktopBridge } from '../shared/contracts';
 import { AgentDevTools } from './agent-devtools/AgentDevTools';
+import { AgentHub } from './agent-hub/AgentHub';
 
 const CURRENT_DATE = '2026-04-09';
 const ACTIVE_SECTION = 'today' as const;
@@ -135,13 +136,14 @@ export function App() {
   const [styleVariant, setStyleVariantState] = useState<OrbitStyleVariant>(savedStyle);
   const [activeNav, setActiveNav] = useState(ACTIVE_SECTION as string);
   const [showDevTools, setShowDevTools] = useState(false);
+  const [showAgentHub, setShowAgentHub] = useState(false);
 
-  // Keyboard shortcut: Cmd/Ctrl + Shift + A to toggle Agent DevTools
+  // Keyboard shortcut: Cmd/Ctrl + Shift + A to toggle Agent Hub
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'a') {
         e.preventDefault();
-        setShowDevTools((v) => !v);
+        setShowAgentHub((v) => !v);
       }
     };
     window.addEventListener('keydown', handler);
@@ -149,6 +151,7 @@ export function App() {
   }, []);
 
   const handleCloseDevTools = useCallback(() => setShowDevTools(false), []);
+  const handleCloseAgentHub = useCallback(() => setShowAgentHub(false), []);
 
   const workbenchInput = {
     host: {
@@ -181,6 +184,11 @@ export function App() {
     setStyleVariant(next);
     setStyleVariantState(next);
   };
+
+  // If Agent Hub is active, render it full-screen
+  if (showAgentHub) {
+    return <AgentHub onClose={handleCloseAgentHub} />;
+  }
 
   return (
     <div className="app">
@@ -279,8 +287,15 @@ export function App() {
           </button>
           <button
             className="icon-btn"
+            onClick={() => setShowAgentHub(true)}
+            title="Agent Hub (⌘⇧A)"
+          >
+            🤖
+          </button>
+          <button
+            className="icon-btn"
             onClick={() => setShowDevTools((v) => !v)}
-            title="Agent DevTools (⌘⇧A)"
+            title="Agent DevTools"
             style={showDevTools ? { background: 'var(--bg-button-primary)', borderRadius: 6 } : undefined}
           >
             🔬
