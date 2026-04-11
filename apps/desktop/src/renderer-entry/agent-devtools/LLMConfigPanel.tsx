@@ -3,10 +3,9 @@
 // UI for configuring and testing connectivity to all LLM providers.
 // ---------------------------------------------------------------------------
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   PROVIDER_CATALOG,
-  getCatalogEntry,
   type ProviderCatalogEntry,
 } from '@orbit/agent-core';
 import {
@@ -171,6 +170,7 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
         background: expanded ? V.surface : 'transparent',
         overflow: 'hidden',
         transition: 'all 0.15s',
+        minWidth: 0,
       }}
     >
       {/* Header row */}
@@ -179,6 +179,7 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
         style={{
           display: 'flex',
           alignItems: 'center',
+          flexWrap: 'wrap',
           gap: 8,
           padding: '10px 12px',
           cursor: 'pointer',
@@ -188,7 +189,7 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
         onMouseLeave={(e) => { if (!expanded) e.currentTarget.style.background = 'transparent'; }}
       >
         <StatusDot status={connStatus} />
-        <span style={{ fontWeight: 600, fontSize: 13, color: V.text }}>{entry.displayName}</span>
+        <span style={{ fontWeight: 600, fontSize: 13, color: V.text, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{entry.displayName}</span>
 
         {entry.isAggregator && (
           <span style={{ fontSize: 10, color: V.yellow, fontWeight: 600 }}>聚合</span>
@@ -204,7 +205,7 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
           </span>
         )}
 
-        <span style={{ flex: 1 }} />
+        <span style={{ flex: 1, minWidth: 12 }} />
 
         {isConfigured && (
           <span style={{ fontSize: 10, color: V.green, fontWeight: 600 }}>● 已配置</span>
@@ -221,7 +222,7 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
 
       {/* Expanded config form */}
       {expanded && (
-        <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
           {/* Description */}
           <div style={{ fontSize: 12, color: V.textDim, lineHeight: 1.4 }}>
             {entry.description}
@@ -406,12 +407,19 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
                   testResult.status === 'auth_error' ? V.red + '30' :
                   V.yellow + '30'
                 }`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
+                flexWrap: 'wrap',
               }}
             >
-              {testResult.status === 'success' ? '✅' : testResult.status === 'auth_error' ? '🔑' : '⚠️'}
-              {' '}
-              {testResult.message}
-              <span style={{ float: 'right', opacity: 0.7 }}>{testResult.latencyMs}ms</span>
+              <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+                {testResult.status === 'success' ? '✅' : testResult.status === 'auth_error' ? '🔑' : '⚠️'}
+                {' '}
+                {testResult.message}
+              </span>
+              <span style={{ opacity: 0.7, flexShrink: 0 }}>{testResult.latencyMs}ms</span>
             </div>
           )}
 
@@ -425,6 +433,7 @@ function ProviderCard({ entry, onConfigChanged }: ProviderCardProps) {
                 background: chatResult.success ? V.green + '15' : V.red + '15',
                 color: chatResult.success ? V.green : V.red,
                 border: `1px solid ${chatResult.success ? V.green + '30' : V.red + '30'}`,
+                overflowWrap: 'anywhere',
               }}
             >
               {chatResult.success ? '✅' : '❌'}{' '}
@@ -498,7 +507,7 @@ export function LLMConfigPanel({ onConfigChanged }: LLMConfigPanelProps) {
     >
       {/* Header stats */}
       <div style={{ padding: '12px 14px', borderBottom: `1px solid ${V.border}`, flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: V.text }}>
             LLM 供应商配置
           </span>
@@ -536,7 +545,7 @@ export function LLMConfigPanel({ onConfigChanged }: LLMConfigPanelProps) {
         />
 
         {/* Filter buttons */}
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
           {([
             ['all', '全部'],
             ['configured', '已配置'],
@@ -564,7 +573,7 @@ export function LLMConfigPanel({ onConfigChanged }: LLMConfigPanelProps) {
       </div>
 
       {/* Provider list */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
         {filteredProviders.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 32, color: V.textDim, fontSize: 13 }}>
             没有匹配的供应商

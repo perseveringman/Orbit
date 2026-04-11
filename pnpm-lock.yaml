@@ -221,11 +221,7 @@ importers:
 
   packages/capability-core: {}
 
-  packages/data-protocol:
-    dependencies:
-      '@orbit/domain':
-        specifier: workspace:*
-        version: link:../domain
+  packages/data-protocol: {}
 
   packages/db-schema: {}
 
@@ -279,11 +275,7 @@ importers:
 
   packages/i18n: {}
 
-  packages/object-graph:
-    dependencies:
-      '@orbit/domain':
-        specifier: workspace:*
-        version: link:../domain
+  packages/object-graph: {}
 
   packages/platform-contracts:
     devDependencies:

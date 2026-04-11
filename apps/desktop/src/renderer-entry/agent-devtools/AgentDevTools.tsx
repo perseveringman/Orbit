@@ -4,6 +4,7 @@ import { DevAgentService } from './DevAgentService';
 import { EventStreamPanel } from './EventStreamPanel';
 import { ObservabilityPanel } from './ObservabilityPanel';
 import { LLMConfigPanel } from './LLMConfigPanel';
+import { LLMConfigStore } from './llm-config-store';
 import { SCENARIOS, type ScenarioInfo } from './mock-scenarios';
 
 // ---------------------------------------------------------------------------
@@ -32,6 +33,21 @@ const VAR = {
   font: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
 } as const;
 
+const CHAT_MODE_STORAGE_KEY = 'orbit:agent-devtools:chat-mode';
+
+function getInitialChatMode(): 'mock' | 'real' {
+  try {
+    const saved = localStorage.getItem(CHAT_MODE_STORAGE_KEY);
+    if (saved === 'mock' || saved === 'real') {
+      return saved;
+    }
+  } catch {
+    // Ignore storage access errors and fall back to provider-based default.
+  }
+
+  return LLMConfigStore.getEnabled().length > 0 ? 'real' : 'mock';
+}
+
 export interface AgentDevToolsProps {
   onClose: () => void;
 }
@@ -39,7 +55,7 @@ export interface AgentDevToolsProps {
 export function AgentDevTools({ onClose }: AgentDevToolsProps) {
   const [tab, setTab] = useState<Tab>('chat');
   const [, setTick] = useState(0);
-  const [chatMode, setChatMode] = useState<'mock' | 'real'>('mock');
+  const [chatMode, setChatMode] = useState<'mock' | 'real'>(getInitialChatMode);
 
   // Service is a singleton ref — survives re-renders
   const serviceRef = useRef<DevAgentService | null>(null);
@@ -59,6 +75,14 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
   useEffect(() => {
     service.refreshLLMProviders();
   }, [service]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CHAT_MODE_STORAGE_KEY, chatMode);
+    } catch {
+      // Ignore storage access errors — the UI still works for this session.
+    }
+  }, [chatMode]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -117,135 +141,169 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
-          gap: 8,
+          flexDirection: 'column',
+          gap: 10,
           padding: '10px 16px',
           background: VAR.headerBg,
           borderBottom: `1px solid ${VAR.border}`,
           flexShrink: 0,
         }}
       >
-        <span style={{ fontSize: 16 }}>🔬</span>
-        <strong style={{ fontSize: 14 }}>Agent DevTools</strong>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            width: '100%',
+            minWidth: 0,
+          }}
+        >
+          <span style={{ fontSize: 16 }}>🔬</span>
+          <strong style={{ fontSize: 14 }}>Agent DevTools</strong>
+          <span style={{ flex: 1 }} />
 
-        {/* Scenario selector (mock mode only) */}
-        {chatMode === 'mock' && (
-          <div style={{ marginLeft: 16, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-            {SCENARIOS.map((sc) => (
-              <button
-                key={sc.id}
-                onClick={() => handleRunScenario(sc)}
-                disabled={service.getIsRunning()}
-                title={sc.description}
-                style={{
-                  padding: '3px 8px',
-                  borderRadius: 6,
-                  border: `1px solid ${VAR.border}`,
-                  background: service.getActiveScenario()?.id === sc.id ? VAR.accent : 'transparent',
-                  color: service.getActiveScenario()?.id === sc.id ? VAR.bg : VAR.textDim,
-                  fontSize: 11,
-                  cursor: service.getIsRunning() ? 'not-allowed' : 'pointer',
-                  fontFamily: VAR.font,
-                  opacity: service.getIsRunning() && service.getActiveScenario()?.id !== sc.id ? 0.5 : 1,
-                }}
-              >
-                {sc.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Mode toggle: Mock ↔ Real LLM */}
-        <div style={{ marginLeft: chatMode === 'mock' ? 8 : 16, display: 'flex', gap: 2, borderRadius: 6, border: `1px solid ${VAR.border}`, overflow: 'hidden' }}>
+          {/* Reset button */}
           <button
-            onClick={() => setChatMode('mock')}
+            onClick={handleReset}
+            title="重置所有状态"
             style={{
-              padding: '3px 10px',
-              border: 'none',
-              background: chatMode === 'mock' ? VAR.accent : 'transparent',
-              color: chatMode === 'mock' ? VAR.bg : VAR.textDim,
+              padding: '4px 10px',
+              borderRadius: 6,
+              border: `1px solid ${VAR.border}`,
+              background: 'transparent',
+              color: VAR.textDim,
               fontSize: 11,
               cursor: 'pointer',
               fontFamily: VAR.font,
-              fontWeight: chatMode === 'mock' ? 600 : 400,
+              flexShrink: 0,
             }}
           >
-            🎭 Mock
+            🔄 重置
           </button>
-          <button
-            onClick={() => setChatMode('real')}
+
+          {/* Event count badge */}
+          <span
             style={{
-              padding: '3px 10px',
-              border: 'none',
-              background: chatMode === 'real' ? VAR.green : 'transparent',
-              color: chatMode === 'real' ? VAR.bg : VAR.textDim,
+              padding: '2px 8px',
+              borderRadius: 10,
+              background: eventLog.length > 0 ? VAR.green : VAR.border,
+              color: eventLog.length > 0 ? VAR.bg : VAR.textDim,
               fontSize: 11,
-              cursor: 'pointer',
-              fontFamily: VAR.font,
-              fontWeight: chatMode === 'real' ? 600 : 400,
+              fontWeight: 700,
+              flexShrink: 0,
             }}
           >
-            🤖 Real LLM
+            {eventLog.length} events
+          </span>
+
+          {/* Close */}
+          <button
+            onClick={onClose}
+            aria-label="关闭"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: VAR.textDim,
+              cursor: 'pointer',
+              fontSize: 18,
+              lineHeight: 1,
+              padding: '2px 6px',
+              flexShrink: 0,
+            }}
+          >
+            ✕
           </button>
         </div>
 
-        {/* Real LLM provider indicator */}
-        {chatMode === 'real' && (
-          <span style={{ fontSize: 11, color: service.getActiveProvider() ? VAR.green : VAR.red, marginLeft: 4 }}>
-            {service.getActiveProvider() ?? '未配置供应商'}
-          </span>
-        )}
-
-        <span style={{ flex: 1 }} />
-
-        {/* Reset button */}
-        <button
-          onClick={handleReset}
-          title="重置所有状态"
+        <div
           style={{
-            padding: '4px 10px',
-            borderRadius: 6,
-            border: `1px solid ${VAR.border}`,
-            background: 'transparent',
-            color: VAR.textDim,
-            fontSize: 11,
-            cursor: 'pointer',
-            fontFamily: VAR.font,
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: 10,
+            width: '100%',
+            minWidth: 0,
           }}
         >
-          🔄 重置
-        </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0, flex: 1 }}>
+            <span style={{ fontSize: 11, color: VAR.textDim, fontWeight: 600 }}>模式</span>
+            <div style={{ display: 'flex', gap: 2, borderRadius: 6, border: `1px solid ${VAR.border}`, overflow: 'hidden' }}>
+              <button
+                onClick={() => setChatMode('mock')}
+                style={{
+                  padding: '3px 10px',
+                  border: 'none',
+                  background: chatMode === 'mock' ? VAR.accent : 'transparent',
+                  color: chatMode === 'mock' ? VAR.bg : VAR.textDim,
+                  fontSize: 11,
+                  cursor: 'pointer',
+                  fontFamily: VAR.font,
+                  fontWeight: chatMode === 'mock' ? 600 : 400,
+                }}
+              >
+                🎭 Mock
+              </button>
+              <button
+                onClick={() => setChatMode('real')}
+                style={{
+                  padding: '3px 10px',
+                  border: 'none',
+                  background: chatMode === 'real' ? VAR.green : 'transparent',
+                  color: chatMode === 'real' ? VAR.bg : VAR.textDim,
+                  fontSize: 11,
+                  cursor: 'pointer',
+                  fontFamily: VAR.font,
+                  fontWeight: chatMode === 'real' ? 600 : 400,
+                }}
+              >
+                🤖 Real LLM
+              </button>
+            </div>
 
-        {/* Event count badge */}
-        <span
-          style={{
-            padding: '2px 8px',
-            borderRadius: 10,
-            background: eventLog.length > 0 ? VAR.green : VAR.border,
-            color: eventLog.length > 0 ? VAR.bg : VAR.textDim,
-            fontSize: 11,
-            fontWeight: 700,
-          }}
-        >
-          {eventLog.length} events
-        </span>
+            <span
+              style={{
+                fontSize: 11,
+                color: chatMode === 'real'
+                  ? (service.getActiveProvider() ? VAR.green : VAR.red)
+                  : VAR.textDim,
+                minWidth: 0,
+              }}
+            >
+              {chatMode === 'real'
+                ? `当前供应商：${service.getActiveProvider() ?? '未配置'}`
+                : '当前使用 Mock 场景'}
+            </span>
+          </div>
 
-        {/* Close */}
-        <button
-          onClick={onClose}
-          aria-label="关闭"
-          style={{
-            background: 'none',
-            border: 'none',
-            color: VAR.textDim,
-            cursor: 'pointer',
-            fontSize: 18,
-            lineHeight: 1,
-            padding: '2px 6px',
-          }}
-        >
-          ✕
-        </button>
+          {/* Scenario selector (mock mode only) */}
+          {chatMode === 'mock' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', minWidth: 0, flex: 999 }}>
+              <span style={{ fontSize: 11, color: VAR.textDim, fontWeight: 600 }}>场景</span>
+              {SCENARIOS.map((sc) => (
+                <button
+                  key={sc.id}
+                  onClick={() => handleRunScenario(sc)}
+                  disabled={service.getIsRunning()}
+                  title={sc.description}
+                  style={{
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                    border: `1px solid ${VAR.border}`,
+                    background: service.getActiveScenario()?.id === sc.id ? VAR.accent : 'transparent',
+                    color: service.getActiveScenario()?.id === sc.id ? VAR.bg : VAR.textDim,
+                    fontSize: 11,
+                    cursor: service.getIsRunning() ? 'not-allowed' : 'pointer',
+                    fontFamily: VAR.font,
+                    opacity: service.getIsRunning() && service.getActiveScenario()?.id !== sc.id ? 0.5 : 1,
+                    flexShrink: 0,
+                  }}
+                >
+                  {sc.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tab bar */}
