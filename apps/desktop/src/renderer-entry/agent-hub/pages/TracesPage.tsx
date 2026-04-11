@@ -94,8 +94,8 @@ function SpanBar({ span, totalStart, totalDuration, depth }: {
   return (
     <div className="mb-1">
       <div className="flex items-center gap-2" style={{ paddingLeft: depth * 20 }}>
-        <span className="w-40 truncate text-xs text-default-600">{span.name}</span>
-        <div className="relative h-6 flex-1 rounded bg-default-100">
+        <span className="w-40 truncate text-xs text-muted">{span.name}</span>
+        <div className="relative h-6 flex-1 rounded bg-surface-secondary">
           <div
             className={`absolute h-full rounded bg-${color}-400 transition-all`}
             style={{ left: `${offsetPct}%`, width: `${widthPct}%`, minWidth: 4 }}
@@ -130,16 +130,16 @@ function SpanDetails({ span }: { span: TraceSpan }): ReactElement {
       <h3 className="text-sm font-semibold">{span.name}</h3>
       <div className="mt-2 flex flex-col gap-1 text-xs">
         <div className="flex justify-between">
-          <span className="text-default-500">Duration</span>
+          <span className="text-muted">Duration</span>
           <span>{span.endTime - span.startTime}ms</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-default-500">Start</span>
+          <span className="text-muted">Start</span>
           <span>{new Date(span.startTime).toLocaleTimeString()}</span>
         </div>
         {Object.entries(span.attributes).map(([k, v]) => (
           <div key={k} className="flex justify-between">
-            <span className="text-default-500">{k}</span>
+            <span className="text-muted">{k}</span>
             <span className="font-mono">{String(v)}</span>
           </div>
         ))}
@@ -170,7 +170,7 @@ export function TracesPage(): ReactElement {
     <div className="flex h-full flex-col p-6">
       <div className="mb-6">
         <h1 className="text-xl font-bold">执行追踪</h1>
-        <p className="text-sm text-default-500">
+        <p className="text-sm text-muted">
           Agent 执行链路可视化 · {allSpans.length} 个 Span · 总耗时 {totalDuration}ms
         </p>
       </div>
@@ -179,7 +179,7 @@ export function TracesPage(): ReactElement {
         {/* Timeline */}
         <div className="flex-1">
           <Card className="p-4">
-            <div className="mb-3 flex items-center justify-between text-xs text-default-400">
+            <div className="mb-3 flex items-center justify-between text-xs text-muted">
               <span>{new Date(totalStart).toLocaleTimeString()}</span>
               <span>{totalDuration}ms</span>
               <span>{new Date(totalEnd).toLocaleTimeString()}</span>
@@ -198,16 +198,16 @@ export function TracesPage(): ReactElement {
 
         {/* Detail panel */}
         <div className="w-72">
-          <h2 className="mb-3 text-sm font-semibold text-default-700">Span 详情</h2>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">Span 详情</h2>
           {selectedSpan ? (
             <SpanDetails span={selectedSpan} />
           ) : (
             <Card className="flex items-center justify-center p-8 text-center">
-              <p className="text-xs text-default-400">点击 Span 查看详情</p>
+              <p className="text-xs text-muted">点击 Span 查看详情</p>
             </Card>
           )}
 
-          <h2 className="mb-3 mt-6 text-sm font-semibold text-default-700">Span 列表</h2>
+          <h2 className="mb-3 mt-6 text-sm font-semibold text-foreground">Span 列表</h2>
           <div className="flex max-h-80 flex-col gap-1 overflow-y-auto">
             {allSpans.map((span) => (
               <button
@@ -215,15 +215,15 @@ export function TracesPage(): ReactElement {
                 onClick={() => setSelectedSpan(span)}
                 className={`flex items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors ${
                   selectedSpan?.id === span.id
-                    ? 'bg-primary-100 text-primary-700'
-                    : 'text-default-600 hover:bg-default-100'
+                    ? 'bg-accent-soft text-accent'
+                    : 'text-muted hover:bg-surface-secondary'
                 }`}
               >
                 <Chip size="sm" color={STATUS_COLORS[span.status]} variant="soft">
                   {span.status}
                 </Chip>
                 <span className="flex-1 truncate">{span.name}</span>
-                <span className="text-default-400">{span.endTime - span.startTime}ms</span>
+                <span className="text-muted">{span.endTime - span.startTime}ms</span>
               </button>
             ))}
           </div>

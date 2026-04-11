@@ -26,11 +26,11 @@ function ToolCard({ tool }: { tool: BuiltinTool }): ReactElement {
             <span className="font-mono text-sm font-semibold">{tool.name}</span>
             <Chip size="sm" color={category.color} variant="soft">{category.label}</Chip>
           </div>
-          <p className="mt-1 text-sm text-default-500">{tool.description}</p>
+          <p className="mt-1 text-sm text-muted">{tool.description}</p>
           {tool.parameters && Object.keys(tool.parameters).length > 0 && (
             <details className="mt-2">
-              <summary className="cursor-pointer text-xs text-default-400">参数 Schema</summary>
-              <pre className="mt-1 overflow-x-auto rounded bg-default-100 p-2 text-xs">
+              <summary className="cursor-pointer text-xs text-muted">参数 Schema</summary>
+              <pre className="mt-1 overflow-x-auto rounded bg-surface-secondary p-2 text-xs">
                 {JSON.stringify(tool.parameters, null, 2)}
               </pre>
             </details>
@@ -60,7 +60,7 @@ export function ToolsPage(): ReactElement {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-xl font-bold">工具</h1>
-        <p className="text-sm text-default-500">
+        <p className="text-sm text-muted">
           {allTools.length} 个内置工具 · {CORE_TOOLSETS.length} 个工具集
         </p>
       </div>
@@ -82,7 +82,7 @@ export function ToolsPage(): ReactElement {
         const meta = CATEGORY_META[cat] ?? CATEGORY_META.utility;
         return (
           <div key={cat} className="mb-6">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-default-700">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
               <span>{meta.icon}</span>
               {meta.label}
               <Chip size="sm" variant="soft">{tools.length}</Chip>

@@ -69,14 +69,14 @@ export function AgentHub({ onClose }: AgentHubProps): ReactElement {
   return (
     <div className="flex h-screen w-full bg-background text-foreground">
       {/* Left sidebar navigation */}
-      <aside className="flex w-56 flex-col border-r border-default-200 bg-default-50">
+      <aside className="flex w-56 flex-col border-r border-border bg-surface">
         {/* Header */}
-        <div className="flex items-center gap-2 border-b border-default-200 px-4 py-3">
+        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
           <span className="text-lg">🤖</span>
           <span className="text-sm font-semibold">Agent Hub</span>
           <button
             onClick={onClose}
-            className="ml-auto rounded-md p-1 text-default-400 transition-colors hover:bg-default-200 hover:text-default-600"
+            className="ml-auto rounded-md p-1 text-muted transition-colors hover:bg-surface-tertiary hover:text-muted"
             title="返回工作台"
           >
             ✕
@@ -91,8 +91,8 @@ export function AgentHub({ onClose }: AgentHubProps): ReactElement {
               onClick={() => setActiveTab(tab.id)}
               className={`mb-0.5 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-primary-100 font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
-                  : 'text-default-600 hover:bg-default-100 hover:text-default-800'
+                  ? 'bg-accent-soft font-medium text-accent'
+                  : 'text-muted hover:bg-surface-secondary hover:text-foreground'
               }`}
             >
               <span className="text-base">{tab.icon}</span>
@@ -102,8 +102,8 @@ export function AgentHub({ onClose }: AgentHubProps): ReactElement {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-default-200 px-3 py-2">
-          <div className="flex items-center gap-2 text-xs text-default-400">
+        <div className="border-t border-border px-3 py-2">
+          <div className="flex items-center gap-2 text-xs text-muted">
             <Chip size="sm" variant="soft" color="success">v0.1</Chip>
             <span>Orbit Agent Core</span>
           </div>

@@ -19,7 +19,7 @@ export function SkillsPage(): ReactElement {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-xl font-bold">技能</h1>
-        <p className="text-sm text-default-500">
+        <p className="text-sm text-muted">
           {configs.length} 个 Domain Agent 配置 · 每个 Agent 有独立的系统提示词、能力范围和安全策略
         </p>
       </div>
@@ -44,10 +44,10 @@ export function SkillsPage(): ReactElement {
 
                   {/* System prompt */}
                   <details className="mt-2">
-                    <summary className="cursor-pointer text-xs font-medium text-default-500">
+                    <summary className="cursor-pointer text-xs font-medium text-muted">
                       系统提示词
                     </summary>
-                    <pre className="mt-1 max-h-40 overflow-y-auto rounded bg-default-100 p-3 text-xs leading-relaxed">
+                    <pre className="mt-1 max-h-40 overflow-y-auto rounded bg-surface-secondary p-3 text-xs leading-relaxed">
                       {config.systemPrompt}
                     </pre>
                   </details>

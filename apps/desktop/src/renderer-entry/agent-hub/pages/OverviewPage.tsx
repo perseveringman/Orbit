@@ -12,20 +12,20 @@ function StatCard({ title, value, subtitle, icon, color }: {
   color?: 'primary' | 'success' | 'warning' | 'danger' | 'default';
 }): ReactElement {
   const colorClasses = {
-    primary: 'bg-primary-50 dark:bg-primary-900/20',
-    success: 'bg-success-50 dark:bg-success-900/20',
-    warning: 'bg-warning-50 dark:bg-warning-900/20',
-    danger: 'bg-danger-50 dark:bg-danger-900/20',
-    default: 'bg-default-50 dark:bg-default-800/20',
+    primary: 'bg-accent-soft',
+    success: 'bg-success-soft',
+    warning: 'bg-warning-soft',
+    danger: 'bg-danger-soft',
+    default: 'bg-surface',
   };
 
   return (
     <Card className={`p-4 ${colorClasses[color ?? 'default']}`}>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-medium text-default-500">{title}</p>
+          <p className="text-xs font-medium text-muted">{title}</p>
           <p className="mt-1 text-2xl font-bold">{value}</p>
-          {subtitle && <p className="mt-0.5 text-xs text-default-400">{subtitle}</p>}
+          {subtitle && <p className="mt-0.5 text-xs text-muted">{subtitle}</p>}
         </div>
         <span className="text-2xl">{icon}</span>
       </div>
@@ -41,11 +41,11 @@ function ProviderStatusRow({ entry, config }: {
   const isEnabled = config?.enabled ?? false;
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-default-200 px-3 py-2">
+    <div className="flex items-center gap-3 rounded-lg border border-border px-3 py-2">
       <span className="text-lg">🤖</span>
       <div className="flex-1">
         <p className="text-sm font-medium">{entry.displayName}</p>
-        <p className="text-xs text-default-400">{entry.defaultModel}</p>
+        <p className="text-xs text-muted">{entry.defaultModel}</p>
       </div>
       {isEnabled ? (
         <Chip size="sm" color="success" variant="soft">活跃</Chip>
@@ -89,7 +89,7 @@ export function OverviewPage(): ReactElement {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-xl font-bold">概览</h1>
-        <p className="text-sm text-default-500">Agent 系统运行状态</p>
+        <p className="text-sm text-muted">Agent 系统运行状态</p>
       </div>
 
       {/* Stats grid */}
@@ -130,7 +130,7 @@ export function OverviewPage(): ReactElement {
       <div className="grid grid-cols-2 gap-6">
         {/* Provider status */}
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-default-700">模型 Provider 状态</h2>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">模型 Provider 状态</h2>
           <div className="flex flex-col gap-2">
             {PROVIDER_CATALOG.slice(0, 8).map((entry) => (
               <ProviderStatusRow
@@ -140,7 +140,7 @@ export function OverviewPage(): ReactElement {
               />
             ))}
             {PROVIDER_CATALOG.length > 8 && (
-              <p className="mt-1 text-center text-xs text-default-400">
+              <p className="mt-1 text-center text-xs text-muted">
                 +{PROVIDER_CATALOG.length - 8} 个更多 Provider…
               </p>
             )}
@@ -149,41 +149,41 @@ export function OverviewPage(): ReactElement {
 
         {/* Recent usage & system info */}
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-default-700">系统信息</h2>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">系统信息</h2>
           <Card className="p-4">
             <div className="flex flex-col gap-3">
               <div className="flex justify-between text-sm">
-                <span className="text-default-500">Agent Core 版本</span>
+                <span className="text-muted">Agent Core 版本</span>
                 <span className="font-medium">0.1.0</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-default-500">内置工具</span>
+                <span className="text-muted">内置工具</span>
                 <span className="font-medium">13 个</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-default-500">Domain Agents</span>
+                <span className="text-muted">Domain Agents</span>
                 <span className="font-medium">7 个</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-default-500">Safety 等级</span>
+                <span className="text-muted">Safety 等级</span>
                 <span className="font-medium">R0–R3 / A0–A3</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-default-500">内存层</span>
+                <span className="text-muted">内存层</span>
                 <span className="font-medium">L0–L5 (6 层)</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-default-500">MCP 服务</span>
+                <span className="text-muted">MCP 服务</span>
                 <span className="font-medium">0 个已连接</span>
               </div>
             </div>
           </Card>
 
-          <h2 className="mb-3 mt-6 text-sm font-semibold text-default-700">Token 预算</h2>
+          <h2 className="mb-3 mt-6 text-sm font-semibold text-foreground">Token 预算</h2>
           <Card className="p-4">
             <div className="flex flex-col gap-2">
               <div className="flex justify-between text-sm">
-                <span className="text-default-500">每日上限</span>
+                <span className="text-muted">每日上限</span>
                 <span className="font-medium">$10.00</span>
               </div>
               <ProgressBar
@@ -192,7 +192,7 @@ export function OverviewPage(): ReactElement {
                 size="sm"
                 className="mt-1"
               />
-              <p className="text-xs text-default-400">
+              <p className="text-xs text-muted">
                 已使用 ${totalCost.toFixed(4)} / $10.00
               </p>
             </div>

@@ -30,12 +30,12 @@ function EventRow({ entry }: { entry: EventLogEntry }): ReactElement {
   const color = categoryColor[category] ?? 'default';
 
   return (
-    <div className="border-b border-default-100 last:border-b-0">
+    <div className="border-b border-separator last:border-b-0">
       <button
-        className="flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors hover:bg-default-50"
+        className="flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors hover:bg-surface"
         onClick={() => setExpanded((v) => !v)}
       >
-        <span className="w-16 text-[10px] text-default-400">
+        <span className="w-16 text-[10px] text-muted">
           {new Date(entry.timestamp).toLocaleTimeString()}
         </span>
         <Chip size="sm" color={color} variant="soft">{category}</Chip>
@@ -46,7 +46,7 @@ function EventRow({ entry }: { entry: EventLogEntry }): ReactElement {
         <span className="text-default-300">{expanded ? '▲' : '▼'}</span>
       </button>
       {expanded && (
-        <pre className="bg-default-50 px-3 py-2 text-xs leading-relaxed">
+        <pre className="bg-surface px-3 py-2 text-xs leading-relaxed">
           {JSON.stringify(e, null, 2)}
         </pre>
       )}
@@ -62,15 +62,15 @@ function ProgressBar({ state }: { state: ProgressState }): ReactElement {
         <div className="flex-1">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium">{state.phase}</span>
-            <span className="text-xs text-default-400">{Math.round(state.progress * 100)}%</span>
+            <span className="text-xs text-muted">{Math.round(state.progress * 100)}%</span>
           </div>
-          <div className="mt-1 h-1.5 rounded-full bg-default-200">
+          <div className="mt-1 h-1.5 rounded-full bg-surface-tertiary">
             <div
               className="h-full rounded-full bg-primary-400 transition-all"
               style={{ width: `${Math.round(state.progress * 100)}%` }}
             />
           </div>
-          <p className="mt-0.5 text-[10px] text-default-400">{state.message}</p>
+          <p className="mt-0.5 text-[10px] text-muted">{state.message}</p>
         </div>
       </div>
     </Card>
@@ -128,7 +128,7 @@ export function DevToolsPage(): ReactElement {
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">调试</h1>
-          <p className="text-sm text-default-500">事件流监控与可观测面板</p>
+          <p className="text-sm text-muted">事件流监控与可观测面板</p>
         </div>
         <div className="flex gap-2">
           <input
@@ -136,7 +136,7 @@ export function DevToolsPage(): ReactElement {
             placeholder="过滤事件类型…"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="rounded border border-default-200 bg-default-50 px-3 py-1 text-sm"
+            className="rounded border border-border bg-surface px-3 py-1 text-sm"
           />
           <Button size="sm" variant="ghost" onPress={handleClear}>
             清空

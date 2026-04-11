@@ -23,7 +23,7 @@ function BarChart({ data, maxValue, colorClass }: {
     <div className="flex flex-col gap-1.5">
       {data.map((d) => (
         <div key={d.label} className="flex items-center gap-2">
-          <span className="w-24 truncate text-right text-xs text-default-500">{d.label}</span>
+          <span className="w-24 truncate text-right text-xs text-muted">{d.label}</span>
           <div className="flex-1">
             <div
               className={`h-5 rounded ${colorClass} transition-all`}
@@ -48,7 +48,7 @@ function CostBarChart({ data, maxValue }: {
     <div className="flex flex-col gap-1.5">
       {data.map((d) => (
         <div key={d.label} className="flex items-center gap-2">
-          <span className="w-24 truncate text-right text-xs text-default-500">{d.label}</span>
+          <span className="w-24 truncate text-right text-xs text-muted">{d.label}</span>
           <div className="flex-1">
             <div
               className="h-5 rounded bg-warning-400 transition-all"
@@ -94,7 +94,7 @@ export function UsagePage(): ReactElement {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">Token 用量</h1>
-          <p className="text-sm text-default-500">
+          <p className="text-sm text-muted">
             追踪 Token 使用量与费用估算
           </p>
         </div>
@@ -105,33 +105,33 @@ export function UsagePage(): ReactElement {
 
       {/* Summary cards */}
       <div className="mb-6 grid grid-cols-4 gap-4">
-        <Card className="bg-primary-50 p-4 dark:bg-primary-900/20">
-          <p className="text-xs font-medium text-default-500">总 Token</p>
+        <Card className="bg-accent-soft p-4">
+          <p className="text-xs font-medium text-muted">总 Token</p>
           <p className="mt-1 text-2xl font-bold">{formatTokens(summary.totalTokens)}</p>
-          <p className="text-xs text-default-400">{summary.recordCount} 次调用</p>
+          <p className="text-xs text-muted">{summary.recordCount} 次调用</p>
         </Card>
-        <Card className="bg-success-50 p-4 dark:bg-success-900/20">
-          <p className="text-xs font-medium text-default-500">Prompt Tokens</p>
+        <Card className="bg-success-soft p-4">
+          <p className="text-xs font-medium text-muted">Prompt Tokens</p>
           <p className="mt-1 text-2xl font-bold">{formatTokens(summary.totalPromptTokens)}</p>
-          <p className="text-xs text-default-400">
+          <p className="text-xs text-muted">
             {summary.totalTokens > 0
               ? `${Math.round((summary.totalPromptTokens / summary.totalTokens) * 100)}% 占比`
               : '0%'}
           </p>
         </Card>
-        <Card className="bg-secondary-50 p-4 dark:bg-secondary-900/20">
-          <p className="text-xs font-medium text-default-500">Completion Tokens</p>
+        <Card className="bg-accent-soft p-4 ">
+          <p className="text-xs font-medium text-muted">Completion Tokens</p>
           <p className="mt-1 text-2xl font-bold">{formatTokens(summary.totalCompletionTokens)}</p>
-          <p className="text-xs text-default-400">
+          <p className="text-xs text-muted">
             {summary.totalTokens > 0
               ? `${Math.round((summary.totalCompletionTokens / summary.totalTokens) * 100)}% 占比`
               : '0%'}
           </p>
         </Card>
-        <Card className="bg-warning-50 p-4 dark:bg-warning-900/20">
-          <p className="text-xs font-medium text-default-500">估算费用</p>
+        <Card className="bg-warning-soft p-4">
+          <p className="text-xs font-medium text-muted">估算费用</p>
           <p className="mt-1 text-2xl font-bold">{formatCost(summary.totalCostUsd)}</p>
-          <p className="text-xs text-default-400">{summary.sessionCount} 次会话</p>
+          <p className="text-xs text-muted">{summary.sessionCount} 次会话</p>
         </Card>
       </div>
 
@@ -163,13 +163,13 @@ export function UsagePage(): ReactElement {
       {grouped.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-12 text-center">
           <span className="text-4xl">📈</span>
-          <p className="mt-3 text-sm font-medium text-default-600">暂无用量记录</p>
-          <p className="mt-1 text-xs text-default-400">使用 Agent 对话后，Token 用量将显示在这里</p>
+          <p className="mt-3 text-sm font-medium text-muted">暂无用量记录</p>
+          <p className="mt-1 text-xs text-muted">使用 Agent 对话后，Token 用量将显示在这里</p>
         </Card>
       ) : (
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <h2 className="mb-3 text-sm font-semibold text-default-700">Token 用量分布</h2>
+            <h2 className="mb-3 text-sm font-semibold text-foreground">Token 用量分布</h2>
             <Card className="p-4">
               <BarChart
                 data={grouped
@@ -181,7 +181,7 @@ export function UsagePage(): ReactElement {
             </Card>
           </div>
           <div>
-            <h2 className="mb-3 text-sm font-semibold text-default-700">费用分布</h2>
+            <h2 className="mb-3 text-sm font-semibold text-foreground">费用分布</h2>
             <Card className="p-4">
               <CostBarChart
                 data={grouped
@@ -197,27 +197,27 @@ export function UsagePage(): ReactElement {
       {/* Recent records table */}
       {records.length > 0 && (
         <div className="mt-6">
-          <h2 className="mb-3 text-sm font-semibold text-default-700">
+          <h2 className="mb-3 text-sm font-semibold text-foreground">
             最近调用记录
             <Chip size="sm" variant="soft" className="ml-2">{records.length}</Chip>
           </h2>
           <Card className="overflow-hidden">
             <div className="max-h-80 overflow-y-auto">
               <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-default-100">
+                <thead className="sticky top-0 bg-surface-secondary">
                   <tr>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-default-500">时间</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-default-500">模型</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-default-500">Provider</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-default-500">Prompt</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-default-500">Completion</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-default-500">费用</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-muted">时间</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-muted">模型</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-muted">Provider</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-muted">Prompt</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-muted">Completion</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-muted">费用</th>
                   </tr>
                 </thead>
                 <tbody>
                   {records.slice(-50).reverse().map((r) => (
-                    <tr key={r.id} className="border-t border-default-100">
-                      <td className="px-3 py-1.5 text-xs text-default-400">
+                    <tr key={r.id} className="border-t border-separator">
+                      <td className="px-3 py-1.5 text-xs text-muted">
                         {new Date(r.timestamp).toLocaleString()}
                       </td>
                       <td className="px-3 py-1.5 text-xs font-mono">{r.model}</td>

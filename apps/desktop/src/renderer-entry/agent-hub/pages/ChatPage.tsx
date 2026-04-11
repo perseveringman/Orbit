@@ -121,16 +121,16 @@ export function ChatPage(): ReactElement {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center gap-4 border-b border-default-200 px-6 py-3">
+      <div className="flex items-center gap-4 border-b border-border px-6 py-3">
         <h1 className="text-lg font-bold">对话</h1>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-default-500">Mock</span>
+          <span className="text-xs text-muted">Mock</span>
           <Switch
             size="sm"
             isSelected={mode === 'real'}
             onChange={handleModeChange}
           />
-          <span className="text-xs text-default-500">Real LLM</span>
+          <span className="text-xs text-muted">Real LLM</span>
         </div>
         {providerEntry && mode === 'real' && (
           <Chip size="sm" color="success" variant="soft">
@@ -144,7 +144,7 @@ export function ChatPage(): ReactElement {
         )}
         <div className="ml-auto flex items-center gap-3">
           {totalTokens > 0 && (
-            <span className="text-xs text-default-400">
+            <span className="text-xs text-muted">
               Tokens: {totalTokens.toLocaleString()}
             </span>
           )}
@@ -174,7 +174,7 @@ export function ChatPage(): ReactElement {
                   className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
                     msg.role === 'user'
                       ? 'bg-primary text-primary-foreground'
-                      : 'bg-default-100 text-default-900'
+                      : 'bg-surface-secondary text-foreground'
                   }`}
                 >
                   <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
@@ -193,8 +193,8 @@ export function ChatPage(): ReactElement {
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="rounded-2xl bg-default-100 px-4 py-2.5">
-                  <span className="animate-pulse text-sm text-default-400">思考中…</span>
+                <div className="rounded-2xl bg-surface-secondary px-4 py-2.5">
+                  <span className="animate-pulse text-sm text-muted">思考中…</span>
                 </div>
               </div>
             )}
@@ -203,7 +203,7 @@ export function ChatPage(): ReactElement {
       </div>
 
       {/* Input */}
-      <div className="border-t border-default-200 px-6 py-3">
+      <div className="border-t border-border px-6 py-3">
         <form
           onSubmit={(e) => {
             e.preventDefault();

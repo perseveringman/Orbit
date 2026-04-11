@@ -70,7 +70,7 @@ function ProviderCard({ entry, config, onUpdate, onTest, onChatTest }: {
 
   return (
     <Card
-      className={`transition-all ${config.enabled ? 'border-2 border-primary-300 dark:border-primary-700' : 'border border-default-200'}`}
+      className={`transition-all ${config.enabled ? 'border-2 border-accent' : 'border border-border'}`}
     >
       <div
         className="flex cursor-pointer items-center gap-3 px-4 py-3"
@@ -87,7 +87,7 @@ function ProviderCard({ entry, config, onUpdate, onTest, onChatTest }: {
               </Chip>
             )}
           </div>
-          <p className="text-xs text-default-400">{entry.defaultModel}</p>
+          <p className="text-xs text-muted">{entry.defaultModel}</p>
         </div>
         <div onClick={(e) => e.stopPropagation()}>
           <Switch
@@ -96,15 +96,15 @@ function ProviderCard({ entry, config, onUpdate, onTest, onChatTest }: {
             onChange={(v) => onUpdate({ enabled: v })}
           />
         </div>
-        <span className="text-default-400">{expanded ? '▲' : '▼'}</span>
+        <span className="text-muted">{expanded ? '▲' : '▼'}</span>
       </div>
 
       {expanded && (
-        <div className="border-t border-default-200 px-4 py-3">
+        <div className="border-t border-border px-4 py-3">
           <div className="flex flex-col gap-3">
             {entry.authType === 'api_key' && (
               <div>
-                <label className="mb-1 block text-xs font-medium text-default-500">API Key</label>
+                <label className="mb-1 block text-xs font-medium text-muted">API Key</label>
                 <div className="flex gap-2">
                   <Input
                     type={showKey ? 'text' : 'password'}
@@ -121,7 +121,7 @@ function ProviderCard({ entry, config, onUpdate, onTest, onChatTest }: {
             )}
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-default-500">
+              <label className="mb-1 block text-xs font-medium text-muted">
                 Base URL <span className="text-default-300">(留空使用默认)</span>
               </label>
               <Input
@@ -132,7 +132,7 @@ function ProviderCard({ entry, config, onUpdate, onTest, onChatTest }: {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-default-500">
+              <label className="mb-1 block text-xs font-medium text-muted">
                 默认模型 <span className="text-default-300">(留空使用 {entry.defaultModel})</span>
               </label>
               <Input
@@ -164,10 +164,10 @@ function ProviderCard({ entry, config, onUpdate, onTest, onChatTest }: {
             </div>
 
             {testResult && (
-              <p className="text-xs text-default-500">{testResult}</p>
+              <p className="text-xs text-muted">{testResult}</p>
             )}
             {chatResult && (
-              <p className="text-xs text-default-500">{chatResult}</p>
+              <p className="text-xs text-muted">{chatResult}</p>
             )}
           </div>
         </div>
@@ -210,7 +210,7 @@ export function ModelsPage(): ReactElement {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">模型配置</h1>
-          <p className="text-sm text-default-500">
+          <p className="text-sm text-muted">
             配置 LLM Provider 的 API Key 和连接参数 ·
             已配置 {configuredCount}/{PROVIDER_CATALOG.length} · 活跃 {enabledCount}
           </p>

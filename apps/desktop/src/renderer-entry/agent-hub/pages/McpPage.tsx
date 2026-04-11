@@ -36,7 +36,7 @@ function ServerCard({ server, onUpdate, onDelete, onTest }: {
   const [showToken, setShowToken] = useState(false);
 
   return (
-    <Card className={`transition-all ${server.enabled ? 'border-2 border-success-300 dark:border-success-700' : 'border border-default-200'}`}>
+    <Card className={`transition-all ${server.enabled ? 'border-2 border-success' : 'border border-border'}`}>
       <div className="flex cursor-pointer items-center gap-3 px-4 py-3" onClick={() => setExpanded((v) => !v)}>
         <span className="text-xl">🔌</span>
         <div className="flex-1">
@@ -46,7 +46,7 @@ function ServerCard({ server, onUpdate, onDelete, onTest }: {
             {server.status === 'error' && <Chip size="sm" color="danger" variant="soft">错误</Chip>}
             {server.status === 'unknown' && <Chip size="sm" color="default" variant="soft">未测试</Chip>}
           </div>
-          <p className="text-xs text-default-400">{server.url || '未配置 URL'}</p>
+          <p className="text-xs text-muted">{server.url || '未配置 URL'}</p>
         </div>
         <div onClick={(e) => e.stopPropagation()}>
           <Switch
@@ -55,14 +55,14 @@ function ServerCard({ server, onUpdate, onDelete, onTest }: {
             onChange={(v) => onUpdate({ enabled: v })}
           />
         </div>
-        <span className="text-default-400">{expanded ? '▲' : '▼'}</span>
+        <span className="text-muted">{expanded ? '▲' : '▼'}</span>
       </div>
 
       {expanded && (
-        <div className="border-t border-default-200 px-4 py-3">
+        <div className="border-t border-border px-4 py-3">
           <div className="flex flex-col gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-default-500">名称</label>
+              <label className="mb-1 block text-xs font-medium text-muted">名称</label>
               <Input
                 placeholder="My MCP Server"
                 value={server.name}
@@ -70,7 +70,7 @@ function ServerCard({ server, onUpdate, onDelete, onTest }: {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-default-500">Server URL</label>
+              <label className="mb-1 block text-xs font-medium text-muted">Server URL</label>
               <Input
                 placeholder="https://mcp.example.com"
                 value={server.url}
@@ -78,7 +78,7 @@ function ServerCard({ server, onUpdate, onDelete, onTest }: {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-default-500">Auth Token</label>
+              <label className="mb-1 block text-xs font-medium text-muted">Auth Token</label>
               <div className="flex gap-2">
                 <Input
                   type={showToken ? 'text' : 'password'}
@@ -105,7 +105,7 @@ function ServerCard({ server, onUpdate, onDelete, onTest }: {
             {/* Discovered capabilities */}
             {(server.discoveredTools?.length ?? 0) > 0 && (
               <div>
-                <span className="text-xs font-medium text-default-500">发现的工具</span>
+                <span className="text-xs font-medium text-muted">发现的工具</span>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {server.discoveredTools!.map((t) => (
                     <Chip key={t} size="sm" variant="soft" color="accent">{t}</Chip>
@@ -115,7 +115,7 @@ function ServerCard({ server, onUpdate, onDelete, onTest }: {
             )}
             {(server.discoveredResources?.length ?? 0) > 0 && (
               <div>
-                <span className="text-xs font-medium text-default-500">发现的资源</span>
+                <span className="text-xs font-medium text-muted">发现的资源</span>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {server.discoveredResources!.map((r) => (
                     <Chip key={r} size="sm" variant="soft" color="success">{r}</Chip>
@@ -195,7 +195,7 @@ export function McpPage(): ReactElement {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">MCP 服务</h1>
-          <p className="text-sm text-default-500">
+          <p className="text-sm text-muted">
             管理外部 MCP (Model Context Protocol) 服务连接 · 接入其他应用的能力
           </p>
         </div>
@@ -207,8 +207,8 @@ export function McpPage(): ReactElement {
       {servers.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-12 text-center">
           <span className="text-4xl">🔌</span>
-          <p className="mt-3 text-sm font-medium text-default-600">暂无 MCP 服务</p>
-          <p className="mt-1 text-xs text-default-400">添加外部 MCP Server 来扩展 Agent 的能力</p>
+          <p className="mt-3 text-sm font-medium text-muted">暂无 MCP 服务</p>
+          <p className="mt-1 text-xs text-muted">添加外部 MCP Server 来扩展 Agent 的能力</p>
           <Button variant="primary" className="mt-4" onPress={handleAdd}>
             添加第一个 Server
           </Button>
