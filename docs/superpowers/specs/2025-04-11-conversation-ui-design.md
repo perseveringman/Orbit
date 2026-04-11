@@ -160,8 +160,12 @@ export interface RenderableToolCall {
 /** 工具类型分类（决定颜色编码） */
 export type ToolCategory = 'read' | 'edit' | 'bash' | 'search' | 'other';
 
-/** 流式状态 */
-export interface StreamingState {
+/**
+ * UI 层流式状态 — 区别于 @orbit/agent-core 的 StreamingState。
+ * useStreamingState hook 负责将 agent-core 的 Map<string, ToolCallState>
+ * 转换为 RenderableToolCall[]，并提取 thinking 字段。
+ */
+export interface UIStreamingState {
   readonly content: string;
   readonly isStreaming: boolean;
   readonly toolCalls: readonly RenderableToolCall[];
@@ -201,11 +205,11 @@ interface NormalizeOptions {
 **规范化规则**（复刻 Claude Code `normalizeMessages` 逻辑）：
 
 1. **身份映射**：每条 `AgentMessage` 基本映射为一条 `RenderableMessage`
-2. **思考提取**：assistant 消息的 `metadata.thinking` 字段 → 独立 `assistant-thinking` 消息
-3. **工具调用配对**：assistant 的 `toolCalls` + 后续 `role: 'tool'` 的结果 → 合并到 `RenderableToolCall.result`
+2. **思考提取**：assistant 消息的 `metadata.thinking` 字段 → 独立 `assistant-thinking` 消息。注意 `metadata` 在 agent-core 中是 `Record<string, unknown>`，`thinking` 字段是约定俗成的键名，由 provider 层在 Anthropic extended thinking 响应中填充。实现时应做类型守卫 `typeof metadata?.thinking === 'string'`。
+3. **工具调用配对**：assistant 的 `toolCalls` + 后续 `role: 'tool'` 的结果 → 合并到 `RenderableToolCall.result`。注意 `AgentToolCall.arguments` 在 agent-core 中是 `string`（JSON 序列化），normalize 时需 `JSON.parse()` 转为 `Record<string, unknown>`。
 4. **分组检测**：连续 ≥ `groupThreshold` 个工具调用（无中间文本）→ `grouped-tool-use` 容器
 5. **Read/Search 折叠**：连续 Read/View/Grep/Glob 调用 → `collapsed-read-search` 容器
-6. **流式注入**：当前正在流式的内容 → 追加为 `streaming` 类型消息
+6. **流式注入**：`normalizeMessages` 本身不处理流式状态。`ConversationStream` 在渲染时将 `streamingState` prop 追加为一条 `streaming` 类型的 `RenderableMessage`，即流式消息注入发生在组件层而非 normalize 管道。
 
 ---
 
@@ -218,7 +222,7 @@ interface NormalizeOptions {
 ```typescript
 interface ConversationStreamProps {
   readonly messages: readonly RenderableMessage[];
-  readonly streamingState?: StreamingState;
+  readonly streamingState?: UIStreamingState;
   readonly searchQuery?: string;
   readonly onToggleCollapse?: (messageId: string) => void;
   readonly onApprove?: (approvalId: string) => void;
@@ -287,6 +291,8 @@ const TOOL_COLORS: Record<ToolCategory, { bg: string; text: string; label: strin
   search: { bg: 'bg-secondary',    text: 'text-secondary-foreground', label: 'secondary' },
   other:  { bg: 'bg-surface-secondary', text: 'text-muted', label: 'default' },
 };
+// 注意：bg-success-soft, bg-accent-soft, bg-warning-soft 等 token 可能需要在 Tailwind 主题中定义。
+// Phase 1 应验证 HeroUI v3 + 项目主题是否包含这些 token，不存在时回退到标准 HeroUI 颜色。
 ```
 
 ### 4.5 PromptInput
@@ -326,36 +332,63 @@ interface PromptInputProps {
 
 ### 5.1 IPC 协议
 
-新增 Electron IPC 频道支持流式通信：
+复用 `@orbit/agent-core/frontend/ipc-protocol.ts` 已有的消息协议，而非新建 IPC 频道：
 
 ```typescript
-// 新增 IPC 频道
-'llm:stream-start'    // renderer → main: 开始流式请求
-'llm:stream-delta'    // main → renderer: 文本 delta
-'llm:stream-tool-call'// main → renderer: 工具调用开始
-'llm:stream-done'     // main → renderer: 请求完成 + usage
-'llm:stream-error'    // main → renderer: 错误
-'llm:stream-cancel'   // renderer → main: 用户取消
+// 已有协议（ipc-protocol.ts）
+FrontendMessage: 'agent:send' | 'agent:cancel' | 'agent:approve' | ...
+BackendMessage:  'agent:event' (wraps OrbitAgentEvent including agent:stream-delta, agent:tool-call, agent:completed, agent:error)
+MessageTransport: { send(msg), onMessage(cb), destroy() }
 ```
+
+`useStreamingState` 通过 `MessageTransport.onMessage()` 订阅 `BackendMessage`，根据内部 `OrbitAgentEvent.type` 分发到 `StreamingAccumulator`。不需要新增 Electron IPC 频道。
+
+对于 Desktop 端，需要扩展 `DesktopBridge`（`preload/index.ts` + `contracts.ts`）来暴露流式方法：
+
+```typescript
+// 扩展 DesktopBridge 接口
+interface DesktopBridge {
+  // 已有
+  llmProxy(request: ChatCompletionRequest): Promise<ChatCompletionResponse>;
+  // 新增 — 流式
+  startStream(request: StreamRequest): void;
+  cancelStream(requestId: string): void;
+  onStreamEvent(callback: (event: OrbitAgentEvent) => void): () => void; // returns unsubscribe
+}
+```
+
+这些方法在 preload 脚本中通过 `contextBridge.exposeInMainWorld` 安全暴露，renderer 不直接访问 `ipcRenderer`。
 
 ### 5.2 Main Process 处理
 
 ```typescript
-// main process handler
-ipcMain.handle('llm:stream-start', async (event, request: StreamRequest) => {
+// main process handler — 通过 ipcMain.handle 接收请求，通过 event.sender.send 发送 BackendMessage
+ipcMain.handle('agent:stream-start', async (event, request: StreamRequest) => {
   const { requestId, provider, messages, tools } = request;
   const response = await fetch(providerUrl, { method: 'POST', body, headers });
   const reader = response.body.getReader();
 
-  // 逐 chunk 转发给 renderer
+  // 逐 chunk 转发为 OrbitAgentEvent
   for await (const chunk of parseSSEStream(reader)) {
     if (chunk.type === 'content_block_delta') {
-      event.sender.send('llm:stream-delta', { requestId, delta: chunk.delta.text });
+      const agentEvent: AgentStreamDeltaEvent = {
+        type: 'agent:stream-delta', delta: chunk.delta.text,
+        runId: requestId, timestamp: Date.now()
+      };
+      event.sender.send('agent:event', agentEvent);
     } else if (chunk.type === 'content_block_start' && chunk.content_block.type === 'tool_use') {
-      event.sender.send('llm:stream-tool-call', { requestId, ...chunk.content_block });
+      const agentEvent: AgentToolCallEvent = {
+        type: 'agent:tool-call', ...chunk.content_block,
+        runId: requestId, timestamp: Date.now()
+      };
+      event.sender.send('agent:event', agentEvent);
     }
   }
-  event.sender.send('llm:stream-done', { requestId, usage: finalUsage });
+  const doneEvent: AgentCompletedEvent = {
+    type: 'agent:completed', runId: requestId,
+    usage: finalUsage, timestamp: Date.now()
+  };
+  event.sender.send('agent:event', doneEvent);
 });
 ```
 
@@ -363,21 +396,43 @@ ipcMain.handle('llm:stream-start', async (event, request: StreamRequest) => {
 
 ```typescript
 // useStreamingState.ts
+// 注意：renderer 不直接访问 ipcRenderer，通过 DesktopBridge 暴露的安全方法订阅事件。
+
 export function useStreamingState() {
-  const [state, setState] = useState<StreamingState>(INITIAL_STATE);
+  const [state, setState] = useState<UIStreamingState>(INITIAL_STATE);
   const accumulator = useRef(new StreamingAccumulator());
 
   useEffect(() => {
-    const onDelta = (_: unknown, data: { requestId: string; delta: string }) => {
-      const event = { type: 'agent:stream-delta' as const, delta: data.delta, runId: data.requestId, timestamp: Date.now() };
-      setState(accumulator.current.processEvent(event));
-    };
-    // ... 类似处理 tool-call, done, error
-    ipcRenderer.on('llm:stream-delta', onDelta);
-    return () => ipcRenderer.off('llm:stream-delta', onDelta);
+    // 通过 DesktopBridge 安全订阅（非直接 ipcRenderer）
+    const unsubscribe = window.orbitDesktop.onStreamEvent((agentEvent: OrbitAgentEvent) => {
+      const coreState = accumulator.current.processEvent(agentEvent);
+      // 将 agent-core 的 Map<string, ToolCallState> 转换为 RenderableToolCall[]
+      const toolCalls: RenderableToolCall[] = Array.from(coreState.toolCalls.entries()).map(
+        ([id, tc]) => ({
+          id,
+          name: tc.name,
+          arguments: safeJsonParse(tc.args),  // B1 补充: string → Record<string, unknown>
+          status: tc.complete ? 'success' : 'running',
+        })
+      );
+      setState({
+        content: coreState.content,
+        isStreaming: coreState.isStreaming,
+        toolCalls,
+        thinking: coreState.thinking ?? undefined,
+        lastUpdate: Date.now(),
+      });
+    });
+    return unsubscribe;
   }, []);
 
   return { state, startStream, cancelStream };
+}
+
+/** 安全 JSON 解析工具参数（agent-core 的 arguments 是 string） */
+function safeJsonParse(str: string): Record<string, unknown> {
+  try { return JSON.parse(str); }
+  catch { return { raw: str }; }
 }
 ```
 
@@ -407,7 +462,7 @@ import {
 
 export function ChatPage() {
   const [messages, setMessages] = useState<AgentMessage[]>([]);
-  const { state: streaming, startStream, cancelStream } = useStreamingState();
+  const { state: streaming, startStream, cancelStream } = useStreamingState(); // returns UIStreamingState
   const renderable = useMemo(() => normalizeMessages(messages), [messages]);
 
   const handleSend = async (text: string) => {
@@ -485,11 +540,11 @@ interface AutoScrollState {
 
 | 场景 | 错误来源 | UI 表现 |
 |---|---|---|
-| 网络断开 | `llm:stream-error` / fetch error | `ErrorMessage` + 重试按钮 |
+| 网络断开 | `agent:event` error / fetch error | `ErrorMessage` + 重试按钮 |
 | API 限流 (429) | provider response | `ErrorMessage` + 自动重试倒计时 |
 | Token 超限 | provider response | 黄色警告系统消息 + 建议压缩 |
 | 工具执行失败 | `agent:tool-result` success=false | 工具卡片红色状态 + 错误详情 |
-| IPC 桥接断开 | ipcRenderer 超时 | 全局横幅 "主进程无响应" |
+| IPC 桥接断开 | `DesktopBridge` 超时 | 全局横幅 "主进程无响应" |
 | 无效消息格式 | normalize 管道 | 跳过 + console.warn |
 
 ---
@@ -543,14 +598,15 @@ interface AutoScrollState {
 - 实现 hooks: `useAutoScroll`, `useConversationHistory`
 
 ### Phase 4: 流式 IPC
-- 新增 IPC 频道 `llm:stream-*`
-- Main process SSE 解析 + 转发
-- `useStreamingState` hook
+- 扩展 `DesktopBridge` 接口（`startStream`, `cancelStream`, `onStreamEvent`）
+- 扩展 preload 脚本通过 `contextBridge` 安全暴露流式方法
+- Main process 接收 `agent:stream-start`，通过 `agent:event` 频道转发 `OrbitAgentEvent`
+- `useStreamingState` hook 通过 `DesktopBridge.onStreamEvent` 订阅事件
 - `StreamingMessage` 组件动画
 
 ### Phase 5: 搜索 + 权限 + 错误处理
 - `useConversationSearch` hook
-- `PermissionApproval` 集成 agent-core `ApprovalGate`
+- `PermissionApproval` 集成 agent-core `ApprovalManager`
 - 错误处理逻辑 + 重试
 
 ### Phase 6: 宿主集成
