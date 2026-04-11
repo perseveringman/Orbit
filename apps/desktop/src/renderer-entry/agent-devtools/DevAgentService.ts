@@ -16,88 +16,8 @@ import {
   type LLMProvider,
   PROVIDER_CATALOG,
 } from '@orbit/agent-core';
-import type { AgentChatViewModel, AgentChatMessageViewModel } from '@orbit/feature-workbench';
 import { SCENARIOS, type ScenarioInfo } from './mock-scenarios';
 import { LLMConfigStore } from './llm-config-store';
-
-// ---- ViewModel mapping from SessionUIState ----
-
-const ROLE_LABELS: Record<string, string> = {
-  system: '系统',
-  user: '用户',
-  assistant: '助手',
-  tool: '工具',
-};
-
-function formatTimestamp(ts: number): string {
-  const d = new Date(ts);
-  const h = d.getHours().toString().padStart(2, '0');
-  const m = d.getMinutes().toString().padStart(2, '0');
-  return `${h}:${m}`;
-}
-
-function stateToViewModel(state: SessionUIState): AgentChatViewModel {
-  const messages: AgentChatMessageViewModel[] = state.messages.map((msg) => {
-    const hasToolCalls = (msg.toolCalls?.length ?? 0) > 0;
-    const firstTool = hasToolCalls ? msg.toolCalls![0] : undefined;
-
-    return {
-      id: msg.id,
-      role: msg.role,
-      content: msg.content,
-      timestamp: new Date(msg.timestamp).toISOString(),
-      isToolCall: hasToolCalls || msg.role === 'tool',
-      toolName: firstTool?.name ?? (msg.role === 'tool' ? 'tool-result' : undefined),
-      toolArgs: firstTool ? JSON.stringify(firstTool.args, null, 2) : undefined,
-      toolResult: firstTool?.result ?? (msg.role === 'tool' ? msg.content : undefined),
-      roleLabel: ROLE_LABELS[msg.role] ?? msg.role,
-      formattedTime: formatTimestamp(msg.timestamp),
-    };
-  });
-
-  // Add in-progress tool calls as virtual messages
-  for (const tc of state.currentToolCalls) {
-    messages.push({
-      id: `tc-${tc.id}`,
-      role: 'tool',
-      content: tc.result ?? '',
-      timestamp: new Date().toISOString(),
-      isToolCall: true,
-      toolName: tc.name,
-      toolArgs: JSON.stringify(tc.args, null, 2),
-      toolResult: tc.result,
-      roleLabel: '工具',
-      formattedTime: formatTimestamp(Date.now()),
-    });
-  }
-
-  // Show error as a system message
-  if (state.status === 'error' && state.error) {
-    messages.push({
-      id: 'error-msg',
-      role: 'assistant',
-      content: `❌ ${state.error}`,
-      timestamp: new Date().toISOString(),
-      isToolCall: false,
-      toolName: undefined,
-      toolArgs: undefined,
-      toolResult: undefined,
-      roleLabel: '系统',
-      formattedTime: formatTimestamp(Date.now()),
-    });
-  }
-
-  return {
-    surface: 'global-chat',
-    sessionId: state.sessionId,
-    messages,
-    isProcessing: state.status !== 'idle' && state.status !== 'error',
-    currentDomain: (state.activeAgent as any) ?? null,
-    pendingApprovals: [],
-    surfaceLabel: 'Agent DevTools',
-    emptyStateMessage: '选择一个场景，或直接发送消息开始测试 …',
-  };
-}
 
 // ---- Event log entry ----
 
@@ -396,23 +316,6 @@ export class DevAgentService {
       this.isRunning = false;
       this.notifyListeners();
     }
-  }
-
-  /** Get the current chat ViewModel. */
-  getViewModel(): AgentChatViewModel {
-    if (!this.sessionState) {
-      return {
-        surface: 'global-chat',
-        sessionId: null,
-        messages: [],
-        isProcessing: false,
-        currentDomain: null,
-        pendingApprovals: [],
-        surfaceLabel: 'Agent DevTools',
-        emptyStateMessage: '选择一个场景，或直接发送消息开始测试 …',
-      };
-    }
-    return stateToViewModel(this.sessionState.getState());
   }
 
   /** Get the full event log. */

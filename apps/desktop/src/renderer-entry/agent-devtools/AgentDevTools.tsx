@@ -1,7 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button, Chip } from '@heroui/react';
 import { MessageCircle, Radio, BarChart3, Settings, Microscope, RefreshCw, X, Drama, Bot, type LucideIcon } from 'lucide-react';
-import { AgentChatPanel } from '@orbit/feature-workbench';
+import {
+  ConversationStream,
+  PromptInput,
+  type RenderableMessage,
+} from '@orbit/conversation-ui';
+import type { UIMessage } from '@orbit/agent-core';
 import { DevAgentService } from './DevAgentService';
 import { EventStreamPanel } from './EventStreamPanel';
 import { ObservabilityPanel } from './ObservabilityPanel';
@@ -12,6 +17,42 @@ import { SCENARIOS, type ScenarioInfo } from './mock-scenarios';
 // ---------------------------------------------------------------------------
 // AgentDevTools – Main container with tabs
 // ---------------------------------------------------------------------------
+
+/** Convert agent-core UIMessage[] → RenderableMessage[] for conversation-ui */
+function uiMessagesToRenderable(messages: readonly UIMessage[]): RenderableMessage[] {
+  return messages.map((msg) => {
+    const ts = new Date(msg.timestamp).toISOString();
+    const hasTools = (msg.toolCalls?.length ?? 0) > 0;
+
+    if (msg.role === 'system') {
+      const isError = msg.metadata?.isError === true;
+      return { id: msg.id, type: isError ? 'error' as const : 'system' as const, timestamp: ts, content: msg.content };
+    }
+
+    if (hasTools) {
+      return {
+        id: msg.id,
+        type: 'assistant-tool-use' as const,
+        timestamp: ts,
+        content: msg.content,
+        toolCalls: msg.toolCalls!.map((tc) => ({
+          id: tc.id,
+          name: tc.name,
+          arguments: tc.args,
+          status: tc.status === 'running' ? 'running' as const : tc.status === 'error' ? 'error' as const : 'success' as const,
+          result: tc.result,
+          durationMs: tc.durationMs,
+        })),
+      };
+    }
+
+    if (msg.role === 'user') {
+      return { id: msg.id, type: 'user-text' as const, timestamp: ts, content: msg.content };
+    }
+
+    return { id: msg.id, type: 'assistant-text' as const, timestamp: ts, content: msg.content };
+  });
+}
 
 type Tab = 'chat' | 'events' | 'observe' | 'config';
 
@@ -109,10 +150,12 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
     setTick((t) => t + 1);
   }, [service]);
 
-  const viewModel = service.getViewModel();
   const eventLog = service.getEventLog();
   const progress = service.getProgress();
   const sessionState = service.getSessionState();
+
+  const renderableMessages = uiMessagesToRenderable(sessionState?.messages ?? []);
+  const isProcessing = sessionState ? sessionState.status !== 'idle' && sessionState.status !== 'error' : false;
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground overflow-hidden">
@@ -232,10 +275,17 @@ export function AgentDevTools({ onClose }: AgentDevToolsProps) {
       {/* Tab content */}
       <div className="flex-1 overflow-hidden">
         {tab === 'chat' && (
-          <AgentChatPanel
-            viewModel={viewModel}
-            onSendMessage={handleSendMessage}
-          />
+          <div className="flex h-full flex-col">
+            <ConversationStream
+              messages={renderableMessages}
+              streamingState={isProcessing ? { content: '', isStreaming: true, toolCalls: [], lastUpdate: Date.now() } : undefined}
+            />
+            <PromptInput
+              onSend={handleSendMessage}
+              isStreaming={isProcessing}
+              placeholder="输入消息或选择场景…"
+            />
+          </div>
         )}
         {tab === 'events' && (
           <EventStreamPanel events={eventLog} />
