@@ -4,3 +4,7 @@ export { useConversationHistory } from './useConversationHistory.js';
 export type { UseConversationHistoryReturn } from './useConversationHistory.js';
 export { useStreamingState } from './useStreamingState.js';
 export type { UseStreamingStateOptions, UseStreamingStateReturn } from './useStreamingState.js';
+export { useConversationSearch } from './useConversationSearch.js';
+export type { SearchState, UseConversationSearchReturn } from './useConversationSearch.js';
+export { useApprovalBridge } from './useApprovalBridge.js';
+export type { ApprovalManagerLike, ApprovalRequestInfo, ApprovalResponseInfo, UseApprovalBridgeReturn } from './useApprovalBridge.js';

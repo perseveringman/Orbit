@@ -8,6 +8,10 @@ export * from './types.js';
 // Hooks
 export * from './hooks/index.js';
 
+// Error handling utilities
+export { classifyError, errorToRenderableMessage, useRetryCountdown } from './errors.js';
+export type { ClassifiedError, RetryCountdownState } from './errors.js';
+
 // Normalize pipeline
 export { normalizeMessages, type NormalizeOptions } from './normalize.js';
 
