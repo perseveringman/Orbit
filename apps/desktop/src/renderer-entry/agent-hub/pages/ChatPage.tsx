@@ -1,17 +1,19 @@
 import { type ReactElement, useState, useRef, useCallback } from 'react';
 import { Chip, Switch, Button } from '@heroui/react';
 import { PROVIDER_CATALOG } from '@orbit/agent-core';
-import type { AgentMessage } from '@orbit/agent-core';
+import type { AgentMessage, OrbitAgentEvent } from '@orbit/agent-core';
 import {
   ConversationStream,
   PromptInput,
   normalizeMessages,
   useConversationSearch,
+  useStreamingState,
   classifyError,
   errorToRenderableMessage,
 } from '@orbit/conversation-ui';
 import { LLMConfigStore } from '../stores/llm-config-store';
 import { TokenUsageStore } from '../stores/token-usage-store';
+import { startStreamingChat, startMockStream } from '../utils/stream-chat';
 
 type ChatMode = 'mock' | 'real';
 
@@ -25,9 +27,10 @@ export function ChatPage(): ReactElement {
     return (localStorage.getItem('orbit:agent-hub:chat-mode') as ChatMode) ?? 'real';
   });
   const [rawMessages, setRawMessages] = useState<AgentMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [totalTokens, setTotalTokens] = useState(0);
 
+  const streaming = useStreamingState();
+  const cancelRef = useRef<(() => void) | null>(null);
   const conversationHistory = useRef<Array<{ role: string; content: string }>>([]);
 
   const renderableMessages = normalizeMessages(rawMessages);
@@ -46,77 +49,146 @@ export function ChatPage(): ReactElement {
     localStorage.setItem('orbit:agent-hub:chat-mode', newMode);
   }, []);
 
-  const handleSend = useCallback(async (content: string) => {
-    if (!content.trim() || isLoading) return;
+  const handleSend = useCallback(
+    (content: string) => {
+      if (!content.trim() || streaming.state.isStreaming) return;
 
-    const userMsg: AgentMessage = {
-      id: nextId('u'),
-      role: 'user',
-      content,
-      timestamp: new Date().toISOString(),
-    };
-    setRawMessages((prev) => [...prev, userMsg]);
-    conversationHistory.current.push({ role: 'user', content });
-    setIsLoading(true);
+      const userMsg: AgentMessage = {
+        id: nextId('u'),
+        role: 'user',
+        content,
+        timestamp: new Date().toISOString(),
+      };
+      setRawMessages((prev) => [...prev, userMsg]);
+      conversationHistory.current.push({ role: 'user', content });
 
-    try {
+      streaming.reset();
+      const runId = `run-${Date.now()}`;
+
+      const makeDeltaEvent = (delta: string): OrbitAgentEvent =>
+        ({
+          type: 'agent:stream-delta',
+          runId,
+          timestamp: Date.now(),
+          delta,
+        }) as OrbitAgentEvent;
+
+      const makeCompletedEvent = (): OrbitAgentEvent =>
+        ({
+          type: 'agent:completed',
+          runId,
+          timestamp: Date.now(),
+          domain: 'chat',
+          responseContent: '',
+          totalTokens: 0,
+          totalDurationMs: 0,
+        }) as OrbitAgentEvent;
+
+      const makeErrorEvent = (error: string): OrbitAgentEvent =>
+        ({
+          type: 'agent:error',
+          runId,
+          timestamp: Date.now(),
+          domain: 'chat',
+          error,
+        }) as OrbitAgentEvent;
+
+      const finalize = (fullText: string) => {
+        const assistantMsg: AgentMessage = {
+          id: nextId('a'),
+          role: 'assistant',
+          content: fullText,
+          timestamp: new Date().toISOString(),
+        };
+        setRawMessages((prev) => [...prev, assistantMsg]);
+        conversationHistory.current.push({ role: 'assistant', content: fullText });
+        cancelRef.current = null;
+      };
+
       if (mode === 'real' && activeProvider) {
-        const result = await LLMConfigStore.chatViaProxy(
+        cancelRef.current = startStreamingChat(
           activeProvider,
           conversationHistory.current,
+          {
+            onDelta(delta) {
+              streaming.feedEvent(makeDeltaEvent(delta));
+            },
+            onDone(fullText) {
+              streaming.feedEvent(makeCompletedEvent());
+
+              const model =
+                activeProvider.defaultModel ||
+                providerEntry?.defaultModel ||
+                'unknown';
+              const provider = providerEntry?.id ?? 'unknown';
+              const promptTokens = Math.ceil(
+                conversationHistory.current.reduce((s, m) => s + m.content.length, 0) / 4,
+              );
+              const completionTokens = Math.ceil(fullText.length / 4);
+              TokenUsageStore.record({ model, provider, promptTokens, completionTokens });
+              setTotalTokens((prev) => prev + promptTokens + completionTokens);
+
+              finalize(fullText);
+            },
+            onError(error) {
+              streaming.feedEvent(makeErrorEvent(error));
+              const classified = classifyError(new Error(error));
+              const errRenderable = errorToRenderableMessage(classified);
+              const errMsg: AgentMessage = {
+                id: errRenderable.id,
+                role: 'system',
+                content: errRenderable.content,
+                timestamp: errRenderable.timestamp,
+                metadata: { isError: true },
+              };
+              setRawMessages((prev) => [...prev, errMsg]);
+              cancelRef.current = null;
+            },
+          },
         );
-
-        const model = activeProvider.defaultModel || providerEntry?.defaultModel || 'unknown';
-        const provider = providerEntry?.id ?? 'unknown';
-        const promptTokens = Math.ceil(
-          conversationHistory.current.reduce((s, m) => s + m.content.length, 0) / 4,
-        );
-        const completionTokens = Math.ceil(result.text.length / 4);
-
-        TokenUsageStore.record({ model, provider, promptTokens, completionTokens });
-        setTotalTokens((prev) => prev + promptTokens + completionTokens);
-
-        const assistantMsg: AgentMessage = {
-          id: nextId('a'),
-          role: 'assistant',
-          content: result.text,
-          timestamp: new Date().toISOString(),
-        };
-        setRawMessages((prev) => [...prev, assistantMsg]);
-        conversationHistory.current.push({ role: 'assistant', content: result.text });
       } else {
-        await new Promise((r) => setTimeout(r, 500));
-        const mockReply = `[Mock] 已收到消息: "${content.slice(0, 50)}..."`;
-        const assistantMsg: AgentMessage = {
-          id: nextId('a'),
-          role: 'assistant',
-          content: mockReply,
-          timestamp: new Date().toISOString(),
-        };
-        setRawMessages((prev) => [...prev, assistantMsg]);
-        conversationHistory.current.push({ role: 'assistant', content: mockReply });
+        // Mock mode – typewriter character-by-character
+        const mockReply = `[Mock] 已收到消息: "${content.slice(0, 80)}"`;
+        cancelRef.current = startMockStream(mockReply, {
+          onDelta(delta) {
+            streaming.feedEvent(makeDeltaEvent(delta));
+          },
+          onDone(fullText) {
+            streaming.feedEvent(makeCompletedEvent());
+            finalize(fullText);
+          },
+          onError() {},
+        });
       }
-    } catch (err) {
-      const classified = classifyError(err);
-      const errRenderable = errorToRenderableMessage(classified);
-      const errMsg: AgentMessage = {
-        id: errRenderable.id,
-        role: 'system',
-        content: errRenderable.content,
-        timestamp: errRenderable.timestamp,
-        metadata: { isError: true },
-      };
-      setRawMessages((prev) => [...prev, errMsg]);
-    } finally {
-      setIsLoading(false);
+    },
+    [streaming, mode, activeProvider, providerEntry],
+  );
+
+  const handleCancel = useCallback(() => {
+    if (cancelRef.current) {
+      cancelRef.current();
+      cancelRef.current = null;
     }
-  }, [isLoading, mode, activeProvider, providerEntry]);
+    const partialContent = streaming.state.content;
+    if (partialContent) {
+      const assistantMsg: AgentMessage = {
+        id: nextId('a'),
+        role: 'assistant',
+        content: partialContent + ' [已取消]',
+        timestamp: new Date().toISOString(),
+      };
+      setRawMessages((prev) => [...prev, assistantMsg]);
+      conversationHistory.current.push({ role: 'assistant', content: partialContent });
+    }
+    streaming.reset();
+  }, [streaming]);
 
   const handleClear = useCallback(() => {
     setRawMessages([]);
     conversationHistory.current = [];
     setTotalTokens(0);
-  }, []);
+    streaming.reset();
+  }, [streaming]);
 
   return (
     <div className="flex h-full flex-col">
@@ -146,7 +218,7 @@ export function ChatPage(): ReactElement {
       </div>
 
       {/* Message stream */}
-      {renderableMessages.length === 0 && !isLoading ? (
+      {renderableMessages.length === 0 && !streaming.state.isStreaming ? (
         <div className="flex flex-1 items-center justify-center text-muted">
           <div className="text-center">
             <p className="text-4xl">💬</p>
@@ -157,14 +229,15 @@ export function ChatPage(): ReactElement {
         <ConversationStream
           messages={renderableMessages}
           searchQuery={search.state.query}
-          streamingState={isLoading ? { content: '', isStreaming: true, toolCalls: [], lastUpdate: Date.now() } : undefined}
+          streamingState={streaming.state.isStreaming ? streaming.state : undefined}
         />
       )}
 
       {/* Input */}
       <PromptInput
         onSend={handleSend}
-        isStreaming={isLoading}
+        onCancel={handleCancel}
+        isStreaming={streaming.state.isStreaming}
         modelName={modelName}
         tokenCount={totalTokens > 0 ? totalTokens : undefined}
       />
