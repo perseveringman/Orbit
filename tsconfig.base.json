@@ -46,8 +46,20 @@
       "@orbit/editor-dom": [
         "packages/editor-dom/src/index.ts"
       ],
+      "@orbit/feature-journal": [
+        "packages/feature-journal/src/index.ts"
+      ],
       "@orbit/feature-mobile": [
         "packages/feature-mobile/src/index.ts"
+      ],
+      "@orbit/feature-reader": [
+        "packages/feature-reader/src/index.ts"
+      ],
+      "@orbit/feature-task": [
+        "packages/feature-task/src/index.ts"
+      ],
+      "@orbit/feature-vision": [
+        "packages/feature-vision/src/index.ts"
       ],
       "@orbit/feature-workbench": [
         "packages/feature-workbench/src/index.ts"

@@ -20,7 +20,7 @@ export interface BlobStore {
 }
 
 async function sha256hex(data: Uint8Array): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', data);
+  const digest = await crypto.subtle.digest('SHA-256', data as unknown as ArrayBuffer);
   return Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');

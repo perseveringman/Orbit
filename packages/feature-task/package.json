@@ -1,0 +1,23 @@
+{
+  "name": "@orbit/feature-task",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Orbit 任务管理核心 — Task生命周期, Project/Milestone, Today动态生成, Focus模式, Review",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "test": "vitest run ./tests/",
+    "clean": "rm -rf dist coverage"
+  }
+}

@@ -9,13 +9,24 @@ import {
   getOutlinks,
   getNeighborUids,
   RELATION_FAMILIES,
+  computeLinkDensity,
+  computeFeedPriority,
+  DEFAULT_ACTIVATION_POLICY,
+  shouldAutoActivate,
+  decideActivation,
 } from '../src/index';
 
 import type {
   Link,
   ObjectGraphNode,
   ObjectReference,
+  LinkDensityMetrics,
+  FeedPriorityInput,
+  LinkActivationPolicy,
+  ActivationDecision,
 } from '../src/index';
+
+import type { RelationSuggestion } from '../src/relation-suggestion';
 
 // ── Helpers ──
 
@@ -317,6 +328,173 @@ describe('object-graph', () => {
       expect(RELATION_FAMILIES.provenance).toEqual([
         'derived_from', 'excerpted_from', 'annotated_by', 'evidenced_by',
       ]);
+    });
+  });
+
+  // ── Link density ──
+
+  describe('LinkDensity', () => {
+    function makeSuggestion(
+      partial: Partial<RelationSuggestion> & Pick<RelationSuggestion, 'suggestionId'>,
+    ): RelationSuggestion {
+      return {
+        sourceUid: 'a:1',
+        targetUid: 'b:1',
+        relationType: 'about',
+        confidence: 0.9,
+        whySummary: 'test',
+        signals: [],
+        status: 'proposed',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        ...partial,
+      };
+    }
+
+    it('computeLinkDensity returns correct counts for various statuses', () => {
+      const nodes = [
+        makeNode('note:n1', 'note', 'n1'),
+        makeNode('task:t1', 'task', 't1'),
+        makeNode('article:a1', 'article', 'a1'),
+        makeNode('project:p1', 'project', 'p1'),
+      ];
+      const links = [
+        makeLink({ linkId: 'l1', sourceUid: 'note:n1', targetUid: 'task:t1', status: 'active', confidence: 0.9, relationType: 'supports' }),
+        makeLink({ linkId: 'l2', sourceUid: 'note:n1', targetUid: 'article:a1', status: 'proposed', confidence: 0.6, relationType: 'about' }),
+        makeLink({ linkId: 'l3', sourceUid: 'project:p1', targetUid: 'note:n1', status: 'rejected', confidence: 0.3, relationType: 'contains' }),
+        makeLink({ linkId: 'l4', sourceUid: 'note:n1', targetUid: 'project:p1', status: 'active', confidence: 0.8, relationType: 'relates_to' }),
+      ];
+      const index = buildObjectGraphIndex(nodes, links);
+
+      const metrics = computeLinkDensity(index, 'note:n1');
+
+      expect(metrics.objectUid).toBe('note:n1');
+      expect(metrics.activeLinkCount).toBe(2);
+      expect(metrics.proposedLinkCount).toBe(1);
+      expect(metrics.rejectedLinkCount).toBe(1);
+      expect(metrics.maxLinkConfidence).toBe(0.9);
+      expect(metrics.avgLinkConfidence).toBeCloseTo(0.65, 5);
+      expect(metrics.relationDiversity).toBe(4);
+      expect(metrics.neighborhoodSize).toBe(3);
+    });
+
+    it('computeLinkDensity with no links returns zeros', () => {
+      const nodes = [makeNode('orphan:o1', 'orphan', 'o1')];
+      const index = buildObjectGraphIndex(nodes, []);
+
+      const metrics = computeLinkDensity(index, 'orphan:o1');
+
+      expect(metrics.objectUid).toBe('orphan:o1');
+      expect(metrics.activeLinkCount).toBe(0);
+      expect(metrics.proposedLinkCount).toBe(0);
+      expect(metrics.rejectedLinkCount).toBe(0);
+      expect(metrics.maxLinkConfidence).toBe(0);
+      expect(metrics.avgLinkConfidence).toBe(0);
+      expect(metrics.relationDiversity).toBe(0);
+      expect(metrics.neighborhoodSize).toBe(0);
+    });
+
+    it('computeFeedPriority weights correctly', () => {
+      const metrics: LinkDensityMetrics = {
+        objectUid: 'note:n1',
+        activeLinkCount: 3,
+        proposedLinkCount: 2,
+        rejectedLinkCount: 1,
+        maxLinkConfidence: 0.95,
+        avgLinkConfidence: 0.7,
+        relationDiversity: 4,
+        neighborhoodSize: 5,
+      };
+      const input: FeedPriorityInput = {
+        metrics,
+        sourceQuality: 0.8,
+        ageHours: 10,
+        userInteractionSignal: 0.6,
+      };
+
+      const priority = computeFeedPriority(input);
+      // (3 * 3.0) + (2 * 1.0) + (0.95 * 2.0) + (0.8 * 1.5) + (0.6 * 2.0) - (10 * 0.01)
+      // = 9 + 2 + 1.9 + 1.2 + 1.2 - 0.1 = 15.2
+      expect(priority).toBeCloseTo(15.2, 5);
+    });
+
+    it('computeFeedPriority clamps to 0 for very old items', () => {
+      const metrics: LinkDensityMetrics = {
+        objectUid: 'note:n1',
+        activeLinkCount: 0,
+        proposedLinkCount: 0,
+        rejectedLinkCount: 0,
+        maxLinkConfidence: 0,
+        avgLinkConfidence: 0,
+        relationDiversity: 0,
+        neighborhoodSize: 0,
+      };
+      const input: FeedPriorityInput = {
+        metrics,
+        sourceQuality: 0,
+        ageHours: 100_000,
+        userInteractionSignal: 0,
+      };
+
+      expect(computeFeedPriority(input)).toBe(0);
+    });
+  });
+
+  // ── Link activation ──
+
+  describe('LinkActivation', () => {
+    function makeSuggestion(
+      partial: Partial<RelationSuggestion> & Pick<RelationSuggestion, 'suggestionId'>,
+    ): RelationSuggestion {
+      return {
+        sourceUid: 'a:1',
+        targetUid: 'b:1',
+        relationType: 'about',
+        confidence: 0.9,
+        whySummary: 'test',
+        signals: [],
+        status: 'proposed',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        ...partial,
+      };
+    }
+
+    it('shouldAutoActivate returns true for high-confidence about relation', () => {
+      const suggestion = makeSuggestion({ suggestionId: 's1', relationType: 'about', confidence: 0.9 });
+      expect(shouldAutoActivate(suggestion, DEFAULT_ACTIVATION_POLICY)).toBe(true);
+    });
+
+    it('shouldAutoActivate returns false for supports (requireUserConfirm)', () => {
+      const suggestion = makeSuggestion({ suggestionId: 's2', relationType: 'supports', confidence: 0.95 });
+      expect(shouldAutoActivate(suggestion, DEFAULT_ACTIVATION_POLICY)).toBe(false);
+    });
+
+    it('shouldAutoActivate returns false for low confidence', () => {
+      const suggestion = makeSuggestion({ suggestionId: 's3', relationType: 'about', confidence: 0.5 });
+      expect(shouldAutoActivate(suggestion, DEFAULT_ACTIVATION_POLICY)).toBe(false);
+    });
+
+    it('decideActivation returns auto_activate when appropriate', () => {
+      const suggestion = makeSuggestion({ suggestionId: 's4', relationType: 'tagged_with', confidence: 0.9 });
+      const result = decideActivation(suggestion, DEFAULT_ACTIVATION_POLICY, 0.3);
+
+      expect(result.action).toBe('auto_activate');
+      expect(result.reason).toContain('auto-activatable');
+    });
+
+    it('decideActivation returns propose for medium confidence', () => {
+      const suggestion = makeSuggestion({ suggestionId: 's5', relationType: 'supports', confidence: 0.5 });
+      const result = decideActivation(suggestion, DEFAULT_ACTIVATION_POLICY, 0.3);
+
+      expect(result.action).toBe('propose');
+      expect(result.reason).toContain('propose threshold');
+    });
+
+    it('decideActivation returns discard for very low confidence', () => {
+      const suggestion = makeSuggestion({ suggestionId: 's6', relationType: 'about', confidence: 0.1 });
+      const result = decideActivation(suggestion, DEFAULT_ACTIVATION_POLICY, 0.3);
+
+      expect(result.action).toBe('discard');
+      expect(result.reason).toContain('< propose threshold');
     });
   });
 });

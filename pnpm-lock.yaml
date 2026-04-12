@@ -297,6 +297,8 @@ importers:
         specifier: workspace:*
         version: link:../app-viewmodels
 
+  packages/feature-journal: {}
+
   packages/feature-mobile:
     dependencies:
       '@orbit/app-viewmodels':
@@ -308,6 +310,12 @@ importers:
       '@orbit/ui-native':
         specifier: workspace:*
         version: link:../ui-native
+
+  packages/feature-reader: {}
+
+  packages/feature-task: {}
+
+  packages/feature-vision: {}
 
   packages/feature-workbench:
     dependencies:
@@ -408,6 +416,19 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.1.1
+        version: 3.2.4(@types/node@22.19.17)(lightningcss@1.32.0)(terser@5.46.1)
+
+  packages/reader-resolvers:
+    dependencies:
+      '@orbit/domain':
+        specifier: workspace:*
+        version: link:../domain
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.1.0
         version: 3.2.4(@types/node@22.19.17)(lightningcss@1.32.0)(terser@5.46.1)
 
   packages/server-core: {}

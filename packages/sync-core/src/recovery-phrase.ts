@@ -120,14 +120,14 @@ export async function deriveKeyFromPhrase(words: string[]): Promise<CryptoKey> {
   const entropy = recoveryPhraseToEntropy(words);
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
-    entropy,
+    entropy as unknown as ArrayBuffer,
     'PBKDF2',
     false,
     ['deriveKey'],
   );
   const salt = new TextEncoder().encode('orbit-recovery-phrase');
   return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: salt as unknown as ArrayBuffer, iterations: 100_000, hash: 'SHA-256' },
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
     true,

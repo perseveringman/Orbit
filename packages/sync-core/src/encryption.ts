@@ -28,7 +28,7 @@ export function createEncryptor(masterKey: CryptoKey): Encryptor {
       const ciphertext = await crypto.subtle.encrypt(
         { name: 'AES-GCM', iv, tagLength: 128 },
         masterKey,
-        plaintext,
+        plaintext as unknown as ArrayBuffer,
       );
       const out = new Uint8Array(12 + ciphertext.byteLength);
       out.set(iv);
@@ -42,7 +42,7 @@ export function createEncryptor(masterKey: CryptoKey): Encryptor {
       const plaintext = await crypto.subtle.decrypt(
         { name: 'AES-GCM', iv, tagLength: 128 },
         masterKey,
-        data,
+        data as unknown as ArrayBuffer,
       );
       return new Uint8Array(plaintext);
     },
@@ -65,13 +65,13 @@ export function createMasterKeyManager(): MasterKeyManager {
       const enc = new TextEncoder();
       const keyMaterial = await crypto.subtle.importKey(
         'raw',
-        enc.encode(passphrase),
+        enc.encode(passphrase) as unknown as ArrayBuffer,
         'PBKDF2',
         false,
         ['deriveKey'],
       );
       return crypto.subtle.deriveKey(
-        { name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' },
+        { name: 'PBKDF2', salt: salt as unknown as ArrayBuffer, iterations: 100_000, hash: 'SHA-256' },
         keyMaterial,
         { name: 'AES-GCM', length: 256 },
         true,
@@ -87,7 +87,7 @@ export function createMasterKeyManager(): MasterKeyManager {
     async importKey(raw: Uint8Array): Promise<CryptoKey> {
       return crypto.subtle.importKey(
         'raw',
-        raw,
+        raw as unknown as ArrayBuffer,
         { name: 'AES-GCM', length: 256 },
         true,
         ['encrypt', 'decrypt'],

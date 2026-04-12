@@ -1,0 +1,23 @@
+{
+  "name": "@orbit/feature-journal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Orbit Journal系统 — 五层日志模型, 语义事件, 隐私分级, 摘要生成, 行为洞察",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "test": "vitest run ./tests/",
+    "clean": "rm -rf dist coverage"
+  }
+}

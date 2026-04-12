@@ -53,3 +53,17 @@ export {
   findOrphanNodes,
   findRejectedAiLinks,
 } from './graph-index.js';
+
+// ── Link density ──
+export type { LinkDensityMetrics, FeedPriorityInput } from './link-density.js';
+
+export { computeLinkDensity, computeFeedPriority } from './link-density.js';
+
+// ── Link activation ──
+export type { LinkActivationPolicy, ActivationDecision } from './link-activation.js';
+
+export {
+  DEFAULT_ACTIVATION_POLICY,
+  shouldAutoActivate,
+  decideActivation,
+} from './link-activation.js';
