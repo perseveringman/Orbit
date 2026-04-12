@@ -19,6 +19,10 @@ export interface Article {
   readonly bundlePath: string;
   readonly contentFilePath: string;
   readonly originalFilePath: string | null;
+  readonly origin: ContentOrigin;
+  readonly proposedLinkCount: number;
+  readonly activeLinkCount: number;
+  readonly sourceEndpointQuality: number;
   readonly status: ArticleReadingStatus;
   readonly readingProgress: number | null;
   readonly lastReadPosition: Readonly<Record<string, unknown>> | null;
@@ -146,6 +150,21 @@ export interface Asset {
   readonly deletedAt?: IsoDateTimeString | null;
 }
 
+// ── ContentOrigin ──────────────────────────────────────────
+
+/** How content entered the system — drives processing depth */
+export type ContentOrigin =
+  | 'feed_auto'         // Feed 自动抓取 (lightweight processing)
+  | 'user_save'         // 用户主动保存 (deep processing)
+  | 'agent_recommend'   // Agent 主动推荐 (standard processing)
+  | 'import';           // 批量导入 (configurable)
+
+/** Processing depth — determined by origin + link density */
+export type ProcessingDepth =
+  | 'lightweight'    // 摘要 + proposed links (Feed 默认)
+  | 'standard'       // 全文索引 + FTS + 基础实体提取
+  | 'deep';          // 全文分块 + embedding + 实体提取 + 关系编织 (Library 默认)
+
 // ── SourceEndpoint ─────────────────────────────────────────
 
 export type SourceEndpointKind =
@@ -154,7 +173,10 @@ export type SourceEndpointKind =
   | 'channel'
   | 'digest_list'
   | 'saved_search'
-  | 'manual_url';
+  | 'manual_url'
+  | 'youtube_channel'
+  | 'podcast_feed'
+  | 'newsletter';
 
 export type SourceEndpointStatus = 'active' | 'paused' | 'error' | 'archived';
 
@@ -172,6 +194,11 @@ export interface SourceEndpoint {
   readonly fetchIntervalMinutes: number | null;
   readonly lastFetchedAt: IsoDateTimeString | null;
   readonly lastFetchError: string | null;
+  readonly qualityScore: number;
+  readonly totalItems: number;
+  readonly confirmedItems: number;
+  readonly consecutiveErrors: number;
+  readonly lastErrorAt: IsoDateTimeString | null;
   readonly discoveryRule: Readonly<Record<string, unknown>> | null;
   readonly createdAt: IsoDateTimeString;
   readonly updatedAt: IsoDateTimeString;
@@ -226,6 +253,8 @@ export interface ContentItem {
   readonly mediaType: ContentMediaType;
   readonly language: string | null;
   readonly author: string | null;
+  readonly origin: ContentOrigin;
+  readonly processingDepth: ProcessingDepth;
   readonly status: ContentItemStatus;
   readonly lastError: string | null;
   readonly rawBlobPath: string | null;
@@ -240,6 +269,29 @@ export interface ContentItem {
   readonly discoveredAt: IsoDateTimeString | null;
   readonly fetchedAt: IsoDateTimeString | null;
   readonly extractedAt: IsoDateTimeString | null;
+  readonly createdAt: IsoDateTimeString;
+  readonly updatedAt: IsoDateTimeString;
+  readonly deletedAt?: IsoDateTimeString | null;
+}
+
+// ── Derivative Asset ───────────────────────────────────────
+
+export type DerivativeAssetType = 'transcript' | 'translation' | 'summary' | 'digest' | 'question_set';
+export type DerivativeAssetStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+export interface DerivativeAsset {
+  readonly objectType: 'derivative_asset';
+  readonly id: string;
+  readonly sourceObjectId: string;
+  readonly assetType: DerivativeAssetType;
+  readonly targetLocale: string | null;
+  readonly provider: string | null;
+  readonly generationConfigJson: Readonly<Record<string, unknown>> | null;
+  readonly contentJson: Readonly<Record<string, unknown>> | null;
+  readonly filePath: string | null;
+  readonly status: DerivativeAssetStatus;
+  readonly progress: number;
+  readonly qualityScore: number | null;
   readonly createdAt: IsoDateTimeString;
   readonly updatedAt: IsoDateTimeString;
   readonly deletedAt?: IsoDateTimeString | null;

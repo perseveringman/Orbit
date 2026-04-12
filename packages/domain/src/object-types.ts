@@ -6,7 +6,7 @@ export const ORBIT_OBJECT_TYPES = [
   // Execution family
   'project', 'milestone', 'task', 'directive',
   // Input family
-  'article', 'book', 'highlight', 'note', 'asset', 'source_endpoint', 'content_item',
+  'article', 'book', 'highlight', 'note', 'asset', 'source_endpoint', 'content_item', 'derivative_asset',
   // Research family
   'research_space', 'research_question', 'source_set', 'research_claim', 'research_gap', 'research_artifact',
   // Output family
@@ -28,7 +28,7 @@ export type OrbitObjectType = (typeof ORBIT_OBJECT_TYPES)[number];
 export const OBJECT_TYPE_FAMILIES = {
   direction: ['vision', 'direction', 'theme', 'goal', 'commitment', 'review'],
   execution: ['project', 'milestone', 'task', 'directive'],
-  input: ['article', 'book', 'highlight', 'note', 'asset', 'source_endpoint', 'content_item'],
+  input: ['article', 'book', 'highlight', 'note', 'asset', 'source_endpoint', 'content_item', 'derivative_asset'],
   research: ['research_space', 'research_question', 'source_set', 'research_claim', 'research_gap', 'research_artifact'],
   output: ['document', 'draft', 'post', 'voice_profile', 'output_variant'],
   time: ['event', 'action_log', 'day_note', 'journal_summary', 'behavior_insight'],
@@ -61,6 +61,7 @@ export const OBJECT_TYPE_LABELS: Record<OrbitObjectType, string> = {
   asset: '资产',
   source_endpoint: '来源端点',
   content_item: '内容条目',
+  derivative_asset: '衍生物',
   // Research
   research_space: '研究空间',
   research_question: '研究问题',

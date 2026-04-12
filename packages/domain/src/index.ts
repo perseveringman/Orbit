@@ -36,7 +36,7 @@ export {
 
 import type { Vision, Direction, Theme, Goal, Commitment, Review } from './direction-objects.js';
 import type { Project, Milestone, Task, Directive } from './execution-objects.js';
-import type { Article, Book, Highlight, Note, Asset, SourceEndpoint, ContentItem } from './input-objects.js';
+import type { Article, Book, Highlight, Note, Asset, SourceEndpoint, ContentItem, DerivativeAsset } from './input-objects.js';
 import type { ResearchSpace, ResearchQuestion, SourceSet, ResearchClaim, ResearchGap, ResearchArtifact } from './research-objects.js';
 import type { Document, Draft, Post, VoiceProfile, OutputVariant } from './output-objects.js';
 import type { OrbitEvent, ActionLog, DayNote, JournalSummary, BehaviorInsight } from './time-objects.js';
@@ -49,7 +49,7 @@ export type DomainObject =
   // Execution
   | Project | Milestone | Task | Directive
   // Input
-  | Article | Book | Highlight | Note | Asset | SourceEndpoint | ContentItem
+  | Article | Book | Highlight | Note | Asset | SourceEndpoint | ContentItem | DerivativeAsset
   // Research
   | ResearchSpace | ResearchQuestion | SourceSet | ResearchClaim | ResearchGap | ResearchArtifact
   // Output
