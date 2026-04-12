@@ -16,7 +16,8 @@ export type CapabilityDomain =
   | 'planning'
   | 'graph'
   | 'integration'
-  | 'sensitive';
+  | 'sensitive'
+  | 'reader';
 
 export interface CapabilityDefinition {
   readonly id: string;

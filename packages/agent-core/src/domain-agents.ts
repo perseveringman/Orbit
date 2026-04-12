@@ -25,13 +25,30 @@ export const DOMAIN_AGENT_CONFIGS: Record<AgentDomain, DomainAgentConfig> = {
     domain: 'reading',
     systemPrompt:
       'You are the Reading agent. Retrieve, parse, and summarize content ' +
-      'from objects in the workspace. Provide accurate extractions and ' +
-      'highlight key information. Do not modify any objects.',
+      'from objects in the workspace. Resolve URLs to identify content types, ' +
+      'manage subscriptions via RSS/OPML, schedule fetches, render video and ' +
+      'podcast content, and provide accurate extractions. Do not modify any objects.',
     allowedCapabilities: [
       'read-object',
       'search-workspace',
       'list-objects',
       'extract-text',
+      'resolve-url',
+      'discover-rss-feeds',
+      'parse-rss-feed',
+      'parse-opml',
+      'export-opml',
+      'resolve-youtube',
+      'resolve-podcast',
+      'determine-processing-depth',
+      'build-pipeline-steps',
+      'schedule-fetch',
+      'select-due-endpoints',
+      'compute-adaptive-interval',
+      'render-video',
+      'render-podcast',
+      'sync-video-transcript',
+      'map-podcast-speakers',
     ],
     blockedCapabilities: [
       'create-object',
@@ -39,7 +56,7 @@ export const DOMAIN_AGENT_CONFIGS: Record<AgentDomain, DomainAgentConfig> = {
       'delete-object',
       'send-external',
     ],
-    maxIterations: 5,
+    maxIterations: 10,
   },
   research: {
     domain: 'research',
@@ -97,7 +114,8 @@ export const DOMAIN_AGENT_CONFIGS: Record<AgentDomain, DomainAgentConfig> = {
     systemPrompt:
       'You are the Graph agent. Navigate and manipulate the object graph. ' +
       'Create links between objects, find related items, detect clusters, ' +
-      'and build knowledge maps.',
+      'compute link density and feed priority, evaluate link activation ' +
+      'policies, and build knowledge maps.',
     allowedCapabilities: [
       'read-object',
       'search-workspace',
@@ -105,6 +123,10 @@ export const DOMAIN_AGENT_CONFIGS: Record<AgentDomain, DomainAgentConfig> = {
       'remove-link',
       'list-links',
       'traverse-graph',
+      'compute-link-density',
+      'compute-feed-priority',
+      'decide-link-activation',
+      'evaluate-activation-policy',
     ],
     blockedCapabilities: ['delete-object', 'send-external', 'execute-code'],
     maxIterations: 8,

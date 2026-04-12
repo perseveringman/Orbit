@@ -72,9 +72,9 @@ describe('capability-core', () => {
 // ---- Domain Registry ----
 
 describe('DomainRegistry', () => {
-  it('has 8 pre-populated domains', () => {
+  it('has 9 pre-populated domains', () => {
     const registry = createDomainRegistry();
-    expect(registry.getDomains()).toHaveLength(8);
+    expect(registry.getDomains()).toHaveLength(9);
   });
 
   it('pre-populated capabilities cover all domains', () => {
