@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from 'react';
+import { type ReactElement } from 'react';
 import { Card, Chip, Tabs, Separator } from '@heroui/react';
 import {
   Clock,
@@ -19,11 +19,8 @@ import {
   type Task,
   STATUS_LABELS,
   STATUS_COLORS,
-  getProject,
-  getMilestone,
-  getEventsForTask,
-  MOCK_TASKS,
 } from './mock-data';
+import { useTask, useProject, useEventsForTask, useTaskMutations, useMilestoneList } from '../../data';
 import { StatusTransitionDropdown } from './StatusTransitionDropdown';
 
 interface TaskDetailPanelProps {
@@ -46,8 +43,12 @@ const LINK_KIND_LABELS = {
 export function TaskDetailPanel({
   taskId,
 }: TaskDetailPanelProps): ReactElement {
-  const [tasks, setTasks] = useState(MOCK_TASKS);
-  const task = tasks.find((t) => t.id === taskId);
+  const task = useTask(taskId);
+  const project = useProject(task?.projectId ?? null);
+  const { milestones } = useMilestoneList();
+  const milestone = task?.milestoneId ? milestones.find(m => m.id === task.milestoneId) ?? null : null;
+  const events = useEventsForTask(taskId);
+  const { updateTaskStatus } = useTaskMutations();
 
   if (!task) {
     return (
@@ -57,16 +58,8 @@ export function TaskDetailPanel({
     );
   }
 
-  const project = task.projectId ? getProject(task.projectId) : null;
-  const milestone = task.milestoneId ? getMilestone(task.milestoneId) : null;
-  const events = getEventsForTask(task.id);
-
   const handleStatusTransition = (newStatus: Task['status']) => {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId ? { ...t, status: newStatus } : t,
-      ),
-    );
+    updateTaskStatus(taskId, newStatus);
   };
 
   return (

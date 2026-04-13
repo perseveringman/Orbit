@@ -2,19 +2,20 @@ import { useState, type ReactElement } from 'react';
 import { Card, Chip, Button } from '@heroui/react';
 import { FolderOpen, Plus } from 'lucide-react';
 import {
-  MOCK_PROJECTS,
   PROJECT_STATUS_LABELS,
   PROJECT_STATUS_COLORS,
-  getTasksForProject,
   type Project,
 } from './mock-data';
+import { useProjectList, useTaskList } from '../../data';
 import { ProjectDetailView } from './ProjectDetailView';
 
 export function ProjectsPage(): ReactElement {
+  const { projects } = useProjectList();
+  const { tasks: allTasks } = useTaskList();
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
 
   const project = selectedProject
-    ? MOCK_PROJECTS.find((p) => p.id === selectedProject) ?? null
+    ? projects.find((p) => p.id === selectedProject) ?? null
     : null;
 
   if (project) {
@@ -36,8 +37,8 @@ export function ProjectsPage(): ReactElement {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {MOCK_PROJECTS.map((p) => {
-          const tasks = getTasksForProject(p.id);
+        {projects.map((p) => {
+          const tasks = allTasks.filter((t) => t.projectId === p.id);
           const done = tasks.filter((t) => t.status === 'done').length;
           const pct =
             tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;

@@ -12,13 +12,12 @@ import {
 } from 'lucide-react';
 import {
   type EnergyLevel,
-  MOCK_TODAY_PLAN,
-  MOCK_TASKS,
   STATUS_LABELS,
   STATUS_COLORS,
-  getTask,
-  getProject,
+  type Task,
+  type Project,
 } from './mock-data';
+import { useTodayPlan, useTaskList, useProjectList } from '../../data';
 import { NextThingCard } from './NextThingCard';
 
 const ENERGY_OPTIONS: { level: EnergyLevel; label: string; icon: ReactElement }[] = [
@@ -29,7 +28,11 @@ const ENERGY_OPTIONS: { level: EnergyLevel; label: string; icon: ReactElement }[
 
 export function TodayPage(): ReactElement {
   const [energy, setEnergy] = useState<EnergyLevel>('high');
-  const plan = MOCK_TODAY_PLAN;
+  const plan = useTodayPlan();
+  const { tasks } = useTaskList();
+  const { projects } = useProjectList();
+  const findTask = (id: string): Task | undefined => tasks.find(t => t.id === id);
+  const findProject = (id: string): Project | undefined => projects.find(p => p.id === id);
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 p-6 overflow-y-auto h-full">
@@ -65,9 +68,9 @@ export function TodayPage(): ReactElement {
         </h3>
         <div className="space-y-2">
           {plan.scheduledBlocks.map((block) => {
-            const task = getTask(block.taskId);
+            const task = findTask(block.taskId);
             const project = task?.projectId
-              ? getProject(task.projectId)
+              ? findProject(task.projectId) ?? null
               : null;
             return (
               <Card key={block.id}>
@@ -112,7 +115,7 @@ export function TodayPage(): ReactElement {
           </h3>
           <div className="space-y-2">
             {plan.carryForward.map((taskId) => {
-              const task = getTask(taskId);
+              const task = findTask(taskId);
               return (
                 <Card key={taskId}>
                   <Card.Content>
@@ -139,9 +142,9 @@ export function TodayPage(): ReactElement {
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {plan.alternatives.map((alt) => {
-            const task = getTask(alt.taskId);
+            const task = findTask(alt.taskId);
             const project = task?.projectId
-              ? getProject(task.projectId)
+              ? findProject(task.projectId) ?? null
               : null;
             return (
               <Card key={alt.taskId}>

@@ -8,14 +8,13 @@ import {
   Plus,
 } from 'lucide-react';
 import {
-  MOCK_TASKS,
-  MOCK_PROJECTS,
   STATUS_LABELS,
   STATUS_COLORS,
-  getProject,
   type TaskStatus,
   type Task,
+  type Project,
 } from './mock-data';
+import { useTaskList, useProjectList } from '../../data';
 import { QuickCaptureInput } from './QuickCaptureInput';
 import { TaskDetailPanel } from './TaskDetailPanel';
 
@@ -42,12 +41,14 @@ const KANBAN_STATUSES: TaskStatus[] = [
 
 function TaskCard({
   task,
+  projects,
   onSelect,
 }: {
   task: Task;
+  projects: Project[];
   onSelect: (id: string) => void;
 }) {
-  const project = task.projectId ? getProject(task.projectId) : null;
+  const project = task.projectId ? projects.find(p => p.id === task.projectId) ?? null : null;
   return (
     <button
       className="w-full text-left"
@@ -100,10 +101,12 @@ function TaskCard({
 
 function StatusGroupedView({
   tasks,
+  projects,
   filter,
   onSelectTask,
 }: {
   tasks: Task[];
+  projects: Project[];
   filter: { status: TaskStatus | 'all'; project: string | 'all'; dueDate: string | 'all' };
   onSelectTask: (id: string) => void;
 }) {
@@ -137,7 +140,7 @@ function StatusGroupedView({
             ) : (
               <div className="space-y-2">
                 {group.map((t) => (
-                  <TaskCard key={t.id} task={t} onSelect={onSelectTask} />
+                  <TaskCard key={t.id} task={t} projects={projects} onSelect={onSelectTask} />
                 ))}
               </div>
             )}
@@ -152,9 +155,11 @@ function StatusGroupedView({
 
 function KanbanView({
   tasks,
+  projects,
   onSelectTask,
 }: {
   tasks: Task[];
+  projects: Project[];
   onSelectTask: (id: string) => void;
 }) {
   return (
@@ -174,7 +179,7 @@ function KanbanView({
             </div>
             <div className="space-y-2">
               {column.map((t) => (
-                <TaskCard key={t.id} task={t} onSelect={onSelectTask} />
+                <TaskCard key={t.id} task={t} projects={projects} onSelect={onSelectTask} />
               ))}
             </div>
           </div>
@@ -187,6 +192,8 @@ function KanbanView({
 // ─── TasksPage ───────────────────────────────────────────────────────
 
 export function TasksPage(): ReactElement {
+  const { tasks } = useTaskList();
+  const { projects } = useProjectList();
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<TaskStatus | 'all'>('all');
   const [filterProject, setFilterProject] = useState<string | 'all'>('all');
@@ -224,7 +231,7 @@ export function TasksPage(): ReactElement {
             onChange={(e) => setFilterProject(e.target.value)}
           >
             <option value="all">所有项目</option>
-            {MOCK_PROJECTS.map((p) => (
+            {projects.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.title}
               </option>
@@ -258,14 +265,15 @@ export function TasksPage(): ReactElement {
 
           <Tabs.Panel id="grouped" className="pt-4">
             <StatusGroupedView
-              tasks={MOCK_TASKS}
+              tasks={tasks}
+              projects={projects}
               filter={filter}
               onSelectTask={setSelectedTask}
             />
           </Tabs.Panel>
 
           <Tabs.Panel id="kanban" className="pt-4">
-            <KanbanView tasks={MOCK_TASKS} onSelectTask={setSelectedTask} />
+            <KanbanView tasks={tasks} projects={projects} onSelectTask={setSelectedTask} />
           </Tabs.Panel>
         </Tabs>
       </div>

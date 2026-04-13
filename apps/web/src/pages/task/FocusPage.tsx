@@ -13,11 +13,7 @@ import {
   FlaskConical,
   PenLine,
 } from 'lucide-react';
-import {
-  MOCK_TASKS,
-  getProject,
-  getMilestone,
-} from './mock-data';
+import { useTaskList, useProjectList, useMilestoneList, useTaskMutations } from '../../data';
 
 function formatTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -37,16 +33,29 @@ export function FocusPage(): ReactElement {
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(true);
 
+  const { tasks } = useTaskList();
+  const { projects } = useProjectList();
+  const { milestones } = useMilestoneList();
+  const { updateTaskStatus } = useTaskMutations();
+
   // Pick the first focused task
-  const task = MOCK_TASKS.find((t) => t.status === 'focused') ?? MOCK_TASKS[0];
-  const project = task.projectId ? getProject(task.projectId) : null;
-  const milestone = task.milestoneId ? getMilestone(task.milestoneId) : null;
+  const task = tasks.find((t) => t.status === 'focused') ?? tasks[0];
+  const project = task?.projectId ? projects.find(p => p.id === task.projectId) ?? null : null;
+  const milestone = task?.milestoneId ? milestones.find(m => m.id === task.milestoneId) ?? null : null;
 
   useEffect(() => {
     if (!running) return;
     const id = setInterval(() => setElapsed((prev) => prev + 1), 1000);
     return () => clearInterval(id);
   }, [running]);
+
+  if (!task) {
+    return (
+      <div className="flex items-center justify-center h-full text-muted">
+        暂无任务
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -132,7 +141,7 @@ export function FocusPage(): ReactElement {
       {/* Bottom action bar */}
       <div className="border-t border-border bg-surface px-6 py-4">
         <div className="flex items-center justify-center gap-3">
-          <Button variant="primary" onPress={() => {}}>
+          <Button variant="primary" onPress={() => updateTaskStatus(task.id, 'done')}>
             <Check size={16} /> 完成
           </Button>
           <Button
@@ -141,10 +150,10 @@ export function FocusPage(): ReactElement {
           >
             <Pause size={16} /> 暂停
           </Button>
-          <Button variant="secondary" onPress={() => {}}>
+          <Button variant="secondary" onPress={() => updateTaskStatus(task.id, 'blocked')}>
             <AlertTriangle size={16} /> 受阻
           </Button>
-          <Button variant="danger" onPress={() => {}}>
+          <Button variant="danger" onPress={() => updateTaskStatus(task.id, 'dropped')}>
             <XCircle size={16} /> 放弃
           </Button>
         </div>

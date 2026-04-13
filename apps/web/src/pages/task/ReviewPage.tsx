@@ -11,29 +11,26 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import {
-  MOCK_TASKS,
-  MOCK_PROJECTS,
   STATUS_LABELS,
   STATUS_COLORS,
-  getTask,
-  getProject,
-  getTasksForProject,
-  getMilestonesForProject,
   type Task,
   type Project,
 } from './mock-data';
+import { useTaskList, useProjectList, useTasksForProject, useMilestoneList } from '../../data';
 
 // ─── Daily Review ────────────────────────────────────────────────────
 
 function DailyReview(): ReactElement {
+  const { tasks } = useTaskList();
+  const { projects } = useProjectList();
   const [decision, setDecision] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [validationMsg, setValidationMsg] = useState('');
 
-  const completedToday = MOCK_TASKS.filter(
+  const completedToday = tasks.filter(
     (t) => t.completedAt && t.completedAt.startsWith('2026-04-09'),
   );
-  const carryForward = MOCK_TASKS.filter(
+  const carryForward = tasks.filter(
     (t) => t.status !== 'done' && t.status !== 'dropped' && t.dueDate && t.dueDate <= '2026-04-09',
   );
 
@@ -68,7 +65,7 @@ function DailyReview(): ReactElement {
                     <span className="text-sm text-foreground">{t.title}</span>
                     {t.projectId && (
                       <Chip variant="soft" size="sm" className="ml-auto">
-                        {getProject(t.projectId)?.title}
+                        {projects.find(p => p.id === t.projectId)?.title}
                       </Chip>
                     )}
                   </div>
@@ -153,10 +150,12 @@ function DailyReview(): ReactElement {
 // ─── Weekly Review ───────────────────────────────────────────────────
 
 function WeeklyReview(): ReactElement {
-  const totalTasks = MOCK_TASKS.length;
-  const doneTasks = MOCK_TASKS.filter((t) => t.status === 'done').length;
-  const focusedTasks = MOCK_TASKS.filter((t) => t.status === 'focused').length;
-  const blockedTasks = MOCK_TASKS.filter((t) => t.status === 'blocked').length;
+  const { tasks } = useTaskList();
+  const { projects } = useProjectList();
+  const totalTasks = tasks.length;
+  const doneTasks = tasks.filter((t) => t.status === 'done').length;
+  const focusedTasks = tasks.filter((t) => t.status === 'focused').length;
+  const blockedTasks = tasks.filter((t) => t.status === 'blocked').length;
 
   return (
     <div className="space-y-6">
@@ -193,10 +192,10 @@ function WeeklyReview(): ReactElement {
           <TrendingUp size={18} /> 项目进度
         </h3>
         <div className="space-y-3">
-          {MOCK_PROJECTS.filter((p) => p.status === 'active').map((p) => {
-            const tasks = getTasksForProject(p.id);
-            const done = tasks.filter((t) => t.status === 'done').length;
-            const pct = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
+          {projects.filter((p) => p.status === 'active').map((p) => {
+            const projectTasks = tasks.filter((t) => t.projectId === p.id);
+            const done = projectTasks.filter((t) => t.status === 'done').length;
+            const pct = projectTasks.length > 0 ? Math.round((done / projectTasks.length) * 100) : 0;
             return (
               <Card key={p.id}>
                 <Card.Content>
@@ -213,7 +212,7 @@ function WeeklyReview(): ReactElement {
                     />
                   </div>
                   <p className="text-xs text-muted mt-1">
-                    {done}/{tasks.length} 任务完成
+                    {done}/{projectTasks.length} 任务完成
                   </p>
                 </Card.Content>
               </Card>
@@ -237,16 +236,17 @@ function WeeklyReview(): ReactElement {
 // ─── Project Retrospective ───────────────────────────────────────────
 
 function ProjectRetrospective(): ReactElement {
-  const [selectedProject, setSelectedProject] = useState<string | null>(
-    MOCK_PROJECTS[0].id,
-  );
+  const { projects } = useProjectList();
+  const { milestones: allMilestones } = useMilestoneList();
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [decision, setDecision] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [validationMsg, setValidationMsg] = useState('');
 
-  const project = selectedProject ? getProject(selectedProject) : null;
-  const milestones = project ? getMilestonesForProject(project.id) : [];
-  const tasks = project ? getTasksForProject(project.id) : [];
+  const activeProjectId = selectedProject ?? (projects.length > 0 ? projects[0].id : null);
+  const project = activeProjectId ? projects.find(p => p.id === activeProjectId) ?? null : null;
+  const milestones = allMilestones.filter(m => m.projectId === activeProjectId);
+  const tasks = useTasksForProject(activeProjectId ?? '');
   const blockedItems = tasks.filter((t) => t.status === 'blocked');
 
   const handleSubmit = () => {
@@ -262,10 +262,10 @@ function ProjectRetrospective(): ReactElement {
     <div className="space-y-6">
       {/* Project selector */}
       <div className="flex items-center gap-2 flex-wrap">
-        {MOCK_PROJECTS.map((p) => (
+        {projects.map((p) => (
           <Button
             key={p.id}
-            variant={selectedProject === p.id ? 'primary' : 'secondary'}
+            variant={activeProjectId === p.id ? 'primary' : 'secondary'}
             size="sm"
             onPress={() => {
               setSelectedProject(p.id);
@@ -287,7 +287,7 @@ function ProjectRetrospective(): ReactElement {
             </h3>
             <div className="space-y-2">
               {milestones.map((ms) => {
-                const msTasks = MOCK_TASKS.filter((t) => t.milestoneId === ms.id);
+                const msTasks = tasks.filter((t) => t.milestoneId === ms.id);
                 const done = msTasks.filter((t) => t.status === 'done').length;
                 return (
                   <Card key={ms.id}>

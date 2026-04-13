@@ -15,11 +15,8 @@ import {
   PROJECT_STATUS_COLORS,
   STATUS_LABELS,
   STATUS_COLORS,
-  getMilestonesForProject,
-  getTasksForProject,
-  getTasksForMilestone,
-  MOCK_TASKS,
 } from './mock-data';
+import { useTasksForProject, useMilestoneList } from '../../data';
 import { MilestoneTimeline } from './MilestoneTimeline';
 
 interface ProjectDetailViewProps {
@@ -31,8 +28,9 @@ export function ProjectDetailView({
   project,
   onBack,
 }: ProjectDetailViewProps): ReactElement {
-  const milestones = getMilestonesForProject(project.id);
-  const allTasks = getTasksForProject(project.id);
+  const { milestones: allMilestones } = useMilestoneList();
+  const milestones = allMilestones.filter(m => m.projectId === project.id);
+  const allTasks = useTasksForProject(project.id);
   const doneTasks = allTasks.filter((t) => t.status === 'done').length;
   const doneMilestones = milestones.filter((m) => m.status === 'done').length;
   const taskPct =
@@ -97,7 +95,7 @@ export function ProjectDetailView({
             任务
           </h3>
           {milestones.map((ms) => {
-            const msTasks = getTasksForMilestone(ms.id);
+            const msTasks = allTasks.filter((t) => t.milestoneId === ms.id);
             return (
               <div key={ms.id} className="mb-4">
                 <p className="text-sm font-medium text-muted mb-2">

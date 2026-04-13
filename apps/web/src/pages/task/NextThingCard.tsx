@@ -1,12 +1,8 @@
 import { useState, type ReactElement } from 'react';
 import { Card, Chip, Button, Tabs } from '@heroui/react';
 import { Sparkles, FolderOpen, Milestone as MsIcon, ChevronDown, ChevronUp, Zap } from 'lucide-react';
-import {
-  type TodayRecommendation,
-  getTask,
-  getProject,
-  getMilestone,
-} from './mock-data';
+import { type TodayRecommendation } from './mock-data';
+import { useTask, useProject, useMilestoneList } from '../../data';
 
 interface NextThingCardProps {
   recommendation: TodayRecommendation;
@@ -28,9 +24,10 @@ export function NextThingCard({
   onStartFocus,
 }: NextThingCardProps): ReactElement {
   const [expanded, setExpanded] = useState(false);
-  const task = getTask(recommendation.taskId);
-  const project = task?.projectId ? getProject(task.projectId) : null;
-  const milestone = task?.milestoneId ? getMilestone(task.milestoneId) : null;
+  const task = useTask(recommendation.taskId);
+  const project = useProject(task?.projectId ?? null);
+  const { milestones } = useMilestoneList();
+  const milestone = task?.milestoneId ? milestones.find(m => m.id === task.milestoneId) ?? null : null;
 
   return (
     <Card className="border-l-4 border-accent">
