@@ -122,7 +122,7 @@ export function ChatPage(): ReactElement {
               streaming.feedEvent(makeDeltaEvent(delta));
             },
             onDone(fullText) {
-              streaming.feedEvent(makeCompletedEvent());
+              streaming.reset();
 
               const model =
                 activeProvider.defaultModel ||
@@ -139,7 +139,7 @@ export function ChatPage(): ReactElement {
               finalize(fullText);
             },
             onError(error) {
-              streaming.feedEvent(makeErrorEvent(error));
+              streaming.reset();
               const classified = classifyError(new Error(error));
               const errRenderable = errorToRenderableMessage(classified);
               const errMsg: AgentMessage = {
@@ -172,7 +172,7 @@ export function ChatPage(): ReactElement {
             streaming.feedEvent(makeDeltaEvent(delta));
           },
           onDone(fullText) {
-            streaming.feedEvent(makeCompletedEvent());
+            streaming.reset();
             finalize(fullText);
           },
           onError() {},
