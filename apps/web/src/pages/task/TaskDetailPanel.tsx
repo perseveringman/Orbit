@@ -1,5 +1,5 @@
-import { type ReactElement } from 'react';
-import { Card, Chip, Tabs, Separator } from '@heroui/react';
+import { useState, type ReactElement } from 'react';
+import { Chip, Tabs, Separator, Button } from '@heroui/react';
 import {
   Clock,
   FolderOpen,
@@ -14,6 +14,9 @@ import {
   BookOpen,
   FlaskConical,
   PenLine,
+  Trash2,
+  Edit3,
+  X,
 } from 'lucide-react';
 import {
   type Task,
@@ -42,13 +45,19 @@ const LINK_KIND_LABELS = {
 
 export function TaskDetailPanel({
   taskId,
+  onClose,
 }: TaskDetailPanelProps): ReactElement {
   const task = useTask(taskId);
   const project = useProject(task?.projectId ?? null);
   const { milestones } = useMilestoneList();
   const milestone = task?.milestoneId ? milestones.find(m => m.id === task.milestoneId) ?? null : null;
   const events = useEventsForTask(taskId);
-  const { updateTaskStatus } = useTaskMutations();
+  const { updateTaskStatus, updateTask, deleteTask } = useTaskMutations();
+
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editBody, setEditBody] = useState('');
+  const [editDueDate, setEditDueDate] = useState('');
 
   if (!task) {
     return (
@@ -62,17 +71,91 @@ export function TaskDetailPanel({
     updateTaskStatus(taskId, newStatus);
   };
 
+  const startEditing = () => {
+    setEditTitle(task.title);
+    setEditBody(task.body ?? '');
+    setEditDueDate(task.dueDate ?? '');
+    setEditing(true);
+  };
+
+  const saveEditing = async () => {
+    await updateTask(taskId, {
+      title: editTitle.trim() || task.title,
+      body: editBody.trim() || undefined,
+      dueDate: editDueDate || null,
+    });
+    setEditing(false);
+  };
+
+  const handleDelete = async () => {
+    await deleteTask(taskId);
+    onClose?.();
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className="p-4 border-b border-border space-y-2">
-        <h2 className="text-base font-semibold text-foreground">
-          {task.title}
-        </h2>
-        <StatusTransitionDropdown
-          currentStatus={task.status}
-          onTransition={handleStatusTransition}
-        />
+        {editing ? (
+          <div className="space-y-2">
+            <input
+              className="w-full rounded-lg border border-border bg-surface px-2 py-1 text-sm font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveEditing(); if (e.key === 'Escape') setEditing(false); }}
+              autoFocus
+            />
+            <textarea
+              className="w-full rounded-lg border border-border bg-surface px-2 py-1 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-accent"
+              rows={2}
+              placeholder="描述..."
+              value={editBody}
+              onChange={(e) => setEditBody(e.target.value)}
+            />
+            <input
+              type="date"
+              className="rounded-lg border border-border bg-surface px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+              value={editDueDate}
+              onChange={(e) => setEditDueDate(e.target.value)}
+            />
+            <div className="flex gap-1">
+              <Button variant="primary" size="sm" onPress={saveEditing}>
+                <Check size={12} /> 保存
+              </Button>
+              <Button variant="ghost" size="sm" onPress={() => setEditing(false)}>
+                <X size={12} /> 取消
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-start justify-between">
+              <h2 className="text-base font-semibold text-foreground flex-1">
+                {task.title}
+              </h2>
+              <div className="flex items-center gap-1 ml-2 shrink-0">
+                <button
+                  className="p-1 text-muted hover:text-foreground transition-colors rounded"
+                  onClick={startEditing}
+                  title="编辑任务"
+                >
+                  <Edit3 size={14} />
+                </button>
+                <button
+                  className="p-1 text-muted hover:text-danger transition-colors rounded"
+                  onClick={handleDelete}
+                  title="删除任务"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+            <StatusTransitionDropdown
+              currentStatus={task.status}
+              onTransition={handleStatusTransition}
+            />
+          </>
+        )}
       </div>
 
       {/* Tabs */}

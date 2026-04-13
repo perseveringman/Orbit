@@ -11,6 +11,9 @@ import {
   LayoutDashboard,
   ListChecks,
   FolderOpen,
+  Crosshair,
+  ClipboardCheck,
+  CalendarCheck2,
 
   BotMessageSquare,
   MessageSquare,
@@ -155,6 +158,24 @@ function ProjectNav({
         label="Tasks"
         isActive={activeSubPage === 'tasks'}
         onClick={() => onSubPageChange('tasks')}
+      />
+      <NavItem
+        icon={<CalendarCheck2 size={16} />}
+        label="今日计划"
+        isActive={activeSubPage === 'today'}
+        onClick={() => onSubPageChange('today')}
+      />
+      <NavItem
+        icon={<Crosshair size={16} />}
+        label="专注模式"
+        isActive={activeSubPage === 'focus'}
+        onClick={() => onSubPageChange('focus')}
+      />
+      <NavItem
+        icon={<ClipboardCheck size={16} />}
+        label="回顾"
+        isActive={activeSubPage === 'review'}
+        onClick={() => onSubPageChange('review')}
       />
       <ExpandableGroup
         icon={<FolderOpen size={16} />}

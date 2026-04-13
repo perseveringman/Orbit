@@ -1,23 +1,22 @@
 import { useState, type ReactElement } from 'react';
-import { Card, Chip, Button, Separator } from '@heroui/react';
+import { Chip, Button, Separator } from '@heroui/react';
 import {
   FolderOpen,
   ExternalLink,
-  CalendarDays,
-  ClipboardList,
-  BarChart3,
   Link2,
+  Plus,
+  Check,
+  X,
+  Trash2,
 } from 'lucide-react';
 import {
   type Project,
-  type Milestone,
   PROJECT_STATUS_LABELS,
   PROJECT_STATUS_COLORS,
-  STATUS_LABELS,
-  STATUS_COLORS,
 } from './mock-data';
-import { useTasksForProject, useMilestoneList } from '../../data';
+import { useTasksForProject, useMilestoneList, useTaskMutations } from '../../data';
 import { MilestoneTimeline } from './MilestoneTimeline';
+import { StatusTransitionDropdown } from './StatusTransitionDropdown';
 
 interface ProjectDetailViewProps {
   project: Project;
@@ -31,6 +30,7 @@ export function ProjectDetailView({
   const { milestones: allMilestones } = useMilestoneList();
   const milestones = allMilestones.filter(m => m.projectId === project.id);
   const allTasks = useTasksForProject(project.id);
+  const { createTask, updateTaskStatus, deleteTask } = useTaskMutations();
   const doneTasks = allTasks.filter((t) => t.status === 'done').length;
   const doneMilestones = milestones.filter((m) => m.status === 'done').length;
   const taskPct =
@@ -39,6 +39,17 @@ export function ProjectDetailView({
     milestones.length > 0
       ? Math.round((doneMilestones / milestones.length) * 100)
       : 0;
+
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+
+  const handleAddTask = async () => {
+    const title = newTaskTitle.trim();
+    if (!title) return;
+    await createTask({ title, projectId: project.id });
+    setNewTaskTitle('');
+    setShowAddTask(false);
+  };
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -64,7 +75,7 @@ export function ProjectDetailView({
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <Chip variant="soft" color="accent" size="sm">
-              🎯 {project.alignment}
+              🎯 {project.alignment || '未设置目标'}
             </Chip>
             {project.visionLink && (
               <a
@@ -91,9 +102,33 @@ export function ProjectDetailView({
 
         {/* Tasks grouped by milestone */}
         <div>
-          <h3 className="text-base font-semibold text-foreground mb-4">
-            任务
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold text-foreground">任务</h3>
+            <Button variant="secondary" size="sm" onPress={() => setShowAddTask(!showAddTask)}>
+              <Plus size={14} /> 添加任务
+            </Button>
+          </div>
+
+          {/* Inline add task form */}
+          {showAddTask && (
+            <div className="flex items-center gap-2 mb-4 p-3 bg-surface-secondary rounded-lg">
+              <input
+                className="flex-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent"
+                placeholder="输入任务标题..."
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAddTask(); if (e.key === 'Escape') setShowAddTask(false); }}
+                autoFocus
+              />
+              <Button variant="primary" size="sm" onPress={handleAddTask} isDisabled={!newTaskTitle.trim()}>
+                <Check size={14} />
+              </Button>
+              <Button variant="ghost" size="sm" onPress={() => { setShowAddTask(false); setNewTaskTitle(''); }}>
+                <X size={14} />
+              </Button>
+            </div>
+          )}
+
           {milestones.map((ms) => {
             const msTasks = allTasks.filter((t) => t.milestoneId === ms.id);
             return (
@@ -105,23 +140,27 @@ export function ProjectDetailView({
                   {msTasks.map((t) => (
                     <div
                       key={t.id}
-                      className="flex items-center gap-2 text-sm p-2 rounded-lg hover:bg-surface-secondary transition-colors"
+                      className="flex items-center gap-2 text-sm p-2 rounded-lg hover:bg-surface-secondary transition-colors group"
                     >
-                      <Chip
-                        variant="soft"
-                        color={STATUS_COLORS[t.status]}
-                        size="sm"
-                      >
-                        {STATUS_LABELS[t.status]}
-                      </Chip>
-                      <span className="text-foreground truncate">
+                      <StatusTransitionDropdown
+                        currentStatus={t.status}
+                        onTransition={(newStatus) => updateTaskStatus(t.id, newStatus)}
+                      />
+                      <span className="text-foreground truncate flex-1">
                         {t.title}
                       </span>
                       {t.dueDate && (
-                        <span className="ml-auto text-xs text-muted">
+                        <span className="text-xs text-muted">
                           {t.dueDate}
                         </span>
                       )}
+                      <button
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-danger"
+                        onClick={() => deleteTask(t.id)}
+                        title="删除任务"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -141,18 +180,27 @@ export function ProjectDetailView({
                   {unassigned.map((t) => (
                     <div
                       key={t.id}
-                      className="flex items-center gap-2 text-sm p-2 rounded-lg hover:bg-surface-secondary transition-colors"
+                      className="flex items-center gap-2 text-sm p-2 rounded-lg hover:bg-surface-secondary transition-colors group"
                     >
-                      <Chip
-                        variant="soft"
-                        color={STATUS_COLORS[t.status]}
-                        size="sm"
-                      >
-                        {STATUS_LABELS[t.status]}
-                      </Chip>
-                      <span className="text-foreground truncate">
+                      <StatusTransitionDropdown
+                        currentStatus={t.status}
+                        onTransition={(newStatus) => updateTaskStatus(t.id, newStatus)}
+                      />
+                      <span className="text-foreground truncate flex-1">
                         {t.title}
                       </span>
+                      {t.dueDate && (
+                        <span className="text-xs text-muted">
+                          {t.dueDate}
+                        </span>
+                      )}
+                      <button
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-danger"
+                        onClick={() => deleteTask(t.id)}
+                        title="删除任务"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -211,7 +259,7 @@ export function ProjectDetailView({
             <div className="flex justify-between text-sm">
               <span className="text-muted">对齐</span>
               <span className="text-foreground text-right text-xs max-w-[150px] truncate">
-                {project.alignment}
+                {project.alignment || '—'}
               </span>
             </div>
             <div className="flex justify-between text-sm">

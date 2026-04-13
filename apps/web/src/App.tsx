@@ -10,8 +10,7 @@ import { VisionPage } from './pages/vision';
 import { ReaderPage } from './pages/reader';
 import { ResolverTestPage } from './pages/reader/ResolverTestPage';
 import { JournalPage } from './pages/journal';
-import { TasksPage, ProjectsPage } from './pages/project';
-import { TodayPage, FocusPage, ReviewPage } from './pages/task';
+import { TasksPage, ProjectsPage, TodayPage, FocusPage, ReviewPage } from './pages/task';
 
 import { OverviewPage as AgentOverviewPage } from '../../desktop/src/renderer-entry/agent-hub/pages/OverviewPage';
 import { ChatPage as AgentChatPage } from '../../desktop/src/renderer-entry/agent-hub/pages/ChatPage';
@@ -55,6 +54,9 @@ function renderPage(section: string, subPage: string): ReactElement {
       case 'tasks-review':
       case 'tasks-done':
         return <TasksPage />;
+      case 'today': return <TodayPage />;
+      case 'focus': return <FocusPage />;
+      case 'review': return <ReviewPage />;
       case 'projects': return <ProjectsPage />;
       case 'clients': return <Placeholder name="Clients" />;
       case 'templates': return <Placeholder name="Templates" />;
@@ -122,6 +124,21 @@ export default function App(): ReactElement {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  /* Cross-page navigation via custom events */
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { section, subPage } = (e as CustomEvent).detail ?? {};
+      if (section) {
+        setActiveSection(section);
+        setActiveSubPage(subPage ?? DEFAULT_SUB_PAGE[section] ?? 'dashboard');
+      } else if (subPage) {
+        setActiveSubPage(subPage);
+      }
+    };
+    window.addEventListener('orbit:navigate', handler);
+    return () => window.removeEventListener('orbit:navigate', handler);
   }, []);
 
   const handleSectionChange = (section: string) => {

@@ -34,6 +34,10 @@ export function TodayPage(): ReactElement {
   const findTask = (id: string): Task | undefined => tasks.find(t => t.id === id);
   const findProject = (id: string): Project | undefined => projects.find(p => p.id === id);
 
+  const handleStartFocus = () => {
+    window.dispatchEvent(new CustomEvent('orbit:navigate', { detail: { subPage: 'focus' } }));
+  };
+
   return (
     <div className="max-w-3xl mx-auto space-y-6 p-6 overflow-y-auto h-full">
       {/* Date header */}
@@ -59,7 +63,7 @@ export function TodayPage(): ReactElement {
       </div>
 
       {/* Hero: Next Thing */}
-      <NextThingCard recommendation={plan.primary} />
+      <NextThingCard recommendation={plan.primary} onStartFocus={handleStartFocus} />
 
       {/* Scheduled time blocks */}
       <div>

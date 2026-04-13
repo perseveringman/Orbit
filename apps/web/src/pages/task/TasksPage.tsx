@@ -292,7 +292,7 @@ export function TasksPage(): ReactElement {
               ✕
             </Button>
           </div>
-          <TaskDetailPanel taskId={selectedTask} />
+          <TaskDetailPanel taskId={selectedTask} onClose={() => setSelectedTask(null)} />
         </div>
       )}
     </div>
