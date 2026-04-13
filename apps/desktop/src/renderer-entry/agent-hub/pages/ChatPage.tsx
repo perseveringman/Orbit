@@ -70,6 +70,7 @@ export function ChatPage(): ReactElement {
       conversationHistory.current.push({ role: 'user', content });
 
       streaming.reset();
+      streaming.startStreaming();
       const runId = `run-${Date.now()}`;
 
       const makeDeltaEvent = (delta: string): OrbitAgentEvent =>

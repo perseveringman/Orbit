@@ -30,6 +30,8 @@ export interface UseStreamingStateReturn {
   readonly feedEvent: (event: OrbitAgentEvent) => void;
   /** Reset to initial state. */
   readonly reset: () => void;
+  /** Immediately enter streaming/thinking state (call right after reset, before first delta). */
+  readonly startStreaming: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -284,6 +286,12 @@ export function useStreamingState(
     dispatch({ type: 'RESET' });
   }, []);
 
+  // --- Immediately enter streaming (thinking) state ---
+  const startStreaming = useCallback(() => {
+    startedRef.current = true;
+    dispatch({ type: 'START_STREAMING', timestamp: Date.now() });
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -292,5 +300,5 @@ export function useStreamingState(
     };
   }, []);
 
-  return { state, feedChunk, feedEvent, reset };
+  return { state, feedChunk, feedEvent, reset, startStreaming };
 }
