@@ -1,8 +1,9 @@
-import { useState, type ReactElement } from 'react';
+import { useState, useEffect, type ReactElement } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '@heroui/react';
 
 import { IconRail, ContextSidebar, TopBar } from './components/layout';
+import { GlobalAgentWidget } from './components/global';
 import { InboxPage } from './pages/inbox';
 import { VisionPage } from './pages/vision';
 import { ReaderPage } from './pages/reader';
@@ -14,6 +15,9 @@ import { OverviewPage as AgentOverviewPage } from '../../desktop/src/renderer-en
 import { ChatPage as AgentChatPage } from '../../desktop/src/renderer-entry/agent-hub/pages/ChatPage';
 import { ModelsPage as AgentModelsPage } from '../../desktop/src/renderer-entry/agent-hub/pages/ModelsPage';
 import { SkillsPage as AgentSkillsPage } from '../../desktop/src/renderer-entry/agent-hub/pages/SkillsPage';
+import { ToolsPage as AgentToolsPage } from '../../desktop/src/renderer-entry/agent-hub/pages/ToolsPage';
+import { RolesPage as AgentRolesPage } from '../../desktop/src/renderer-entry/agent-hub/pages/RolesPage';
+import { TeamsPage as AgentTeamsPage } from '../../desktop/src/renderer-entry/agent-hub/pages/TeamsPage';
 
 /* Default sub-pages per section */
 const DEFAULT_SUB_PAGE: Record<string, string> = {
@@ -64,6 +68,9 @@ function renderPage(section: string, subPage: string): ReactElement {
       case 'conversations': return <AgentChatPage />;
       case 'models': return <AgentModelsPage />;
       case 'skills': return <AgentSkillsPage />;
+      case 'tools': return <AgentToolsPage />;
+      case 'roles': return <AgentRolesPage />;
+      case 'teams': return <AgentTeamsPage />;
       default: return <AgentOverviewPage />;
     }
   }
@@ -103,6 +110,18 @@ export default function App(): ReactElement {
   const [activeSubPage, setActiveSubPage] = useState('tasks');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  /* Global keyboard shortcut: ⌘⇧A to toggle agent widget */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'a') {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('orbit:toggle-agent'));
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   const handleSectionChange = (section: string) => {
     setActiveSection(section);
     setActiveSubPage(DEFAULT_SUB_PAGE[section] ?? 'dashboard');
@@ -140,6 +159,8 @@ export default function App(): ReactElement {
           {renderPage(activeSection, activeSubPage)}
         </div>
       </main>
+
+      <GlobalAgentWidget />
     </div>
   );
 }

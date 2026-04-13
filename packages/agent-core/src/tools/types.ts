@@ -9,7 +9,12 @@ export type ToolCategory =
   | 'web'
   | 'interaction'
   | 'code'
-  | 'utility';
+  | 'utility'
+  | 'planning'
+  | 'workspace'
+  | 'reader'
+  | 'journal'
+  | 'vision';
 
 /** Output returned by every built-in tool execution. */
 export interface ToolOutput {

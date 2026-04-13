@@ -16,6 +16,9 @@ import {
   MessageSquare,
   Cpu,
   Puzzle,
+  Wrench,
+  UserCog,
+  Users,
   BookOpen,
   BookOpen as BookOpenIcon,
   StickyNote as StickyNoteIcon,
@@ -199,6 +202,24 @@ function AgentNav({
         label="Skills"
         isActive={activeSubPage === 'skills'}
         onClick={() => onSubPageChange('skills')}
+      />
+      <NavItem
+        icon={<Wrench size={16} />}
+        label="Tools"
+        isActive={activeSubPage === 'tools'}
+        onClick={() => onSubPageChange('tools')}
+      />
+      <NavItem
+        icon={<UserCog size={16} />}
+        label="Roles"
+        isActive={activeSubPage === 'roles'}
+        onClick={() => onSubPageChange('roles')}
+      />
+      <NavItem
+        icon={<Users size={16} />}
+        label="Teams"
+        isActive={activeSubPage === 'teams'}
+        onClick={() => onSubPageChange('teams')}
       />
     </>
   );

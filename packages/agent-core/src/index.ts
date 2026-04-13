@@ -163,3 +163,23 @@ export * from './ux/index.js';
 
 // Learning Loop (M9 – Wave 2-B)
 export * from './learning/index.js';
+
+// Skills System
+export * from './skills/index.js';
+
+// MCP Management
+export * from './mcp/index.js';
+
+// Agent Roles
+export * from './roles/index.js';
+
+// Agent Teams
+export * from './team/index.js';
+
+// Agent Runtime
+export {
+  createAgentRuntime,
+  type AgentRuntime,
+  type AgentRuntimeConfig,
+  type RuntimeStatus,
+} from './agent-runtime.js';
