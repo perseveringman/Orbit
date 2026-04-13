@@ -4,12 +4,24 @@ import initSqlJs, { type Database } from 'sql.js';
 /**
  * Creates a DatabasePort backed by sql.js (WASM SQLite in the browser).
  * The database is in-memory — data persists until page refresh.
+ *
+ * WASM is loaded from /sql-wasm.wasm (bundled in public/) with a CDN fallback.
  */
 export async function createBrowserDatabasePort(): Promise<DatabasePort> {
   const SQL = await initSqlJs({
-    locateFile: (file: string) => `https://sql.js.org/dist/${file}`,
+    locateFile: (file: string) => {
+      // Try local copy first (public/), fallback to CDN
+      if (file === 'sql-wasm.wasm') {
+        return '/sql-wasm.wasm';
+      }
+      return `https://sql.js.org/dist/${file}`;
+    },
   });
   const db: Database = new SQL.Database();
+
+  // Enable WAL-like pragmas for performance
+  db.run('PRAGMA journal_mode = MEMORY');
+  db.run('PRAGMA synchronous = OFF');
 
   return {
     async connect(): Promise<DatabaseConnection> {

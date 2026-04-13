@@ -1,4 +1,4 @@
-export { OrbitDataProvider, useOrbitData } from './orbit-data-context';
+export { OrbitDataProvider, useOrbitData, type OrbitDataContextValue } from './orbit-data-context';
 export {
   useTaskList,
   useTask,

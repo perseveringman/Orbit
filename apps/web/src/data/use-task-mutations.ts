@@ -3,10 +3,12 @@ import { useOrbitData } from './orbit-data-context';
 import type { TaskStatus } from '../pages/task/mock-data';
 
 export function useTaskMutations() {
-  const { db, repos, invalidate } = useOrbitData();
+  const { db, repos, invalidate, ready } = useOrbitData();
 
   const createTask = useCallback(
     async (input: { title: string; body?: string; projectId?: string; dueDate?: string }) => {
+      if (!ready || !db || !repos) return null;
+
       const result = await repos.objects.write('task', {
         title: input.title,
         description: input.body,
@@ -35,11 +37,13 @@ export function useTaskMutations() {
       invalidate();
       return result;
     },
-    [repos, invalidate],
+    [db, repos, invalidate, ready],
   );
 
   const updateTaskStatus = useCallback(
     async (taskId: string, newStatus: TaskStatus) => {
+      if (!ready || !db || !repos) return;
+
       const now = new Date().toISOString();
       db.run('UPDATE tasks SET status = ?, updated_at = ? WHERE id = ?', [newStatus, now, taskId]);
       db.run('UPDATE object_index SET status = ?, updated_at = ? WHERE object_id = ? AND object_type = ?', [
@@ -62,15 +66,16 @@ export function useTaskMutations() {
 
       invalidate();
     },
-    [db, repos, invalidate],
+    [db, repos, invalidate, ready],
   );
 
   const deleteTask = useCallback(
     async (taskId: string) => {
+      if (!ready || !repos) return;
       await repos.objects.delete(`task:${taskId}` as never);
       invalidate();
     },
-    [repos, invalidate],
+    [repos, invalidate, ready],
   );
 
   return { createTask, updateTaskStatus, deleteTask };

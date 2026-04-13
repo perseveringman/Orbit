@@ -1,72 +1,82 @@
-import { createContext, useContext, useState, useEffect, type ReactNode, type ReactElement } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback, type ReactNode, type ReactElement } from 'react';
 import type { DatabasePort } from '@orbit/platform-contracts';
 import { initializeDatabase, createRepositories, type OrbitRepositories } from '@orbit/db-runtime';
 import { createBrowserDatabasePort } from './browser-database-port';
 import { seedDatabase } from './seed-data';
 
-interface OrbitDataContextValue {
-  db: DatabasePort;
-  repos: OrbitRepositories;
+export interface OrbitDataContextValue {
+  db: DatabasePort | null;
+  repos: OrbitRepositories | null;
   /** Increment to trigger re-queries across all hooks */
   version: number;
   /** Call after any mutation to trigger re-renders */
   invalidate: () => void;
+  /** Whether the database has finished initializing */
+  ready: boolean;
+  /** Initialization error, if any */
+  error: Error | null;
 }
 
-const OrbitDataContext = createContext<OrbitDataContextValue | null>(null);
+const OrbitDataContext = createContext<OrbitDataContextValue>({
+  db: null,
+  repos: null,
+  version: 0,
+  invalidate: () => {},
+  ready: false,
+  error: null,
+});
 
 export function OrbitDataProvider({ children }: { children: ReactNode }): ReactElement {
-  const [state, setState] = useState<OrbitDataContextValue | null>(null);
+  const [db, setDb] = useState<DatabasePort | null>(null);
+  const [repos, setRepos] = useState<OrbitRepositories | null>(null);
+  const [version, setVersion] = useState(0);
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const initRef = useRef(false);
+
+  const invalidate = useCallback(() => setVersion((v) => v + 1), []);
 
   useEffect(() => {
-    let cancelled = false;
+    // Guard against StrictMode double-init
+    if (initRef.current) return;
+    initRef.current = true;
+
     (async () => {
       try {
-        const db = await createBrowserDatabasePort();
-        initializeDatabase(db);
-        const repos = createRepositories(db);
-        seedDatabase(db);
-        if (!cancelled) {
-          setState({
-            db,
-            repos,
-            version: 0,
-            invalidate: () => {
-              setState((prev) => (prev ? { ...prev, version: prev.version + 1 } : prev));
-            },
-          });
-        }
+        console.log('[OrbitData] Initializing sql.js WASM…');
+        const database = await createBrowserDatabasePort();
+        console.log('[OrbitData] WASM loaded, bootstrapping schema…');
+        initializeDatabase(database);
+        console.log('[OrbitData] Schema ready, seeding data…');
+        seedDatabase(database);
+        const repositories = createRepositories(database);
+        console.log('[OrbitData] Database ready ✓');
+        setDb(database);
+        setRepos(repositories);
+        setReady(true);
       } catch (err) {
-        if (!cancelled) setError(err as Error);
+        console.error('[OrbitData] Initialization failed:', err);
+        setError(err as Error);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full text-danger">
-        <p>数据库初始化失败: {error.message}</p>
-      </div>
-    );
-  }
+  const value: OrbitDataContextValue = {
+    db,
+    repos,
+    version,
+    invalidate,
+    ready,
+    error,
+  };
 
-  if (!state) {
-    return (
-      <div className="flex items-center justify-center h-full text-muted">
-        <p>正在初始化数据库…</p>
-      </div>
-    );
-  }
-
-  return <OrbitDataContext.Provider value={state}>{children}</OrbitDataContext.Provider>;
+  return <OrbitDataContext.Provider value={value}>{children}</OrbitDataContext.Provider>;
 }
 
+/**
+ * Access the Orbit data context. Always safe to call — returns { ready: false }
+ * while the database is initializing. Consumers should check `ready` before querying.
+ */
 export function useOrbitData(): OrbitDataContextValue {
-  const ctx = useContext(OrbitDataContext);
-  if (!ctx) throw new Error('useOrbitData must be used within OrbitDataProvider');
-  return ctx;
+  return useContext(OrbitDataContext);
 }

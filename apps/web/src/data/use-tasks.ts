@@ -12,34 +12,14 @@ import type {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function resolveProjectId(db: DatabasePort, taskId: string): string | null {
-  const links = db.query<{ target_uid: string }>(
-    `SELECT target_uid FROM links
-     WHERE source_uid = ? AND relation_type = 'belongs_to' AND deleted_flg = 0
-       AND target_uid LIKE 'project:%'`,
-    [`task:${taskId}`],
-  );
-  return links.length > 0 ? links[0].target_uid.replace('project:', '') : null;
-}
-
-function resolveMilestoneId(db: DatabasePort, taskId: string): string | null {
-  const links = db.query<{ target_uid: string }>(
-    `SELECT target_uid FROM links
-     WHERE source_uid = ? AND relation_type = 'belongs_to' AND deleted_flg = 0
-       AND target_uid LIKE 'milestone:%'`,
-    [`task:${taskId}`],
-  );
-  return links.length > 0 ? links[0].target_uid.replace('milestone:', '') : null;
-}
-
 function rowToTask(db: DatabasePort, row: Record<string, unknown>): Task {
   return {
     id: row.id as string,
     title: row.title as string,
     body: (row.description as string) || undefined,
     status: ((row.status as string) || 'captured') as TaskStatus,
-    projectId: row.project_id != null ? (row.project_id as string) : resolveProjectId(db, row.id as string),
-    milestoneId: row.milestone_id != null ? (row.milestone_id as string) : resolveMilestoneId(db, row.id as string),
+    projectId: (row.project_id as string) ?? null,
+    milestoneId: (row.milestone_id as string) ?? null,
     dueDate: (row.due_date as string) || null,
     focusRank: (row.focus_rank as number) || null,
     completionDefinition: undefined,
@@ -54,9 +34,10 @@ function rowToTask(db: DatabasePort, row: Record<string, unknown>): Task {
 // ── Task hooks ─────────────────────────────────────────────────────────────
 
 export function useTaskList(): { tasks: Task[]; loading: boolean } {
-  const { db, version } = useOrbitData();
+  const { db, version, ready } = useOrbitData();
 
   return useMemo(() => {
+    if (!ready || !db) return { tasks: [], loading: !ready };
     try {
       const rows = db.query<Record<string, unknown>>(
         `SELECT * FROM tasks WHERE deleted_flg = 0 ORDER BY updated_at DESC`,
@@ -65,14 +46,14 @@ export function useTaskList(): { tasks: Task[]; loading: boolean } {
     } catch {
       return { tasks: [], loading: false };
     }
-  }, [db, version]);
+  }, [db, version, ready]);
 }
 
 export function useTask(id: string | null): Task | null {
-  const { db, version } = useOrbitData();
+  const { db, version, ready } = useOrbitData();
 
   return useMemo(() => {
-    if (!id) return null;
+    if (!ready || !db || !id) return null;
     try {
       const rows = db.query<Record<string, unknown>>(
         'SELECT * FROM tasks WHERE id = ? AND deleted_flg = 0',
@@ -82,13 +63,14 @@ export function useTask(id: string | null): Task | null {
     } catch {
       return null;
     }
-  }, [db, id, version]);
+  }, [db, id, version, ready]);
 }
 
 export function useTasksForProject(projectId: string): Task[] {
-  const { db, version } = useOrbitData();
+  const { db, version, ready } = useOrbitData();
 
   return useMemo(() => {
+    if (!ready || !db) return [];
     try {
       const rows = db.query<Record<string, unknown>>(
         `SELECT * FROM tasks WHERE project_id = ? AND deleted_flg = 0 ORDER BY updated_at DESC`,
@@ -98,22 +80,22 @@ export function useTasksForProject(projectId: string): Task[] {
     } catch {
       return [];
     }
-  }, [db, projectId, version]);
+  }, [db, projectId, version, ready]);
 }
 
 // ── Project hooks ──────────────────────────────────────────────────────────
 
 export function useProjectList(): { projects: Project[]; loading: boolean } {
-  const { db, version } = useOrbitData();
+  const { db, version, ready } = useOrbitData();
 
   return useMemo(() => {
+    if (!ready || !db) return { projects: [], loading: !ready };
     try {
       const rows = db.query<Record<string, unknown>>(
         'SELECT * FROM projects WHERE deleted_flg = 0 ORDER BY created_at DESC',
       );
 
       const projects: Project[] = rows.map((row) => {
-        // Resolve milestone IDs for this project
         const msRows = db.query<{ id: string }>(
           `SELECT id FROM milestones WHERE project_id = ? AND deleted_flg = 0`,
           [row.id],
@@ -135,14 +117,14 @@ export function useProjectList(): { projects: Project[]; loading: boolean } {
     } catch {
       return { projects: [], loading: false };
     }
-  }, [db, version]);
+  }, [db, version, ready]);
 }
 
 export function useProject(id: string | null): Project | null {
-  const { db, version } = useOrbitData();
+  const { db, version, ready } = useOrbitData();
 
   return useMemo(() => {
-    if (!id) return null;
+    if (!ready || !db || !id) return null;
     try {
       const rows = db.query<Record<string, unknown>>(
         'SELECT * FROM projects WHERE id = ? AND deleted_flg = 0',
@@ -169,15 +151,16 @@ export function useProject(id: string | null): Project | null {
     } catch {
       return null;
     }
-  }, [db, id, version]);
+  }, [db, id, version, ready]);
 }
 
 // ── Milestone hooks ────────────────────────────────────────────────────────
 
 export function useMilestoneList(): { milestones: Milestone[]; loading: boolean } {
-  const { db, version } = useOrbitData();
+  const { db, version, ready } = useOrbitData();
 
   return useMemo(() => {
+    if (!ready || !db) return { milestones: [], loading: !ready };
     try {
       const rows = db.query<Record<string, unknown>>(
         'SELECT * FROM milestones WHERE deleted_flg = 0 ORDER BY created_at DESC',
@@ -204,15 +187,16 @@ export function useMilestoneList(): { milestones: Milestone[]; loading: boolean 
     } catch {
       return { milestones: [], loading: false };
     }
-  }, [db, version]);
+  }, [db, version, ready]);
 }
 
 // ── Event hooks ────────────────────────────────────────────────────────────
 
 export function useEventsForTask(taskId: string): TaskEvent[] {
-  const { db, version } = useOrbitData();
+  const { db, version, ready } = useOrbitData();
 
   return useMemo(() => {
+    if (!ready || !db) return [];
     try {
       const rows = db.query<Record<string, unknown>>(
         `SELECT * FROM events WHERE stream_uid = ? ORDER BY occurred_at DESC`,
@@ -240,23 +224,29 @@ export function useEventsForTask(taskId: string): TaskEvent[] {
     } catch {
       return [];
     }
-  }, [db, taskId, version]);
+  }, [db, taskId, version, ready]);
 }
 
 // ── Today plan hook ────────────────────────────────────────────────────────
 
+const EMPTY_PLAN: TodayPlan = {
+  primary: { taskId: '', reasoning: '', urgency: 0, importance: 0, contextFit: 0 },
+  alternatives: [],
+  scheduledBlocks: [],
+  carryForward: [],
+};
+
 export function useTodayPlan(): TodayPlan {
-  const { db, version } = useOrbitData();
+  const { db, version, ready } = useOrbitData();
 
   return useMemo(() => {
+    if (!ready || !db) return EMPTY_PLAN;
     try {
-      // Pick focused tasks ordered by focus_rank
       const focused = db.query<Record<string, unknown>>(
         `SELECT id, title, focus_rank FROM tasks
          WHERE status = 'focused' AND deleted_flg = 0
          ORDER BY focus_rank ASC NULLS LAST`,
       );
-      // Pick ready/scheduled tasks
       const upcoming = db.query<Record<string, unknown>>(
         `SELECT id, title, focus_rank FROM tasks
          WHERE status IN ('ready', 'scheduled') AND deleted_flg = 0
@@ -273,7 +263,7 @@ export function useTodayPlan(): TodayPlan {
             contextFit: 0.85,
           }
         : {
-            taskId: upcoming[0]?.id as string ?? '',
+            taskId: (upcoming[0]?.id as string) ?? '',
             reasoning: '下一个就绪的任务',
             urgency: 0.7,
             importance: 0.7,
@@ -288,7 +278,6 @@ export function useTodayPlan(): TodayPlan {
         contextFit: 0.6,
       }));
 
-      // Build time blocks from focused + scheduled
       const scheduled = db.query<Record<string, unknown>>(
         `SELECT id FROM tasks
          WHERE status IN ('focused', 'scheduled') AND deleted_flg = 0
@@ -303,7 +292,6 @@ export function useTodayPlan(): TodayPlan {
         endTime: `${String((startHours[i] ?? 17) + 1).padStart(2, '0')}:30`,
       }));
 
-      // Carry forward: clarifying or blocked tasks
       const carry = db.query<{ id: string }>(
         `SELECT id FROM tasks
          WHERE status IN ('clarifying', 'blocked') AND deleted_flg = 0
@@ -317,12 +305,7 @@ export function useTodayPlan(): TodayPlan {
         carryForward: carry.map((r) => r.id),
       };
     } catch {
-      return {
-        primary: { taskId: '', reasoning: '', urgency: 0, importance: 0, contextFit: 0 },
-        alternatives: [],
-        scheduledBlocks: [],
-        carryForward: [],
-      };
+      return EMPTY_PLAN;
     }
-  }, [db, version]);
+  }, [db, version, ready]);
 }
