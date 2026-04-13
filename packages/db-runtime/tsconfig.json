@@ -1,0 +1,27 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": false,
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    "baseUrl": ".",
+    "paths": {
+      "@orbit/domain": [
+        "../domain/dist/index.d.ts"
+      ],
+      "@orbit/db-schema": [
+        "../db-schema/dist/index.d.ts"
+      ],
+      "@orbit/data-protocol": [
+        "../data-protocol/dist/index.d.ts"
+      ],
+      "@orbit/platform-contracts": [
+        "../platform-contracts/dist/index.d.ts"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts"
+  ]
+}

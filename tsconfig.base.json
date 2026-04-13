@@ -37,6 +37,9 @@
       "@orbit/data-protocol": [
         "packages/data-protocol/src/index.ts"
       ],
+      "@orbit/db-runtime": [
+        "packages/db-runtime/src/index.ts"
+      ],
       "@orbit/db-schema": [
         "packages/db-schema/src/index.ts"
       ],
@@ -108,6 +111,9 @@
       ],
       "@orbit/ui-tokens": [
         "packages/ui-tokens/src/index.ts"
+      ],
+      "@orbit/reader-resolvers": [
+        "packages/reader-resolvers/src/index.ts"
       ],
       "@orbit/workspace-core": [
         "packages/workspace-core/src/index.ts"

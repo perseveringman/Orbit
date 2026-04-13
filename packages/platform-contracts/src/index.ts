@@ -45,9 +45,26 @@ export interface WorkspacePort {
   openResource(resourceUri: string): Promise<void>;
 }
 
+/** A single row returned from a query */
+export type SqlRow = Record<string, unknown>;
+
+/** Result from a mutating statement */
+export interface SqlRunResult {
+  changes: number;
+  lastInsertRowid: number | bigint;
+}
+
 export interface DatabasePort {
   connect(): Promise<DatabaseConnection>;
   close(): Promise<void>;
+  /** Execute a read query, return rows */
+  query<T extends SqlRow = SqlRow>(sql: string, params?: unknown[]): T[];
+  /** Execute a mutating statement (INSERT/UPDATE/DELETE) */
+  run(sql: string, params?: unknown[]): SqlRunResult;
+  /** Execute multiple statements (for DDL/migrations). Runs them sequentially. */
+  exec(sql: string): void;
+  /** Run a function inside a transaction */
+  transaction<T>(fn: () => T): T;
 }
 
 export interface SyncPort {
@@ -156,7 +173,11 @@ export function createStaticDatabasePort(driver = 'memory'): DatabasePort {
     },
     async close() {
       return undefined;
-    }
+    },
+    query() { return []; },
+    run() { return { changes: 0, lastInsertRowid: 0 }; },
+    exec() {},
+    transaction(fn) { return fn(); },
   };
 }
 
