@@ -3,6 +3,7 @@ import { ChevronRight } from 'lucide-react';
 import { Button } from '@heroui/react';
 
 import { IconRail, ContextSidebar, TopBar } from './components/layout';
+import { InboxPage } from './pages/inbox';
 import { VisionPage } from './pages/vision';
 import { ReaderPage } from './pages/reader';
 import { JournalPage } from './pages/journal';
@@ -16,6 +17,7 @@ import { SkillsPage as AgentSkillsPage } from '../../desktop/src/renderer-entry/
 
 /* Default sub-pages per section */
 const DEFAULT_SUB_PAGE: Record<string, string> = {
+  inbox: 'all',
   project: 'tasks',
   agent: 'hub',
   research: 'reader',
@@ -32,6 +34,11 @@ function Placeholder({ name }: { name: string }): ReactElement {
 }
 
 function renderPage(section: string, subPage: string): ReactElement {
+  // Inbox section
+  if (section === 'inbox') {
+    return <InboxPage subPage={subPage} />;
+  }
+
   // Project section
   if (section === 'project') {
     switch (subPage) {

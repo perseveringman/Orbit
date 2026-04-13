@@ -9,6 +9,7 @@ import {
   Plus,
   MoreHorizontal,
   User,
+  Inbox,
 } from 'lucide-react';
 import { Button, Tooltip } from '@heroui/react';
 
@@ -22,6 +23,7 @@ export interface SectionDef {
 }
 
 const SECTIONS: SectionDef[] = [
+  { id: 'inbox', icon: Inbox, label: '收件箱', color: '#ef4444' },
   { id: 'project', icon: FolderKanban, label: '项目管理', color: '#3b82f6' },
   { id: 'agent', icon: Bot, label: 'Agent 管理', color: '#f97316' },
   { id: 'research', icon: BookOpenText, label: '研究工作台', color: '#22c55e' },

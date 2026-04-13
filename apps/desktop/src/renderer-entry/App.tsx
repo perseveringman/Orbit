@@ -9,6 +9,7 @@ import { AgentDevTools } from './agent-devtools/AgentDevTools';
 import { AgentHub } from './agent-hub/AgentHub';
 
 import { IconRail, ContextSidebar, TopBar } from '../../../web/src/components/layout';
+import { InboxPage } from '../../../web/src/pages/inbox';
 import { VisionPage } from '../../../web/src/pages/vision';
 import { ReaderPage } from '../../../web/src/pages/reader';
 import { JournalPage } from '../../../web/src/pages/journal';
@@ -27,6 +28,7 @@ import { DevToolsPage as AgentDevToolsPage } from './agent-hub/pages/DevToolsPag
 
 /* Default sub-pages per section */
 const DEFAULT_SUB_PAGE: Record<string, string> = {
+  inbox: 'all',
   project: 'tasks',
   agent: 'hub',
   research: 'reader',
@@ -43,6 +45,10 @@ function Placeholder({ name }: { name: string }): ReactElement {
 }
 
 function renderPage(section: string, subPage: string): ReactElement {
+  if (section === 'inbox') {
+    return <InboxPage subPage={subPage} />;
+  }
+
   if (section === 'project') {
     switch (subPage) {
       case 'dashboard': return <Placeholder name="仪表盘" />;

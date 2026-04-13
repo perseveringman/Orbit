@@ -20,6 +20,11 @@ import {
   Cpu,
   Puzzle,
   BookOpen,
+  BookOpen as BookOpenIcon,
+  StickyNote as StickyNoteIcon,
+  CheckCircle2,
+  Bot as BotIcon,
+  Inbox,
   Rss,
   CalendarDays,
   List,
@@ -84,6 +89,50 @@ function ExpandableGroup({
 /* ------------------------------------------------------------------ */
 /*  Section nav definitions                                           */
 /* ------------------------------------------------------------------ */
+
+function InboxNav({
+  activeSubPage,
+  onSubPageChange,
+}: {
+  activeSubPage: string;
+  onSubPageChange: (s: string) => void;
+}): ReactElement {
+  return (
+    <>
+      <SectionHeader label="收件箱" />
+      <NavItem
+        icon={<Inbox size={16} />}
+        label="全部"
+        isActive={activeSubPage === 'all'}
+        onClick={() => onSubPageChange('all')}
+      />
+      <NavItem
+        icon={<BookOpenIcon size={16} />}
+        label="阅读"
+        isActive={activeSubPage === 'reading'}
+        onClick={() => onSubPageChange('reading')}
+      />
+      <NavItem
+        icon={<StickyNoteIcon size={16} />}
+        label="笔记"
+        isActive={activeSubPage === 'notes'}
+        onClick={() => onSubPageChange('notes')}
+      />
+      <NavItem
+        icon={<CheckCircle2 size={16} />}
+        label="待办"
+        isActive={activeSubPage === 'todos'}
+        onClick={() => onSubPageChange('todos')}
+      />
+      <NavItem
+        icon={<BotIcon size={16} />}
+        label="Agent 待审核"
+        isActive={activeSubPage === 'agent-review'}
+        onClick={() => onSubPageChange('agent-review')}
+      />
+    </>
+  );
+}
 
 function ProjectNav({
   activeSubPage,
@@ -322,6 +371,8 @@ export function ContextSidebar({
 
   const renderSectionNav = (): ReactNode => {
     switch (activeSection) {
+      case 'inbox':
+        return <InboxNav activeSubPage={activeSubPage} onSubPageChange={onSubPageChange} />;
       case 'project':
         return <ProjectNav activeSubPage={activeSubPage} onSubPageChange={onSubPageChange} />;
       case 'agent':
