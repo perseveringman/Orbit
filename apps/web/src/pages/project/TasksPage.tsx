@@ -10,13 +10,16 @@ import {
   LayoutGrid,
   GanttChart,
   X,
+  CheckCircle2,
+  ClipboardList as ClipboardListIcon,
+  Clock,
 } from 'lucide-react';
 import {
   MOCK_STATS,
   MOCK_TASKS,
   MOCK_CALENDAR_TASKS,
 } from './mock-data';
-import { TaskStatsCards } from './TaskStatsCards';
+import { TaskStatusOverviewCard, StatCard } from './TaskStatsCards';
 import { TaskCalendar } from './TaskCalendar';
 import { TaskKanban } from './TaskKanban';
 
@@ -63,11 +66,41 @@ export function TasksPage(): ReactElement {
         </div>
       </div>
 
-      {/* ─── Stats Cards ─────────────────────────────────── */}
-      <TaskStatsCards stats={MOCK_STATS} />
+      {/* ─── Stats + Calendar (2-column layout) ────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        {/* Left: Task Status Overview (spans 1 col, 2 rows) */}
+        <div className="lg:row-span-2">
+          <TaskStatusOverviewCard stats={MOCK_STATS} />
+        </div>
 
-      {/* ─── Calendar ────────────────────────────────────── */}
-      <TaskCalendar tasks={MOCK_CALENDAR_TASKS} />
+        {/* Right top: 3 stat cards */}
+        <StatCard
+          title="已完成任务"
+          value={MOCK_STATS.completed}
+          change={10}
+          icon={<CheckCircle2 size={20} className="text-green-500" />}
+          iconClassName="bg-green-50"
+        />
+        <StatCard
+          title="待处理任务"
+          value={MOCK_STATS.pending}
+          change={14}
+          icon={<ClipboardListIcon size={20} className="text-orange-500" />}
+          iconClassName="bg-orange-50"
+        />
+        <StatCard
+          title="即将到期"
+          value={MOCK_STATS.upcomingDeadlines}
+          change={-5}
+          icon={<Clock size={20} className="text-red-500" />}
+          iconClassName="bg-red-50"
+        />
+
+        {/* Right bottom: Calendar (spans 3 cols) */}
+        <div className="lg:col-span-3">
+          <TaskCalendar tasks={MOCK_CALENDAR_TASKS} />
+        </div>
+      </div>
 
       {/* ─── All Tasks Section ───────────────────────────── */}
       <section>

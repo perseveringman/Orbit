@@ -18,7 +18,7 @@ function pct(count: number, total: number): number {
 
 // ─── Task Status Overview Card ───────────────────────────────────────
 
-function TaskStatusOverviewCard({ stats }: { stats: TaskStats }): ReactElement {
+export function TaskStatusOverviewCard({ stats }: { stats: TaskStats }): ReactElement {
   const { todo, inProgress, inReview, completed } = stats.statusBreakdown;
   const total = todo + inProgress + inReview + completed;
 
@@ -30,7 +30,7 @@ function TaskStatusOverviewCard({ stats }: { stats: TaskStats }): ReactElement {
   ];
 
   return (
-    <Card className="p-5">
+    <Card className="p-5 h-full">
       <div className="flex items-center justify-between mb-4">
         <span className="text-sm font-semibold text-foreground">任务状态概览</span>
         <button className="text-muted hover:text-foreground" aria-label="更多">
@@ -100,7 +100,7 @@ interface StatCardProps {
   iconClassName?: string;
 }
 
-function StatCard({
+export function StatCard({
   title,
   value,
   change,
@@ -142,7 +142,7 @@ function StatCard({
 
 export function TaskStatsCards({ stats }: { stats: TaskStats }): ReactElement {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <TaskStatusOverviewCard stats={stats} />
 
       <StatCard

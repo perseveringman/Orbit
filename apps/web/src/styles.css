@@ -3,9 +3,10 @@
 @import "tailwindcss";
 @import "@heroui/styles";
 
-/* Scan our source files for Tailwind utility classes */
+/* Scan our source files AND shared desktop agent-hub pages for Tailwind utility classes */
 @source "./**/*.{ts,tsx}";
 @source "../index.html";
+@source "../../../desktop/src/renderer-entry/agent-hub/**/*.{ts,tsx}";
 
 /* Dark mode variant for HeroUI */
 @custom-variant dark (&:is(.dark *));

@@ -12,7 +12,7 @@ export interface TaskKanbanProps {
 
 export function TaskKanban({ tasks, onAddTask }: TaskKanbanProps): ReactElement {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {COLUMNS.map((status) => {
         const columnTasks = tasks.filter((t) => t.status === status);
         const config = STATUS_CONFIG[status];

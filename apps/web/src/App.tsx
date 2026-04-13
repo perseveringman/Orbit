@@ -9,6 +9,11 @@ import { JournalPage } from './pages/journal';
 import { TasksPage, ProjectsPage } from './pages/project';
 import { TodayPage, FocusPage, ReviewPage } from './pages/task';
 
+import { OverviewPage as AgentOverviewPage } from '../../desktop/src/renderer-entry/agent-hub/pages/OverviewPage';
+import { ChatPage as AgentChatPage } from '../../desktop/src/renderer-entry/agent-hub/pages/ChatPage';
+import { ModelsPage as AgentModelsPage } from '../../desktop/src/renderer-entry/agent-hub/pages/ModelsPage';
+import { SkillsPage as AgentSkillsPage } from '../../desktop/src/renderer-entry/agent-hub/pages/SkillsPage';
+
 /* Default sub-pages per section */
 const DEFAULT_SUB_PAGE: Record<string, string> = {
   project: 'tasks',
@@ -47,7 +52,13 @@ function renderPage(section: string, subPage: string): ReactElement {
 
   // Agent section
   if (section === 'agent') {
-    return <Placeholder name={`Agent · ${subPage}`} />;
+    switch (subPage) {
+      case 'hub': return <AgentOverviewPage />;
+      case 'conversations': return <AgentChatPage />;
+      case 'models': return <AgentModelsPage />;
+      case 'skills': return <AgentSkillsPage />;
+      default: return <AgentOverviewPage />;
+    }
   }
 
   // Research section
