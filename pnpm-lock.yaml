@@ -50,6 +50,9 @@ importers:
       '@orbit/platform-electron':
         specifier: workspace:*
         version: link:../../packages/platform-electron
+      '@orbit/reader-resolvers':
+        specifier: workspace:*
+        version: link:../../packages/reader-resolvers
       '@orbit/ui-dom':
         specifier: workspace:*
         version: link:../../packages/ui-dom
@@ -191,6 +194,9 @@ importers:
       '@orbit/platform-web':
         specifier: workspace:*
         version: link:../../packages/platform-web
+      '@orbit/reader-resolvers':
+        specifier: workspace:*
+        version: link:../../packages/reader-resolvers
       '@orbit/ui-dom':
         specifier: workspace:*
         version: link:../../packages/ui-dom
@@ -286,6 +292,8 @@ importers:
         version: 3.2.4(@types/node@22.19.17)(lightningcss@1.32.0)(terser@5.46.1)
 
   packages/data-protocol: {}
+
+  packages/db-runtime: {}
 
   packages/db-schema: {}
 

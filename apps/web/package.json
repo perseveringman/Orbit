@@ -17,6 +17,7 @@
     "@heroui/styles": "^3.0.2",
     "@orbit/feature-workbench": "workspace:*",
     "@orbit/platform-web": "workspace:*",
+    "@orbit/reader-resolvers": "workspace:*",
     "@orbit/ui-dom": "workspace:*",
     "lucide-react": "^1.8.0",
     "react": "^19.2.5",

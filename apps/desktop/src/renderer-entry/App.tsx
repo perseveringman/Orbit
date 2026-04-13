@@ -12,6 +12,7 @@ import { IconRail, ContextSidebar, TopBar } from '../../../web/src/components/la
 import { InboxPage } from '../../../web/src/pages/inbox';
 import { VisionPage } from '../../../web/src/pages/vision';
 import { ReaderPage } from '../../../web/src/pages/reader';
+import { ResolverTestPage } from '../../../web/src/pages/reader/ResolverTestPage';
 import { JournalPage } from '../../../web/src/pages/journal';
 import { TodayPage, FocusPage, ReviewPage } from '../../../web/src/pages/task';
 import { TasksPage, ProjectsPage } from '../../../web/src/pages/project';
@@ -25,6 +26,8 @@ import { McpPage as AgentMcpPage } from './agent-hub/pages/McpPage';
 import { UsagePage as AgentUsagePage } from './agent-hub/pages/UsagePage';
 import { TracesPage as AgentTracesPage } from './agent-hub/pages/TracesPage';
 import { DevToolsPage as AgentDevToolsPage } from './agent-hub/pages/DevToolsPage';
+import { RolesPage as AgentRolesPage } from './agent-hub/pages/RolesPage';
+import { TeamsPage as AgentTeamsPage } from './agent-hub/pages/TeamsPage';
 
 /* Default sub-pages per section */
 const DEFAULT_SUB_PAGE: Record<string, string> = {
@@ -73,6 +76,8 @@ function renderPage(section: string, subPage: string): ReactElement {
       case 'models': return <AgentModelsPage />;
       case 'skills': return <AgentSkillsPage />;
       case 'tools': return <AgentToolsPage />;
+      case 'roles': return <AgentRolesPage />;
+      case 'teams': return <AgentTeamsPage />;
       case 'mcp': return <AgentMcpPage />;
       case 'usage': return <AgentUsagePage />;
       case 'traces': return <AgentTracesPage />;
@@ -84,7 +89,7 @@ function renderPage(section: string, subPage: string): ReactElement {
   if (section === 'research') {
     switch (subPage) {
       case 'reader': return <ReaderPage />;
-      case 'subscriptions': return <Placeholder name="订阅管理" />;
+      case 'subscriptions': return <ResolverTestPage />;
       default: return <ReaderPage />;
     }
   }

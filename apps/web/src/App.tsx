@@ -7,6 +7,7 @@ import { GlobalAgentWidget } from './components/global';
 import { InboxPage } from './pages/inbox';
 import { VisionPage } from './pages/vision';
 import { ReaderPage } from './pages/reader';
+import { ResolverTestPage } from './pages/reader/ResolverTestPage';
 import { JournalPage } from './pages/journal';
 import { TasksPage, ProjectsPage } from './pages/project';
 import { TodayPage, FocusPage, ReviewPage } from './pages/task';
@@ -79,7 +80,7 @@ function renderPage(section: string, subPage: string): ReactElement {
   if (section === 'research') {
     switch (subPage) {
       case 'reader': return <ReaderPage />;
-      case 'subscriptions': return <Placeholder name="订阅管理" />;
+      case 'subscriptions': return <ResolverTestPage />;
       default: return <ReaderPage />;
     }
   }
