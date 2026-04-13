@@ -8,17 +8,17 @@
 // ---------------------------------------------------------------------------
 
 export interface TextChunkerOptions {
-  /** Deltas shorter than this are emitted as-is. Default: 10. */
+  /** Deltas shorter than this are emitted as-is. Default: 6. */
   readonly thresholdLength?: number;
-  /** Characters per chunk when splitting. Default: 5. */
+  /** Characters per chunk when splitting. Default: 2. */
   readonly chunkSize?: number;
-  /** Delay between chunks (ms). Default: 8. */
+  /** Delay between chunks (ms). Default: 20. */
   readonly chunkDelayMs?: number;
 }
 
-const DEFAULT_THRESHOLD = 10;
-const DEFAULT_CHUNK_SIZE = 5;
-const DEFAULT_CHUNK_DELAY = 8;
+const DEFAULT_THRESHOLD = 6;
+const DEFAULT_CHUNK_SIZE = 2;
+const DEFAULT_CHUNK_DELAY = 20;
 
 export interface TextChunk {
   readonly text: string;

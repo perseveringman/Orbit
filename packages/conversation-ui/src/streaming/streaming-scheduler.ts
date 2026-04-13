@@ -18,7 +18,7 @@ export interface StreamingSchedulerOptions {
   readonly sentenceSplitter?: SentenceSplitterOptions;
   /** Text chunker tuning. */
   readonly textChunker?: TextChunkerOptions;
-  /** Base emit delay (ms). Default: 6. */
+  /** Base emit delay (ms). Default: 18. */
   readonly emitDelayMs?: number;
 }
 
@@ -65,7 +65,7 @@ export class StreamingScheduler {
     this.splitter = this.enableSentenceSplit
       ? new SentenceSplitter(options?.sentenceSplitter)
       : null;
-    this.emitChain = new EmitChain<string>(callback, options?.emitDelayMs ?? 6);
+    this.emitChain = new EmitChain<string>(callback, options?.emitDelayMs ?? 18);
     this.textChunkerOpts = options?.textChunker;
   }
 

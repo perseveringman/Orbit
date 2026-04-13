@@ -12,7 +12,13 @@ const MAX_RECORDS = 10_000;
 type UsageListener = () => void;
 const usageListeners = new Set<UsageListener>();
 
+// Cached snapshots for useSyncExternalStore (must be referentially stable)
+let recordsSnapshot: TokenUsageRecord[] | null = null;
+let summarySnapshot: UsageSummary | null = null;
+
 function notifyUsageListeners(): void {
+  recordsSnapshot = null;
+  summarySnapshot = null;
   for (const fn of usageListeners) {
     try { fn(); } catch { /* listener errors should not break the store */ }
   }
@@ -103,6 +109,8 @@ export class TokenUsageStore {
       sessionId: params.sessionId,
     };
 
+    recordsSnapshot = null;
+    summarySnapshot = null;
     const records = TokenUsageStore.loadRecords();
     records.push(record);
 
@@ -127,23 +135,25 @@ export class TokenUsageStore {
    * Load all stored records.
    */
   static loadRecords(): TokenUsageRecord[] {
+    if (recordsSnapshot) return recordsSnapshot;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return [];
-      return JSON.parse(raw) as TokenUsageRecord[];
+      recordsSnapshot = raw ? (JSON.parse(raw) as TokenUsageRecord[]) : [];
     } catch {
-      return [];
+      recordsSnapshot = [];
     }
+    return recordsSnapshot;
   }
 
   /**
    * Get summary statistics.
    */
   static getSummary(): UsageSummary {
+    if (summarySnapshot) return summarySnapshot;
     const records = TokenUsageStore.loadRecords();
     const sessions = new Set(records.map((r) => r.sessionId).filter(Boolean));
 
-    return {
+    summarySnapshot = {
       totalTokens: records.reduce((s, r) => s + r.totalTokens, 0),
       totalPromptTokens: records.reduce((s, r) => s + r.promptTokens, 0),
       totalCompletionTokens: records.reduce((s, r) => s + r.completionTokens, 0),
@@ -151,6 +161,7 @@ export class TokenUsageStore {
       sessionCount: sessions.size || (records.length > 0 ? 1 : 0),
       recordCount: records.length,
     };
+    return summarySnapshot;
   }
 
   /**

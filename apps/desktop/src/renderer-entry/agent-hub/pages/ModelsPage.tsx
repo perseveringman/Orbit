@@ -94,7 +94,11 @@ function ProviderCard({ entry, config, onUpdate, onTest, onChatTest }: {
             size="sm"
             isSelected={config.enabled}
             onChange={(v) => onUpdate({ enabled: v })}
-          />
+          >
+            <Switch.Control>
+              <Switch.Thumb />
+            </Switch.Control>
+          </Switch>
         </div>
         <span className="text-muted">{expanded ? '▲' : '▼'}</span>
       </div>
@@ -197,29 +201,18 @@ export function ModelsPage(): ReactElement {
 
   const handleUpdate = useCallback((providerId: string, updates: Partial<LLMProviderUserConfig>) => {
     setConfigs((prev) => {
-      const next = prev.map((c) => {
-        if (c.providerId === providerId) {
-          return { ...c, ...updates };
-        }
-        // If enabling this one, disable others
-        if (updates.enabled && c.providerId !== providerId) {
-          return { ...c, enabled: false };
-        }
-        return c;
-      });
-
-      // Only save configs that actually changed (avoid redundant writes)
-      const changed = next.filter((c, i) => {
-        const old = prev[i];
-        return !old || c.providerId !== old.providerId
-          || c.apiKey !== old.apiKey || c.baseUrl !== old.baseUrl
-          || c.enabled !== old.enabled || c.defaultModel !== old.defaultModel;
-      });
-      for (const c of changed) {
-        LLMConfigStore.set(c);
-      }
-
-      return next;
+      const target = prev.find((c) => c.providerId === providerId);
+      if (!target) return prev;
+      const updated = { ...target, ...updates };
+      // LLMConfigStore.set handles mutual-exclusion (disabling others when enabling)
+      LLMConfigStore.set(updated);
+      // Re-read from store to get the authoritative state (including mutual-exclusion changes)
+      return LLMConfigStore.getAll().length > 0
+        ? PROVIDER_CATALOG.map((entry) => {
+            const saved = LLMConfigStore.get(entry.id);
+            return saved ?? { providerId: entry.id, apiKey: '', baseUrl: '', enabled: false, defaultModel: '' };
+          })
+        : prev;
     });
   }, []);
 

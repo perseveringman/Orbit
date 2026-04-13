@@ -62,10 +62,14 @@ type Listener = () => void;
 const configListeners = new Set<Listener>();
 
 function notifyConfigListeners(): void {
+  configSnapshot = null; // invalidate cached snapshot
   for (const fn of configListeners) {
     try { fn(); } catch { /* listener errors should not break the store */ }
   }
 }
+
+// Cached snapshot for useSyncExternalStore (must be referentially stable)
+let configSnapshot: LLMProviderUserConfig[] | null = null;
 
 // ---- LLM Config Store ----
 
@@ -82,13 +86,14 @@ export class LLMConfigStore {
 
   /** Load all saved configs from localStorage. */
   static getAll(): LLMProviderUserConfig[] {
+    if (configSnapshot) return configSnapshot;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return [];
-      return JSON.parse(raw) as LLMProviderUserConfig[];
+      configSnapshot = raw ? (JSON.parse(raw) as LLMProviderUserConfig[]) : [];
     } catch {
-      return [];
+      configSnapshot = [];
     }
+    return configSnapshot;
   }
 
   /** Get config for a specific provider. */

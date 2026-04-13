@@ -53,7 +53,11 @@ function ServerCard({ server, onUpdate, onDelete, onTest }: {
             size="sm"
             isSelected={server.enabled}
             onChange={(v) => onUpdate({ enabled: v })}
-          />
+          >
+            <Switch.Control>
+              <Switch.Thumb />
+            </Switch.Control>
+          </Switch>
         </div>
         <span className="text-muted">{expanded ? '▲' : '▼'}</span>
       </div>

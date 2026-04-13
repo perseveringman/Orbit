@@ -12,14 +12,14 @@
 // ---------------------------------------------------------------------------
 
 export interface SentenceSplitterOptions {
-  /** Minimum characters before attempting to split. Default: 20. */
+  /** Minimum characters before attempting to split. Default: 8. */
   readonly minBufferLength?: number;
-  /** Minimum characters per output sentence. Default: 20. */
+  /** Minimum characters per output sentence. Default: 8. */
   readonly minSentenceLength?: number;
 }
 
-const DEFAULT_MIN_BUFFER = 20;
-const DEFAULT_MIN_SENTENCE = 20;
+const DEFAULT_MIN_BUFFER = 8;
+const DEFAULT_MIN_SENTENCE = 8;
 
 // Punctuation that signals a sentence boundary.
 const SENTENCE_BOUNDARY = /([。！!?？\n.;；])/;

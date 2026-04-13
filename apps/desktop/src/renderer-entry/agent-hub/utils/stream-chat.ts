@@ -218,7 +218,7 @@ export function startStreamingChat(
 export function startMockStream(
   text: string,
   callbacks: StreamCallbacks,
-  charDelayMs = 25,
+  charDelayMs = 35,
 ): () => void {
   let cancelled = false;
   let idx = 0;
@@ -233,11 +233,14 @@ export function startMockStream(
     const char = text[idx++];
     emitted += char;
     callbacks.onDelta(char);
-    setTimeout(emitNext, charDelayMs);
+    // Vary delay slightly for natural feel: pause longer on punctuation
+    const isPunctuation = /[。！!?？,.，、;；\n]/.test(char);
+    const delay = isPunctuation ? charDelayMs * 3 : charDelayMs;
+    setTimeout(emitNext, delay);
   }
 
-  // Small initial delay to feel natural
-  setTimeout(emitNext, 150);
+  // Initial "thinking" delay before first character
+  setTimeout(emitNext, 600);
 
   return () => {
     cancelled = true;

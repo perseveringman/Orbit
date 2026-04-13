@@ -214,7 +214,11 @@ export function ChatPage(): ReactElement {
         <h1 className="text-lg font-bold">对话</h1>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted">Mock</span>
-          <Switch size="sm" isSelected={mode === 'real'} onChange={handleModeChange} />
+          <Switch size="sm" isSelected={mode === 'real'} onChange={handleModeChange}>
+            <Switch.Control>
+              <Switch.Thumb />
+            </Switch.Control>
+          </Switch>
           <span className="text-xs text-muted">Real LLM</span>
         </div>
         {providerEntry && mode === 'real' && (
