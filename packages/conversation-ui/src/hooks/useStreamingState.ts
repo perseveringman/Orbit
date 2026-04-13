@@ -1,7 +1,8 @@
-import { useCallback, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import type { OrbitAgentEvent } from '@orbit/agent-core';
 import type { RenderableToolCall, UIStreamingState } from '../types.js';
 import { INITIAL_STREAMING_STATE } from '../types.js';
+import { StreamingScheduler, type StreamingSchedulerOptions } from '../streaming/streaming-scheduler.js';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -10,6 +11,15 @@ import { INITIAL_STREAMING_STATE } from '../types.js';
 export interface UseStreamingStateOptions {
   /** Parse SSE events from raw text chunks. */
   readonly parseSSE?: boolean;
+  /**
+   * Enable the streaming scheduler for typewriter effect.
+   * When enabled, text deltas are buffered by sentence, chunked, and emitted
+   * with micro-delays for a smooth visual experience.
+   * @default true
+   */
+  readonly enableScheduler?: boolean;
+  /** Fine-tune scheduler behaviour. */
+  readonly schedulerOptions?: StreamingSchedulerOptions;
 }
 
 export interface UseStreamingStateReturn {
@@ -111,14 +121,33 @@ function streamReducer(state: UIStreamingState, action: StreamAction): UIStreami
 // ---------------------------------------------------------------------------
 
 export function useStreamingState(
-  _options: UseStreamingStateOptions = {},
+  options: UseStreamingStateOptions = {},
 ): UseStreamingStateReturn {
+  const { enableScheduler = true, schedulerOptions } = options;
+
   const [state, dispatch] = useReducer(streamReducer, INITIAL_STREAMING_STATE);
 
   // SSE line buffer – chunks may split across SSE boundaries.
   const bufferRef = useRef('');
   // Track whether we've seen the first event (to set isStreaming once).
   const startedRef = useRef(false);
+  // Streaming scheduler instance (created lazily per stream).
+  const schedulerRef = useRef<StreamingScheduler | null>(null);
+
+  // Stable dispatch wrapper for the scheduler callback – dispatches
+  // scheduled text chunks into the React reducer.
+  const scheduledDispatch = useCallback((text: string) => {
+    dispatch({ type: 'STREAM_DELTA', delta: text, timestamp: Date.now() });
+  }, []);
+
+  /** Lazily create (or return existing) scheduler for the current stream. */
+  const getScheduler = useCallback((): StreamingScheduler | null => {
+    if (!enableScheduler) return null;
+    if (!schedulerRef.current) {
+      schedulerRef.current = new StreamingScheduler(scheduledDispatch, schedulerOptions);
+    }
+    return schedulerRef.current;
+  }, [enableScheduler, scheduledDispatch, schedulerOptions]);
 
   const ensureStarted = useCallback(
     (timestamp: number) => {
@@ -136,9 +165,17 @@ export function useStreamingState(
       ensureStarted(event.timestamp);
 
       switch (event.type) {
-        case 'agent:stream-delta':
-          dispatch({ type: 'STREAM_DELTA', delta: event.delta, timestamp: event.timestamp });
+        case 'agent:stream-delta': {
+          const scheduler = getScheduler();
+          if (scheduler) {
+            // Route through the scheduler pipeline for smooth typewriter effect
+            scheduler.push(event.delta);
+          } else {
+            // Bypass scheduler – direct dispatch (original behaviour)
+            dispatch({ type: 'STREAM_DELTA', delta: event.delta, timestamp: event.timestamp });
+          }
           break;
+        }
 
         case 'agent:thinking-delta':
           dispatch({ type: 'THINKING_DELTA', delta: event.delta, timestamp: event.timestamp });
@@ -168,20 +205,38 @@ export function useStreamingState(
           });
           break;
 
-        case 'agent:completed':
-          dispatch({ type: 'COMPLETED', timestamp: event.timestamp });
+        case 'agent:completed': {
+          // Flush remaining buffered text before signalling completion
+          const scheduler = getScheduler();
+          if (scheduler) {
+            void scheduler.flush().then(() => {
+              dispatch({ type: 'COMPLETED', timestamp: event.timestamp });
+            });
+          } else {
+            dispatch({ type: 'COMPLETED', timestamp: event.timestamp });
+          }
           break;
+        }
 
-        case 'agent:error':
-          dispatch({ type: 'ERROR', timestamp: event.timestamp });
+        case 'agent:error': {
+          // Flush on error too, so partially-buffered text isn't lost
+          const scheduler = getScheduler();
+          if (scheduler) {
+            void scheduler.flush().then(() => {
+              dispatch({ type: 'ERROR', timestamp: event.timestamp });
+            });
+          } else {
+            dispatch({ type: 'ERROR', timestamp: event.timestamp });
+          }
           break;
+        }
 
         default:
           // Ignore unhandled event types (capability, safety, orchestrator, etc.)
           break;
       }
     },
-    [ensureStarted],
+    [ensureStarted, getScheduler],
   );
 
   // --- Feed a raw SSE text chunk ---
@@ -221,7 +276,20 @@ export function useStreamingState(
   const reset = useCallback(() => {
     bufferRef.current = '';
     startedRef.current = false;
+    // Dispose the old scheduler so a fresh one is created for the next stream
+    if (schedulerRef.current) {
+      schedulerRef.current.dispose();
+      schedulerRef.current = null;
+    }
     dispatch({ type: 'RESET' });
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      schedulerRef.current?.dispose();
+      schedulerRef.current = null;
+    };
   }, []);
 
   return { state, feedChunk, feedEvent, reset };

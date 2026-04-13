@@ -8,3 +8,7 @@ export { useConversationSearch } from './useConversationSearch.js';
 export type { SearchState, UseConversationSearchReturn } from './useConversationSearch.js';
 export { useApprovalBridge } from './useApprovalBridge.js';
 export type { ApprovalManagerLike, ApprovalRequestInfo, ApprovalResponseInfo, UseApprovalBridgeReturn } from './useApprovalBridge.js';
+export { useSmoothScroll } from './useSmoothScroll.js';
+export type { UseSmoothScrollOptions, UseSmoothScrollReturn } from './useSmoothScroll.js';
+export { useContainerResize } from './useContainerResize.js';
+export type { UseContainerResizeOptions, UseContainerResizeReturn } from './useContainerResize.js';

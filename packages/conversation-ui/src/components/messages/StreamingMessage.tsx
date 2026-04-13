@@ -1,22 +1,35 @@
 // ---------------------------------------------------------------------------
 // StreamingMessage – Renders in-progress assistant content with blinking cursor
 // ---------------------------------------------------------------------------
+// Enhanced with:
+//  - Markdown rendering (shared with AssistantTextMessage)
+//  - Thinking block display (collapsible)
+//  - Smooth CSS cursor animation
+// ---------------------------------------------------------------------------
 
-import React from 'react';
+import React, { useMemo } from 'react';
 
 import type { RenderableMessage } from '../../types.js';
+import { renderMarkdown } from './markdown.js';
 
 export interface StreamingMessageProps {
   readonly message: RenderableMessage;
 }
 
 /**
- * Displays streaming assistant text with a blinking block cursor appended.
- * Same left-aligned layout as AssistantTextMessage.
+ * Displays streaming assistant text with Markdown rendering and an animated
+ * block cursor. When a thinking block is present, it's shown above the main
+ * content in a muted collapsible area.
  */
 export const StreamingMessage = React.memo(function StreamingMessage({
   message,
 }: StreamingMessageProps) {
+  const thinking = message.metadata?.['thinking'] as string | undefined;
+  const renderedContent = useMemo(() => {
+    if (!message.content) return null;
+    return renderMarkdown(message.content);
+  }, [message.content]);
+
   return (
     <div className="self-start flex items-start gap-3 max-w-[90%]">
       <div
@@ -25,15 +38,27 @@ export const StreamingMessage = React.memo(function StreamingMessage({
       >
         🤖
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex flex-col gap-1.5">
+        {/* Thinking block */}
+        {thinking && (
+          <details className="rounded-xl bg-surface-secondary px-3 py-2 text-xs text-muted ring-1 ring-border/50">
+            <summary className="cursor-pointer select-none font-medium">
+              Thinking…
+            </summary>
+            <p className="mt-1 whitespace-pre-wrap opacity-70">{thinking}</p>
+          </details>
+        )}
+
+        {/* Main content + cursor */}
         <div className="rounded-2xl rounded-tl-sm bg-surface text-foreground px-4 py-2.5 shadow-sm ring-1 ring-border">
-          <span className="whitespace-pre-wrap text-sm">{message.content}</span>
-          <span
-            className="ml-0.5 inline-block animate-pulse text-accent"
-            aria-hidden="true"
-          >
-            ▊
-          </span>
+          <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+            {renderedContent}
+            <span
+              className="ml-0.5 inline-block w-[0.55em] h-[1.1em] align-text-bottom bg-accent streaming-cursor"
+              aria-label="Streaming"
+              role="status"
+            />
+          </div>
         </div>
       </div>
     </div>

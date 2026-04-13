@@ -15,6 +15,23 @@ export type { ClassifiedError, RetryCountdownState } from './errors.js';
 // Normalize pipeline
 export { normalizeMessages, type NormalizeOptions } from './normalize.js';
 
+// Streaming scheduler (sentence-split, text-chunk, emit-chain)
+export {
+  StreamingScheduler,
+  SentenceSplitter,
+  EmitChain,
+  chunkText,
+} from './streaming/index.js';
+export type {
+  StreamingSchedulerOptions,
+  SchedulerEmitCallback,
+  SentenceSplitterOptions,
+  EmitCallback,
+  EmitOptions,
+  TextChunkerOptions,
+  TextChunk,
+} from './streaming/index.js';
+
 // Message components
 export {
   UserTextMessage,
