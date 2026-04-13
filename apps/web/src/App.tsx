@@ -2,6 +2,7 @@ import { useState, useEffect, type ReactElement } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '@heroui/react';
 
+import { OrbitDataProvider } from './data/orbit-data-context';
 import { IconRail, ContextSidebar, TopBar } from './components/layout';
 import { GlobalAgentWidget } from './components/global';
 import { InboxPage } from './pages/inbox';
@@ -129,39 +130,41 @@ export default function App(): ReactElement {
   };
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      <IconRail activeSection={activeSection} onSectionChange={handleSectionChange} />
+    <OrbitDataProvider>
+      <div className="flex h-screen bg-background text-foreground">
+        <IconRail activeSection={activeSection} onSectionChange={handleSectionChange} />
 
-      {sidebarCollapsed ? (
-        <div className="flex items-start pt-3 shrink-0">
-          <Button
-            variant="ghost"
-            isIconOnly
-            size="sm"
-            onPress={() => setSidebarCollapsed(false)}
-            className="text-muted"
-          >
-            <ChevronRight size={16} />
-          </Button>
-        </div>
-      ) : (
-        <ContextSidebar
-          activeSection={activeSection}
-          activeSubPage={activeSubPage}
-          onSubPageChange={setActiveSubPage}
-          collapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(true)}
-        />
-      )}
+        {sidebarCollapsed ? (
+          <div className="flex items-start pt-3 shrink-0">
+            <Button
+              variant="ghost"
+              isIconOnly
+              size="sm"
+              onPress={() => setSidebarCollapsed(false)}
+              className="text-muted"
+            >
+              <ChevronRight size={16} />
+            </Button>
+          </div>
+        ) : (
+          <ContextSidebar
+            activeSection={activeSection}
+            activeSubPage={activeSubPage}
+            onSubPageChange={setActiveSubPage}
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(true)}
+          />
+        )}
 
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <TopBar />
-        <div className="flex-1 overflow-y-auto">
-          {renderPage(activeSection, activeSubPage)}
-        </div>
-      </main>
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <TopBar />
+          <div className="flex-1 overflow-y-auto">
+            {renderPage(activeSection, activeSubPage)}
+          </div>
+        </main>
 
-      <GlobalAgentWidget />
-    </div>
+        <GlobalAgentWidget />
+      </div>
+    </OrbitDataProvider>
   );
 }
