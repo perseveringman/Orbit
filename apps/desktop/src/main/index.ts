@@ -105,6 +105,10 @@ ipcMain.on('llm:stream-start', async (event, streamId: string, request: LLMProxy
   const controller = new AbortController();
   activeStreams.set(streamId, controller);
 
+  // Apply timeout (default 2 minutes)
+  const timeoutMs = request.timeoutMs ?? 120_000;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     const response = await fetch(request.url, {
       method: request.method,
@@ -140,8 +144,12 @@ ipcMain.on('llm:stream-start', async (event, streamId: string, request: LLMProxy
     const msg = error instanceof Error ? error.message : String(error);
     if (!msg.includes('abort')) {
       event.sender.send('llm:stream-chunk', streamId, JSON.stringify({ error: true, message: msg }), true);
+    } else {
+      // Send empty done signal so the renderer stops waiting
+      event.sender.send('llm:stream-chunk', streamId, '', true);
     }
   } finally {
+    clearTimeout(timeout);
     activeStreams.delete(streamId);
   }
 });

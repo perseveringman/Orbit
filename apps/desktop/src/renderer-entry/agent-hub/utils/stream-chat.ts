@@ -19,7 +19,7 @@ export interface StreamCallbacks {
 
 // ---- Internal helpers ----
 
-function getDesktopBridge(): any {
+function getDesktopBridge(): any | undefined {
   return (window as any).orbitDesktop;
 }
 
@@ -125,6 +125,11 @@ export function startStreamingChat(
   const streamId = `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const bridge = getDesktopBridge();
 
+  if (!bridge || !bridge.onStreamChunk) {
+    callbacks.onError('Desktop bridge 不可用 — 无法发起流式请求');
+    return () => {};
+  }
+
   let fullText = '';
   let sseBuffer = '';
   let cancelled = false;
@@ -143,14 +148,49 @@ export function startStreamingChat(
     }
   }
 
+  /** Check if a chunk is a JSON error object sent by the main process. */
+  function tryParseMainProcessError(chunk: string): string | null {
+    if (!chunk.trim().startsWith('{')) return null;
+    try {
+      const obj = JSON.parse(chunk) as Record<string, unknown>;
+      if (obj.error) {
+        const status = obj.status ?? '';
+        const statusText = obj.statusText ?? '';
+        const body = obj.body ?? obj.message ?? '';
+        return `HTTP ${status} ${statusText}: ${String(body).slice(0, 200)}`.trim();
+      }
+    } catch { /* not JSON, treat as SSE data */ }
+    return null;
+  }
+
   const unsub = bridge.onStreamChunk(
     (sid: string, chunk: string, done: boolean) => {
       if (sid !== streamId || cancelled) return;
 
       if (done) {
+        // Check if the final chunk is an error from main process
+        if (chunk) {
+          const errorMsg = tryParseMainProcessError(chunk);
+          if (errorMsg) {
+            callbacks.onError(errorMsg);
+            unsub();
+            return;
+          }
+          // Process remaining SSE data
+          sseBuffer += chunk;
+        }
         if (sseBuffer.trim()) processLines(sseBuffer);
         sseBuffer = '';
         callbacks.onDone(fullText);
+        unsub();
+        return;
+      }
+
+      // Check if chunk is a JSON error from main process (non-SSE)
+      const errorMsg = tryParseMainProcessError(chunk);
+      if (errorMsg) {
+        callbacks.onError(errorMsg);
+        cancelled = true;
         unsub();
         return;
       }

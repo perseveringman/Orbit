@@ -1,6 +1,6 @@
-import { type ReactElement, useState, useEffect, useMemo } from 'react';
+import { type ReactElement, useState, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { Card, Chip, ProgressBar } from '@heroui/react';
-import { PROVIDER_CATALOG, type ProviderCatalogEntry } from '@orbit/agent-core';
+import { PROVIDER_CATALOG, CORE_TOOLSETS, DOMAIN_AGENT_CONFIGS, type ProviderCatalogEntry } from '@orbit/agent-core';
 import { LLMConfigStore, type LLMProviderUserConfig } from '../stores/llm-config-store';
 import { TokenUsageStore, type UsageSummary } from '../stores/token-usage-store';
 
@@ -59,13 +59,15 @@ function ProviderStatusRow({ entry, config }: {
 }
 
 export function OverviewPage(): ReactElement {
-  const [configs, setConfigs] = useState<readonly LLMProviderUserConfig[]>([]);
-  const [usage, setUsage] = useState<UsageSummary | null>(null);
-
-  useEffect(() => {
-    setConfigs(LLMConfigStore.getAll());
-    setUsage(TokenUsageStore.getSummary());
-  }, []);
+  // Subscribe to store changes so the page always shows current data
+  const configs = useSyncExternalStore(
+    LLMConfigStore.subscribe,
+    () => LLMConfigStore.getAll(),
+  );
+  const usage = useSyncExternalStore(
+    TokenUsageStore.subscribe,
+    () => TokenUsageStore.getSummary(),
+  );
 
   const activeProvider = useMemo(
     () => configs.find((c) => c.enabled),
@@ -76,9 +78,9 @@ export function OverviewPage(): ReactElement {
     [configs],
   );
 
-  const totalCost = usage?.totalCostUsd ?? 0;
-  const totalTokens = usage?.totalTokens ?? 0;
-  const sessionCount = usage?.sessionCount ?? 0;
+  const totalCost = usage.totalCostUsd ?? 0;
+  const totalTokens = usage.totalTokens ?? 0;
+  const sessionCount = usage.sessionCount ?? 0;
 
   const formatTokens = (n: number) =>
     n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M`
@@ -158,11 +160,11 @@ export function OverviewPage(): ReactElement {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted">内置工具</span>
-                <span className="font-medium">13 个</span>
+                <span className="font-medium">{CORE_TOOLSETS.flatMap((ts) => ts.tools).length} 个</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted">Domain Agents</span>
-                <span className="font-medium">7 个</span>
+                <span className="font-medium">{Object.keys(DOMAIN_AGENT_CONFIGS).length} 个</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted">Safety 等级</span>
@@ -173,8 +175,8 @@ export function OverviewPage(): ReactElement {
                 <span className="font-medium">L0–L5 (6 层)</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted">MCP 服务</span>
-                <span className="font-medium">0 个已连接</span>
+                <span className="text-muted">Provider 已配置</span>
+                <span className="font-medium">{configuredCount} 个</span>
               </div>
             </div>
           </Card>

@@ -180,7 +180,19 @@ export function ModelsPage(): ReactElement {
   const [configs, setConfigs] = useState<LLMProviderUserConfig[]>([]);
 
   useEffect(() => {
-    setConfigs(LLMConfigStore.getAll());
+    const saved = LLMConfigStore.getAll();
+    // Ensure every catalog provider has a config entry so map-based updates work
+    const full = PROVIDER_CATALOG.map((entry) => {
+      const existing = saved.find((c) => c.providerId === entry.id);
+      return existing ?? {
+        providerId: entry.id,
+        apiKey: '',
+        baseUrl: '',
+        enabled: false,
+        defaultModel: '',
+      };
+    });
+    setConfigs(full);
   }, []);
 
   const handleUpdate = useCallback((providerId: string, updates: Partial<LLMProviderUserConfig>) => {
@@ -195,9 +207,18 @@ export function ModelsPage(): ReactElement {
         }
         return c;
       });
-      for (const c of next) {
+
+      // Only save configs that actually changed (avoid redundant writes)
+      const changed = next.filter((c, i) => {
+        const old = prev[i];
+        return !old || c.providerId !== old.providerId
+          || c.apiKey !== old.apiKey || c.baseUrl !== old.baseUrl
+          || c.enabled !== old.enabled || c.defaultModel !== old.defaultModel;
+      });
+      for (const c of changed) {
         LLMConfigStore.set(c);
       }
+
       return next;
     });
   }, []);
@@ -219,13 +240,8 @@ export function ModelsPage(): ReactElement {
 
       <div className="flex flex-col gap-3">
         {PROVIDER_CATALOG.map((entry) => {
-          const config = configs.find((c) => c.providerId === entry.id) ?? {
-            providerId: entry.id,
-            apiKey: '',
-            baseUrl: '',
-            enabled: false,
-            defaultModel: '',
-          };
+          const config = configs.find((c) => c.providerId === entry.id);
+          if (!config) return null;
           return (
             <ProviderCard
               key={entry.id}

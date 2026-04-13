@@ -3,7 +3,6 @@ import {
   ChevronLeft,
   ChevronDown,
   ChevronUp,
-  Plus,
   Moon,
   Sun,
   Settings,
@@ -12,9 +11,7 @@ import {
   LayoutDashboard,
   ListChecks,
   FolderOpen,
-  Users,
-  FileText,
-  StickyNote,
+
   BotMessageSquare,
   MessageSquare,
   Cpu,
@@ -150,42 +147,12 @@ function ProjectNav({
         isActive={activeSubPage === 'dashboard'}
         onClick={() => onSubPageChange('dashboard')}
       />
-      <ExpandableGroup
+      <NavItem
         icon={<ListChecks size={16} />}
         label="Tasks"
-        isActive={['tasks', 'tasks-todo', 'tasks-progress', 'tasks-review', 'tasks-done'].includes(activeSubPage)}
+        isActive={activeSubPage === 'tasks'}
         onClick={() => onSubPageChange('tasks')}
-        defaultOpen
-      >
-        <NavItem
-          icon={<span className="w-4" />}
-          label="To-do"
-          badge={12}
-          isActive={activeSubPage === 'tasks-todo'}
-          onClick={() => onSubPageChange('tasks-todo')}
-        />
-        <NavItem
-          icon={<span className="w-4" />}
-          label="In Progress"
-          badge={15}
-          isActive={activeSubPage === 'tasks-progress'}
-          onClick={() => onSubPageChange('tasks-progress')}
-        />
-        <NavItem
-          icon={<span className="w-4" />}
-          label="In Review"
-          badge={6}
-          isActive={activeSubPage === 'tasks-review'}
-          onClick={() => onSubPageChange('tasks-review')}
-        />
-        <NavItem
-          icon={<span className="w-4" />}
-          label="Completed"
-          badge={13}
-          isActive={activeSubPage === 'tasks-done'}
-          onClick={() => onSubPageChange('tasks-done')}
-        />
-      </ExpandableGroup>
+      />
       <ExpandableGroup
         icon={<FolderOpen size={16} />}
         label="Projects"
@@ -194,34 +161,6 @@ function ProjectNav({
         onClick={() => onSubPageChange('projects')}
       >
         {/* project items would go here */}
-      </ExpandableGroup>
-      <NavItem
-        icon={<Users size={16} />}
-        label="Clients"
-        isActive={activeSubPage === 'clients'}
-        onClick={() => onSubPageChange('clients')}
-      />
-
-      <SectionHeader label="RESOURCES" />
-      <div className="flex items-center justify-between px-3">
-        <span />
-        <Button variant="ghost" isIconOnly size="sm" className="text-muted">
-          <Plus size={14} />
-        </Button>
-      </div>
-      <NavItem
-        icon={<FileText size={16} />}
-        label="Templates"
-        isActive={activeSubPage === 'templates'}
-        onClick={() => onSubPageChange('templates')}
-      />
-      <ExpandableGroup
-        icon={<StickyNote size={16} />}
-        label="Notes"
-        isActive={activeSubPage === 'notes'}
-        onClick={() => onSubPageChange('notes')}
-      >
-        {/* note items would go here */}
       </ExpandableGroup>
     </>
   );

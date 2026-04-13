@@ -56,9 +56,29 @@ function buildAuthHeaders(entry: ProviderCatalogEntry, apiKey: string): Record<s
 
 const STORAGE_KEY = 'orbit:agent-devtools:llm-configs';
 
+// ---- Subscription helpers ----
+
+type Listener = () => void;
+const configListeners = new Set<Listener>();
+
+function notifyConfigListeners(): void {
+  for (const fn of configListeners) {
+    try { fn(); } catch { /* listener errors should not break the store */ }
+  }
+}
+
 // ---- LLM Config Store ----
 
 export class LLMConfigStore {
+
+  /**
+   * Subscribe to config changes. Returns an unsubscribe function.
+   * Compatible with React's `useSyncExternalStore`.
+   */
+  static subscribe(listener: Listener): () => void {
+    configListeners.add(listener);
+    return () => { configListeners.delete(listener); };
+  }
 
   /** Load all saved configs from localStorage. */
   static getAll(): LLMProviderUserConfig[] {
@@ -98,12 +118,14 @@ export class LLMConfigStore {
       all.push(config);
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+    notifyConfigListeners();
   }
 
   /** Remove config for a provider. */
   static remove(providerId: string): void {
     const all = LLMConfigStore.getAll().filter((c) => c.providerId !== providerId);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+    notifyConfigListeners();
   }
 
   /** Get all configured & enabled providers. */

@@ -1,4 +1,4 @@
-import { type ReactElement, useState, useRef, useCallback } from 'react';
+import { type ReactElement, useState, useRef, useCallback, useSyncExternalStore } from 'react';
 import { Chip, Switch, Button } from '@heroui/react';
 import { PROVIDER_CATALOG } from '@orbit/agent-core';
 import type { AgentMessage, OrbitAgentEvent } from '@orbit/agent-core';
@@ -22,6 +22,11 @@ function nextId(suffix: string): string {
   return `msg-${++msgSeq}-${suffix}`;
 }
 
+/** Snapshot function for useSyncExternalStore — returns all configs. */
+function getConfigSnapshot(): readonly import('../stores/llm-config-store').LLMProviderUserConfig[] {
+  return LLMConfigStore.getAll();
+}
+
 export function ChatPage(): ReactElement {
   const [mode, setMode] = useState<ChatMode>(() => {
     return (localStorage.getItem('orbit:agent-hub:chat-mode') as ChatMode) ?? 'real';
@@ -33,13 +38,15 @@ export function ChatPage(): ReactElement {
   const cancelRef = useRef<(() => void) | null>(null);
   const conversationHistory = useRef<Array<{ role: string; content: string }>>([]);
 
-  const renderableMessages = normalizeMessages(rawMessages);
-  const search = useConversationSearch(renderableMessages);
-
-  const activeProvider = LLMConfigStore.getAll().find((c) => c.enabled);
+  // Subscribe to LLMConfigStore so provider changes reflect immediately
+  const configs = useSyncExternalStore(LLMConfigStore.subscribe, getConfigSnapshot);
+  const activeProvider = configs.find((c) => c.enabled);
   const providerEntry = activeProvider
     ? PROVIDER_CATALOG.find((e) => e.id === activeProvider.providerId)
     : null;
+
+  const renderableMessages = normalizeMessages(rawMessages);
+  const search = useConversationSearch(renderableMessages);
 
   const modelName = providerEntry?.displayName ?? (mode === 'mock' ? 'Mock' : undefined);
 
@@ -146,6 +153,16 @@ export function ChatPage(): ReactElement {
             },
           },
         );
+      } else if (mode === 'real' && !activeProvider) {
+        // Real mode but no provider configured — show explicit error
+        const errMsg: AgentMessage = {
+          id: nextId('e'),
+          role: 'system',
+          content: '⚠️ 未配置 LLM Provider — 请前往「模型配置」页面配置并启用一个 Provider 后再试。',
+          timestamp: new Date().toISOString(),
+          metadata: { isError: true },
+        };
+        setRawMessages((prev) => [...prev, errMsg]);
       } else {
         // Mock mode – typewriter character-by-character
         const mockReply = `[Mock] 已收到消息: "${content.slice(0, 80)}"`;

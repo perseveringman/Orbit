@@ -1,4 +1,4 @@
-import { type ReactElement, useState, useMemo } from 'react';
+import { type ReactElement, useState, useMemo, useSyncExternalStore, useCallback } from 'react';
 import { Card, Chip, Button } from '@heroui/react';
 import { TokenUsageStore, type TokenUsageRecord, type UsageByDimension } from '../stores/token-usage-store';
 
@@ -70,8 +70,15 @@ type GroupBy = 'model' | 'provider' | 'day';
 export function UsagePage(): ReactElement {
   const [groupBy, setGroupBy] = useState<GroupBy>('provider');
 
-  const summary = useMemo(() => TokenUsageStore.getSummary(), []);
-  const records = useMemo(() => TokenUsageStore.loadRecords(), []);
+  // Subscribe to TokenUsageStore so data refreshes when new records are added
+  const summary = useSyncExternalStore(
+    TokenUsageStore.subscribe,
+    () => TokenUsageStore.getSummary(),
+  );
+  const records = useSyncExternalStore(
+    TokenUsageStore.subscribe,
+    () => TokenUsageStore.loadRecords(),
+  );
 
   const grouped = useMemo((): UsageByDimension[] => {
     switch (groupBy) {
@@ -79,15 +86,15 @@ export function UsagePage(): ReactElement {
       case 'provider': return TokenUsageStore.getByProvider();
       case 'day': return TokenUsageStore.getByDay();
     }
-  }, [groupBy]);
+  }, [groupBy, records]);
 
   const maxTokens = Math.max(...grouped.map((g) => g.totalTokens), 1);
   const maxCost = Math.max(...grouped.map((g) => g.totalCost), 0.0001);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     TokenUsageStore.clear();
-    window.location.reload();
-  };
+    // No need for window.location.reload() — useSyncExternalStore will pick up the change
+  }, []);
 
   return (
     <div className="p-6">

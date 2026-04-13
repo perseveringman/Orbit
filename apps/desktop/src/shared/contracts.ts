@@ -83,8 +83,16 @@ export function createFallbackDesktopBridge(): DesktopBridge {
       headers: {},
       body: JSON.stringify({ error: 'llmProxy unavailable in fallback bridge' })
     }),
-    startStream: () => {},
+    startStream: (_streamId: string, _request: LLMProxyRequest) => {
+      console.warn('[FallbackBridge] startStream called — bridge is unavailable');
+    },
     cancelStream: () => {},
-    onStreamChunk: () => () => {},
+    onStreamChunk: (callback: (streamId: string, chunk: string, done: boolean) => void) => {
+      // Immediately signal error so the caller knows the bridge is not available
+      queueMicrotask(() => {
+        callback('', JSON.stringify({ error: true, message: 'Desktop bridge 不可用' }), true);
+      });
+      return () => {};
+    },
   };
 }

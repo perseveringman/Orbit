@@ -7,6 +7,17 @@ import { CostTracker, type CostRecord, estimateCost } from '@orbit/agent-core';
 const STORAGE_KEY = 'orbit:token-usage-records';
 const MAX_RECORDS = 10_000;
 
+// ---- Subscription helpers ----
+
+type UsageListener = () => void;
+const usageListeners = new Set<UsageListener>();
+
+function notifyUsageListeners(): void {
+  for (const fn of usageListeners) {
+    try { fn(); } catch { /* listener errors should not break the store */ }
+  }
+}
+
 export interface TokenUsageRecord {
   readonly id: string;
   readonly model: string;
@@ -46,6 +57,15 @@ function genId(): string {
  */
 export class TokenUsageStore {
   private static tracker = new CostTracker();
+
+  /**
+   * Subscribe to usage changes. Returns an unsubscribe function.
+   * Compatible with React's `useSyncExternalStore`.
+   */
+  static subscribe(listener: UsageListener): () => void {
+    usageListeners.add(listener);
+    return () => { usageListeners.delete(listener); };
+  }
 
   /**
    * Record a new LLM call's token usage.
@@ -99,6 +119,7 @@ export class TokenUsageStore {
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); } catch { /* give up */ }
     }
 
+    notifyUsageListeners();
     return record;
   }
 
@@ -178,6 +199,7 @@ export class TokenUsageStore {
   static clear(): void {
     localStorage.removeItem(STORAGE_KEY);
     TokenUsageStore.tracker = new CostTracker();
+    notifyUsageListeners();
   }
 
   private static groupBy(keyFn: (r: TokenUsageRecord) => string): UsageByDimension[] {
