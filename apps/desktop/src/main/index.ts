@@ -2,6 +2,8 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { fileURLToPath } from 'node:url';
 
 import { createDesktopShellDescriptor, type LLMProxyRequest } from '../shared/contracts';
+import { registerToolBridgeHandlers } from './tool-bridge';
+import { registerMcpBridgeHandlers } from './mcp-bridge';
 
 const shellDescriptor = createDesktopShellDescriptor();
 const runtimeProcess = globalThis as {
@@ -163,6 +165,8 @@ ipcMain.on('llm:stream-cancel', (_event, streamId: string) => {
 });
 
 void app.whenReady().then(() => {
+  registerToolBridgeHandlers();
+  registerMcpBridgeHandlers();
   createMainWindow();
 
   app.on('activate', () => {

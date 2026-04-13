@@ -24,6 +24,7 @@ import {
   type TokenUsage,
 } from '@orbit/agent-core';
 import type { LLMProviderUserConfig } from '../stores/llm-config-store';
+import type { McpServerInfo } from '../../../shared/contracts';
 
 // ---- Event types emitted by the orchestrator ----
 
@@ -83,6 +84,46 @@ export function getAvailableToolDefinitions(): readonly ToolDefinition[] {
 
 export function getAvailableToolCount(): number {
   return getAvailableToolDefinitions().length;
+}
+
+// ---- MCP tool definitions ----
+
+/**
+ * Fetch MCP server tools and convert them to ToolDefinition format.
+ */
+async function getMcpToolDefinitions(bridge: any): Promise<readonly ToolDefinition[]> {
+  try {
+    const servers: McpServerInfo[] = await bridge.mcpListServers();
+    const defs: ToolDefinition[] = [];
+    for (const server of servers) {
+      if (server.status !== 'connected') continue;
+      for (const tool of server.tools) {
+        defs.push({
+          name: `mcp_${server.id}_${tool.name}`,
+          description: `[MCP: ${server.name}] ${tool.description}`,
+          inputSchema: tool.inputSchema,
+          domain: 'ops',
+          riskLevel: 'R2-external-read',
+          approvalPolicy: 'A0-auto',
+          executionMode: 'sync',
+          scopeLimit: 'global',
+          dataBoundary: 'can-egress',
+        });
+      }
+    }
+    return defs;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Get ALL tool definitions: built-in + MCP.
+ */
+async function getAllToolDefinitions(bridge: any): Promise<readonly ToolDefinition[]> {
+  const builtIn = getAvailableToolDefinitions();
+  const mcp = await getMcpToolDefinitions(bridge);
+  return [...builtIn, ...mcp];
 }
 
 // ---- Anthropic tool format helpers ----
@@ -181,8 +222,8 @@ export async function* runToolCallingChat(
   const enableTools = config?.enableTools ?? true;
   const isAnthropic = entry.transport === 'anthropic_messages';
 
-  const registry = getToolsetRegistry();
-  const toolDefs = enableTools ? getAvailableToolDefinitions() : [];
+  // Get tool definitions for LLM (includes built-in + MCP tools)
+  const toolDefs = enableTools ? await getAllToolDefinitions(bridge) : [];
 
   // Working copy of conversation — tool call/result messages are added during the loop
   const conversation: AgentMessage[] = [...conversationHistory];
@@ -238,7 +279,7 @@ export async function* runToolCallingChat(
         args = {};
       }
 
-      const toolResult = await executeTool(registry, tc.name, args);
+      const toolResult = await executeTool(bridge, tc.name, args);
 
       const resultMsg: AgentMessage = {
         id: genMsgId('tool'),
@@ -393,7 +434,7 @@ function buildAnthropicBody(
   return body;
 }
 
-// ---- Tool execution ----
+// ---- Tool execution (via IPC to main process) ----
 
 interface ToolExecResult {
   success: boolean;
@@ -403,23 +444,33 @@ interface ToolExecResult {
 }
 
 async function executeTool(
-  registry: ToolsetRegistry,
+  bridge: any,
   name: string,
   args: Record<string, unknown>,
 ): Promise<ToolExecResult> {
-  const tool = registry.getTool(name);
-  if (!tool) {
-    return { success: false, output: '', error: `Tool "${name}" not found`, durationMs: 0 };
-  }
-
-  const start = Date.now();
   try {
-    const result = await tool.execute(args);
+    // MCP tools have names like "mcp_{serverId}_{toolName}"
+    if (name.startsWith('mcp_')) {
+      const parts = name.split('_');
+      // Format: mcp_{serverId}_{toolName} — serverId and toolName may contain underscores
+      const serverId = parts[1];
+      const toolName = parts.slice(2).join('_');
+      const result = await bridge.mcpExecuteTool({ serverId, toolName, args });
+      return {
+        success: result.success,
+        output: result.output,
+        error: result.error,
+        durationMs: result.durationMs,
+      };
+    }
+
+    // Built-in tools — route through IPC to main process
+    const result = await bridge.toolExecute({ toolName: name, args });
     return {
       success: result.success,
       output: result.output,
-      error: result.success ? undefined : result.output,
-      durationMs: Date.now() - start,
+      error: result.error,
+      durationMs: result.durationMs,
     };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -427,7 +478,7 @@ async function executeTool(
       success: false,
       output: '',
       error: `Tool execution error: ${message}`,
-      durationMs: Date.now() - start,
+      durationMs: 0,
     };
   }
 }

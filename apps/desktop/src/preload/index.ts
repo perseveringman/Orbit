@@ -3,7 +3,10 @@ import { contextBridge, ipcRenderer } from 'electron';
 import {
   createDesktopShellDescriptor,
   type DesktopBridge,
-  type LLMProxyRequest
+  type LLMProxyRequest,
+  type ToolExecuteRequest,
+  type McpInstallRequest,
+  type McpToolExecRequest,
 } from '../shared/contracts';
 
 const runtimeProcess = globalThis as {
@@ -37,6 +40,18 @@ const desktopBridge: DesktopBridge = {
       ipcRenderer.removeListener('llm:stream-chunk', handler);
     };
   },
+
+  // ---- Tool execution ----
+  toolExecute: (request: ToolExecuteRequest) => ipcRenderer.invoke('tool:execute', request),
+  toolList: () => ipcRenderer.invoke('tool:list'),
+
+  // ---- MCP management ----
+  mcpListServers: () => ipcRenderer.invoke('mcp:list-servers'),
+  mcpInstall: (request: McpInstallRequest) => ipcRenderer.invoke('mcp:install', request),
+  mcpUninstall: (serverId: string) => ipcRenderer.invoke('mcp:uninstall', serverId),
+  mcpConnect: (serverId: string) => ipcRenderer.invoke('mcp:connect', serverId),
+  mcpDisconnect: (serverId: string) => ipcRenderer.invoke('mcp:disconnect', serverId),
+  mcpExecuteTool: (request: McpToolExecRequest) => ipcRenderer.invoke('mcp:execute-tool', request),
 };
 
 contextBridge.exposeInMainWorld('orbitDesktop', desktopBridge);

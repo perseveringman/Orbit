@@ -1,13 +1,15 @@
-import { type ReactElement, useState, useMemo } from 'react';
+import { type ReactElement, useState, useMemo, useEffect } from 'react';
 import { Card, Chip, Button, Input } from '@heroui/react';
 import { Search } from 'lucide-react';
 import {
   CORE_TOOLSETS,
   APP_TOOLSETS,
+  DOMAIN_TOOLSETS,
   type BuiltinTool,
   type Toolset,
   type ToolSource,
 } from '@orbit/agent-core';
+import type { McpServerInfo } from '../../../shared/contracts';
 
 // ---- Types ----
 
@@ -50,28 +52,38 @@ function sourceColor(source: ToolSource): 'default' | 'accent' | 'warning' | 'su
   }
 }
 
-// ---- Mock MCP & Skill tools ----
+// ---- MCP tools fetched from main process ----
 
-const MOCK_MCP_TOOLS: DisplayTool[] = [
-  {
-    tool: { name: 'github_search', description: '搜索 GitHub 仓库和代码', category: 'web', parameters: {}, execute: async () => ({ success: true, output: '' }) },
-    source: 'mcp',
-    toolsetName: 'GitHub MCP',
-  },
-  {
-    tool: { name: 'notion_search', description: '搜索 Notion 页面和数据库', category: 'web', parameters: {}, execute: async () => ({ success: true, output: '' }) },
-    source: 'mcp',
-    toolsetName: 'Notion MCP',
-  },
-];
+function useMcpTools(): DisplayTool[] {
+  const [mcpTools, setMcpTools] = useState<DisplayTool[]>([]);
 
-const MOCK_SKILL_TOOLS: DisplayTool[] = [
-  {
-    tool: { name: 'plan_decompose', description: '将目标分解为子任务', category: 'planning', parameters: {}, execute: async () => ({ success: true, output: '' }) },
-    source: 'skill',
-    toolsetName: 'orbit:planning',
-  },
-];
+  useEffect(() => {
+    const bridge = (window as any).orbitDesktop;
+    if (!bridge?.mcpListServers) return;
+    void bridge.mcpListServers().then((servers: McpServerInfo[]) => {
+      const tools: DisplayTool[] = [];
+      for (const server of servers) {
+        if (server.status !== 'connected') continue;
+        for (const tool of server.tools) {
+          tools.push({
+            tool: {
+              name: tool.name,
+              description: `[${server.name}] ${tool.description}`,
+              category: 'web',
+              parameters: tool.inputSchema,
+              execute: async () => ({ success: true, output: '' }),
+            },
+            source: 'mcp',
+            toolsetName: server.name,
+          });
+        }
+      }
+      setMcpTools(tools);
+    });
+  }, []);
+
+  return mcpTools;
+}
 
 // ---- Tool Card ----
 
@@ -109,6 +121,7 @@ function ToolCard({ item }: { item: DisplayTool }): ReactElement {
 export function ToolsPage(): ReactElement {
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const mcpTools = useMcpTools();
 
   const allTools = useMemo<DisplayTool[]>(() => {
     const result: DisplayTool[] = [];
@@ -123,11 +136,11 @@ export function ToolsPage(): ReactElement {
 
     addToolsets(CORE_TOOLSETS, 'builtin');
     addToolsets(APP_TOOLSETS, 'app');
-    result.push(...MOCK_MCP_TOOLS);
-    result.push(...MOCK_SKILL_TOOLS);
+    addToolsets(DOMAIN_TOOLSETS, 'skill');
+    result.push(...mcpTools);
 
     return result;
-  }, []);
+  }, [mcpTools]);
 
   const counts = useMemo(() => {
     const c: Record<ToolSource, number> = { builtin: 0, app: 0, mcp: 0, skill: 0 };

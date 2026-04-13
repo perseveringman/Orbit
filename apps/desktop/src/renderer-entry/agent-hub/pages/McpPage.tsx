@@ -1,51 +1,14 @@
-import { type ReactElement, useState, useCallback } from 'react';
+import { type ReactElement, useState, useCallback, useEffect } from 'react';
 import { Card, Chip, Button, Input } from '@heroui/react';
-import { Plus, Trash2, Download, ChevronDown, ChevronUp, Wifi, WifiOff } from 'lucide-react';
+import { Plus, Trash2, Download, ChevronDown, ChevronUp, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import type { McpServerStatus } from '@orbit/agent-core';
+import type { McpServerInfo } from '../../../shared/contracts';
 
-// ---- Mock data ----
+// ---- Bridge helper ----
 
-interface MockMcpServer {
-  id: string;
-  name: string;
-  description: string;
-  transportType: 'stdio' | 'sse' | 'streamable-http';
-  status: McpServerStatus;
-  tools: string[];
-  installedAt: string;
-  error?: string;
+function getBridge(): any | undefined {
+  return (window as any).orbitDesktop;
 }
-
-const INITIAL_SERVERS: MockMcpServer[] = [
-  {
-    id: 'mcp-github',
-    name: 'GitHub MCP',
-    description: 'GitHub API 访问 — 仓库、Issue、PR 管理',
-    transportType: 'stdio',
-    status: 'connected',
-    tools: ['github_search', 'github_create_issue', 'github_list_prs', 'github_read_file'],
-    installedAt: new Date().toISOString(),
-  },
-  {
-    id: 'mcp-notion',
-    name: 'Notion MCP',
-    description: 'Notion 数据库和页面访问',
-    transportType: 'sse',
-    status: 'disconnected',
-    tools: ['notion_search', 'notion_create_page', 'notion_update_page'],
-    installedAt: new Date().toISOString(),
-  },
-  {
-    id: 'mcp-postgres',
-    name: 'PostgreSQL MCP',
-    description: '数据库查询与管理',
-    transportType: 'streamable-http',
-    status: 'error',
-    tools: ['sql_query', 'sql_schema'],
-    installedAt: new Date().toISOString(),
-    error: 'Connection refused: localhost:5432',
-  },
-];
 
 // ---- Helpers ----
 
@@ -81,10 +44,12 @@ function ServerCard({
   server,
   onToggleConnection,
   onDelete,
+  loading,
 }: {
-  server: MockMcpServer;
+  server: McpServerInfo;
   onToggleConnection: () => void;
   onDelete: () => void;
+  loading: boolean;
 }): ReactElement {
   const [expanded, setExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -111,6 +76,7 @@ function ServerCard({
           <Button
             size="sm"
             variant={isConnected ? 'outline' : 'primary'}
+            isDisabled={loading || server.status === 'connecting'}
             onPress={onToggleConnection}
           >
             {isConnected ? <><WifiOff size={14} /> 断开</> : <><Wifi size={14} /> 连接</>}
@@ -138,8 +104,8 @@ function ServerCard({
               <span className="orbit-meta text-xs font-medium text-muted">工具 ({server.tools.length})</span>
               <div className="mt-1 flex flex-wrap gap-1">
                 {server.tools.map((tool) => (
-                  <Chip key={tool} size="sm" variant="soft" color="accent">
-                    {tool}
+                  <Chip key={tool.name} size="sm" variant="soft" color="accent">
+                    {tool.name}
                   </Chip>
                 ))}
               </div>
@@ -168,48 +134,169 @@ function ServerCard({
   );
 }
 
+// ---- Add Server Form ----
+
+type TransportType = 'stdio' | 'sse' | 'streamable-http';
+
+function AddServerForm({ onInstall, installing }: {
+  onInstall: (name: string, desc: string, type: TransportType, cmdOrUrl: string) => void;
+  installing: boolean;
+}): ReactElement {
+  const [name, setName] = useState('');
+  const [desc, setDesc] = useState('');
+  const [transportType, setTransportType] = useState<TransportType>('stdio');
+  const [cmdOrUrl, setCmdOrUrl] = useState('');
+  const [showForm, setShowForm] = useState(false);
+
+  if (!showForm) {
+    return (
+      <Button variant="primary" onPress={() => setShowForm(true)}>
+        <Plus size={16} /> 添加 MCP 服务
+      </Button>
+    );
+  }
+
+  const canSubmit = name.trim() && cmdOrUrl.trim() && !installing;
+
+  return (
+    <Card className="p-4">
+      <h3 className="mb-3 text-sm font-semibold">添加 MCP 服务</h3>
+      <div className="flex flex-col gap-3">
+        <div className="flex gap-3">
+          <Input
+            placeholder="服务名称"
+            value={name}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+            className="flex-1"
+          />
+          <Input
+            placeholder="描述（可选）"
+            value={desc}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDesc(e.target.value)}
+            className="flex-1"
+          />
+        </div>
+
+        <div className="flex gap-2">
+          {(['stdio', 'sse', 'streamable-http'] as const).map((t) => (
+            <button
+              key={t}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                transportType === t
+                  ? 'bg-primary/20 text-primary'
+                  : 'bg-default-100 text-muted hover:bg-default-200'
+              }`}
+              onClick={() => setTransportType(t)}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        <Input
+          placeholder={transportType === 'stdio' ? '命令 (如: npx -y @modelcontextprotocol/server-github)' : 'URL (如: http://localhost:3000/mcp)'}
+          value={cmdOrUrl}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCmdOrUrl(e.target.value)}
+        />
+
+        <div className="flex gap-2">
+          <Button
+            variant="primary"
+            isDisabled={!canSubmit}
+            onPress={() => {
+              onInstall(name.trim(), desc.trim(), transportType, cmdOrUrl.trim());
+              setName('');
+              setDesc('');
+              setCmdOrUrl('');
+              setShowForm(false);
+            }}
+          >
+            <Download size={16} /> {installing ? '安装中...' : '安装'}
+          </Button>
+          <Button variant="ghost" onPress={() => setShowForm(false)}>取消</Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 // ---- Main Page ----
 
 export function McpPage(): ReactElement {
-  const [servers, setServers] = useState<MockMcpServer[]>(INITIAL_SERVERS);
-  const [installUrl, setInstallUrl] = useState('');
+  const [servers, setServers] = useState<McpServerInfo[]>([]);
   const [installing, setInstalling] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const connectedCount = servers.filter((s) => s.status === 'connected').length;
   const totalTools = servers.reduce((sum, s) => sum + s.tools.length, 0);
 
-  const handleToggleConnection = useCallback((id: string) => {
-    setServers((prev) =>
-      prev.map((s) => {
-        if (s.id !== id) return s;
-        if (s.status === 'connected') return { ...s, status: 'disconnected' as const };
-        return { ...s, status: 'connected' as const, error: undefined };
-      }),
-    );
+  // Fetch servers from main process
+  const refreshServers = useCallback(async () => {
+    const bridge = getBridge();
+    if (!bridge?.mcpListServers) return;
+    try {
+      const list = await bridge.mcpListServers();
+      setServers(list);
+      setError(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to list servers');
+    }
   }, []);
 
-  const handleDelete = useCallback((id: string) => {
-    setServers((prev) => prev.filter((s) => s.id !== id));
-  }, []);
+  useEffect(() => { void refreshServers(); }, [refreshServers]);
 
-  const handleInstallUrl = useCallback(() => {
-    if (!installUrl.trim()) return;
+  const handleToggleConnection = useCallback(async (id: string) => {
+    const bridge = getBridge();
+    if (!bridge) return;
+    setLoading(true);
+    try {
+      const server = servers.find((s) => s.id === id);
+      if (server?.status === 'connected') {
+        await bridge.mcpDisconnect(id);
+      } else {
+        await bridge.mcpConnect(id);
+      }
+      await refreshServers();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Connection error');
+    } finally {
+      setLoading(false);
+    }
+  }, [servers, refreshServers]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    const bridge = getBridge();
+    if (!bridge) return;
+    try {
+      await bridge.mcpUninstall(id);
+      await refreshServers();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Delete error');
+    }
+  }, [refreshServers]);
+
+  const handleInstall = useCallback(async (
+    name: string,
+    description: string,
+    transportType: TransportType,
+    cmdOrUrl: string,
+  ) => {
+    const bridge = getBridge();
+    if (!bridge) return;
     setInstalling(true);
-    setTimeout(() => {
-      const newServer: MockMcpServer = {
-        id: `mcp-${Date.now()}`,
-        name: installUrl.split('/').pop() ?? 'Custom Server',
-        description: `从 ${installUrl} 安装`,
-        transportType: 'sse',
-        status: 'disconnected',
-        tools: [],
-        installedAt: new Date().toISOString(),
-      };
-      setServers((prev) => [...prev, newServer]);
-      setInstallUrl('');
+    try {
+      const transport = transportType === 'stdio'
+        ? { type: 'stdio' as const, command: cmdOrUrl }
+        : { type: transportType, url: cmdOrUrl };
+      await bridge.mcpInstall({ name, description: description || `MCP server: ${name}`, transport });
+      await refreshServers();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Install error');
+    } finally {
       setInstalling(false);
-    }, 800);
-  }, [installUrl]);
+    }
+  }, [refreshServers]);
 
   return (
     <div className="p-6">
@@ -219,11 +306,17 @@ export function McpPage(): ReactElement {
           <h1 className="text-xl font-bold">MCP 服务管理</h1>
           <p className="text-sm text-muted">{servers.length} 个服务已注册</p>
         </div>
-        <Button variant="primary" onPress={() => document.getElementById('mcp-url-input')?.focus()}>
-          <Plus size={16} />
-          添加服务
+        <Button variant="ghost" size="sm" onPress={() => void refreshServers()}>
+          <RefreshCw size={14} /> 刷新
         </Button>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded bg-red-500/10 px-3 py-2 text-xs text-red-400">
+          ⚠️ {error}
+          <button className="ml-2 underline" onClick={() => setError(null)}>dismiss</button>
+        </div>
+      )}
 
       {/* Stats Bar */}
       <div className="mb-6 flex gap-4">
@@ -237,19 +330,9 @@ export function McpPage(): ReactElement {
         </Card>
       </div>
 
-      {/* URL Install */}
-      <div className="mb-6 flex gap-2">
-        <Input
-          id="mcp-url-input"
-          placeholder="输入 MCP 服务 URL..."
-          value={installUrl}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInstallUrl(e.target.value)}
-          className="flex-1"
-        />
-        <Button variant="primary" isDisabled={!installUrl.trim() || installing} onPress={handleInstallUrl}>
-          <Download size={16} />
-          {installing ? '安装中...' : '安装'}
-        </Button>
+      {/* Add Server */}
+      <div className="mb-6">
+        <AddServerForm onInstall={handleInstall} installing={installing} />
       </div>
 
       {/* Server List */}
@@ -265,8 +348,9 @@ export function McpPage(): ReactElement {
             <ServerCard
               key={server.id}
               server={server}
-              onToggleConnection={() => handleToggleConnection(server.id)}
-              onDelete={() => handleDelete(server.id)}
+              loading={loading}
+              onToggleConnection={() => void handleToggleConnection(server.id)}
+              onDelete={() => void handleDelete(server.id)}
             />
           ))}
         </div>
