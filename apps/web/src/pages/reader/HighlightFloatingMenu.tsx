@@ -7,6 +7,7 @@ import {
   CircleCheckBig,
   PenLine,
 } from 'lucide-react';
+import { useReaderMutations } from '../../data/use-reader-mutations';
 
 const HIGHLIGHT_COLORS = [
   '#fbbf24', // yellow
@@ -31,11 +32,12 @@ const ACTIONS: ActionDef[] = [
   { icon: <PenLine size={14} />, label: '写作', key: 'writing' },
 ];
 
-export function HighlightFloatingMenu(): ReactElement | null {
+export function HighlightFloatingMenu({ articleId }: { articleId: string }): ReactElement | null {
   const [visible, setVisible] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const [selectedColor, setSelectedColor] = useState(HIGHLIGHT_COLORS[0]);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { createHighlight } = useReaderMutations();
 
   const handleSelection = useCallback(() => {
     const selection = window.getSelection();
@@ -75,7 +77,21 @@ export function HighlightFloatingMenu(): ReactElement | null {
   const handleAction = (key: string) => {
     const selection = window.getSelection();
     const text = selection?.toString().trim() ?? '';
-    console.log(`[HighlightMenu] ${key}: "${text}" color=${selectedColor}`);
+    if (text && key === 'highlight') {
+      createHighlight({
+        articleId,
+        quoteText: text,
+        color: selectedColor,
+        highlightKind: 'highlight',
+      });
+    } else if (text && key === 'note') {
+      createHighlight({
+        articleId,
+        quoteText: text,
+        color: selectedColor,
+        highlightKind: 'note',
+      });
+    }
     setVisible(false);
     selection?.removeAllRanges();
   };

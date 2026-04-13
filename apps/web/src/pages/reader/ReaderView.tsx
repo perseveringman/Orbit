@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, type ReactElement } from 'react';
 import { Button, Chip, ProgressBar } from '@heroui/react';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
-import type { Article } from './mock-data';
+import type { ReaderArticle } from '../../data/use-reader';
+import { useReaderMutations } from '../../data/use-reader-mutations';
 import { MOCK_ARTICLE_BODY } from './mock-data';
 import { ReaderContextPanel } from './ReaderContextPanel';
 import { HighlightFloatingMenu } from './HighlightFloatingMenu';
@@ -10,7 +11,7 @@ import { TranslationToggle } from './TranslationToggle';
 import { ContentPipelineStatus } from './ContentPipelineStatus';
 
 interface ReaderViewProps {
-  article: Article;
+  article: ReaderArticle;
   onBack: () => void;
 }
 
@@ -87,8 +88,16 @@ function RenderedBody({ content }: { content: string }): ReactElement {
 }
 
 export function ReaderView({ article, onBack }: ReaderViewProps): ReactElement {
-  const [progress, setProgress] = useState(article.readingProgress);
+  const [progress, setProgress] = useState((article.readingProgress ?? 0) * 100);
   const contentRef = useRef<HTMLDivElement>(null);
+  const { updateReadingProgress, updateArticleStatus } = useReaderMutations();
+
+  // Mark as reading on mount
+  useEffect(() => {
+    if (article.status === 'unread') {
+      updateArticleStatus(article.id, 'reading');
+    }
+  }, [article.id, article.status, updateArticleStatus]);
 
   useEffect(() => {
     const el = contentRef.current;
@@ -97,16 +106,15 @@ export function ReaderView({ article, onBack }: ReaderViewProps): ReactElement {
       const { scrollTop, scrollHeight, clientHeight } = el;
       const pct = scrollHeight <= clientHeight ? 100 : Math.round((scrollTop / (scrollHeight - clientHeight)) * 100);
       setProgress(pct);
+      updateReadingProgress(article.id, pct / 100);
     };
     el.addEventListener('scroll', handleScroll);
     return () => el.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [article.id, updateReadingProgress]);
 
-  const formattedDate = new Date(article.publishedAt).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const formattedDate = article.publishedAt
+    ? new Date(article.publishedAt).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
+    : '';
 
   return (
     <div className="flex flex-col h-full relative">
@@ -118,7 +126,7 @@ export function ReaderView({ article, onBack }: ReaderViewProps): ReactElement {
       </ProgressBar>
 
       {/* Floating highlight menu */}
-      <HighlightFloatingMenu />
+      <HighlightFloatingMenu articleId={article.id} />
 
       {/* Main layout */}
       <div className="flex flex-1 overflow-hidden">
@@ -144,20 +152,24 @@ export function ReaderView({ article, onBack }: ReaderViewProps): ReactElement {
             <header className="mb-8">
               <h1 className="text-3xl font-bold text-foreground mb-3">{article.title}</h1>
               <div className="flex flex-wrap items-center gap-3 text-sm text-muted">
-                <span>{article.author}</span>
+                <span>{article.author ?? '未知'}</span>
                 <span>·</span>
-                <a
-                  href={article.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-accent hover:underline"
-                >
-                  {article.source} <ExternalLink size={12} />
-                </a>
-                <span>·</span>
+                {article.sourceUrl && (
+                  <>
+                    <a
+                      href={article.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-accent hover:underline"
+                    >
+                      来源 <ExternalLink size={12} />
+                    </a>
+                    <span>·</span>
+                  </>
+                )}
                 <span>{formattedDate}</span>
                 <Chip size="sm" variant="soft">
-                  {article.sourceType === 'rss' ? 'RSS' : article.sourceType === 'site-watch' ? '网站监测' : '频道'}
+                  {article.mediaType}
                 </Chip>
               </div>
             </header>

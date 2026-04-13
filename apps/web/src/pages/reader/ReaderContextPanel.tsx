@@ -1,15 +1,16 @@
 import { type ReactElement } from 'react';
 import { Tabs, Card, Chip, Separator } from '@heroui/react';
 import { MessageSquareText, Link2, List } from 'lucide-react';
-import type { Highlight, OutlineHeading } from './mock-data';
-import { MOCK_HIGHLIGHTS, MOCK_OUTLINE } from './mock-data';
+import type { OutlineHeading } from './mock-data';
+import { MOCK_OUTLINE } from './mock-data';
+import { useHighlightsForArticle, type ReaderHighlight } from '../../data/use-reader';
 
 interface ReaderContextPanelProps {
   articleId: string;
 }
 
 function AnnotationsTab({ articleId }: { articleId: string }): ReactElement {
-  const highlights: Highlight[] = MOCK_HIGHLIGHTS.filter((h) => h.articleId === articleId);
+  const highlights = useHighlightsForArticle(articleId);
 
   if (highlights.length === 0) {
     return (
@@ -26,9 +27,9 @@ function AnnotationsTab({ articleId }: { articleId: string }): ReactElement {
         <div key={hl.id} className="text-sm">
           <div
             className="border-l-3 pl-2 py-1"
-            style={{ borderColor: hl.color }}
+            style={{ borderColor: hl.color ?? '#fbbf24' }}
           >
-            <p className="text-foreground">{hl.text}</p>
+            <p className="text-foreground">{hl.quoteText}</p>
           </div>
           {hl.note && (
             <p className="text-muted mt-1 text-xs pl-3">💬 {hl.note}</p>

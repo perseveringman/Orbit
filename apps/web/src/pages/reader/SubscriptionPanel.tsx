@@ -1,8 +1,8 @@
 import { useState, type ReactElement } from 'react';
 import { Button, Card, Chip, Input, Separator } from '@heroui/react';
 import { Plus, Search, Pause, Play, Trash2, Rss } from 'lucide-react';
-import { MOCK_SUBSCRIPTIONS } from './mock-data';
-import type { Subscription } from './mock-data';
+import { useSubscriptionList, type Subscription } from '../../data/use-subscriptions';
+import { useSubscriptionMutations } from '../../data/use-subscription-mutations';
 
 interface DiscoveryResult {
   title: string;
@@ -11,7 +11,8 @@ interface DiscoveryResult {
 }
 
 export function SubscriptionPanel(): ReactElement {
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>(MOCK_SUBSCRIPTIONS);
+  const { subscriptions } = useSubscriptionList();
+  const { createSubscription, pauseSubscription, resumeSubscription, deleteSubscription } = useSubscriptionMutations();
   const [discoverUrl, setDiscoverUrl] = useState('');
   const [discoveryResults, setDiscoveryResults] = useState<DiscoveryResult[]>([]);
   const [isDiscovering, setIsDiscovering] = useState(false);
@@ -19,7 +20,6 @@ export function SubscriptionPanel(): ReactElement {
   const handleDiscover = () => {
     if (!discoverUrl.trim()) return;
     setIsDiscovering(true);
-    // Simulate discovery
     setTimeout(() => {
       setDiscoveryResults([
         { title: `${discoverUrl} — 主 RSS 源`, url: `${discoverUrl}/feed.xml`, type: 'RSS' },
@@ -29,44 +29,34 @@ export function SubscriptionPanel(): ReactElement {
     }, 800);
   };
 
-  const handleToggle = (id: string) => {
-    setSubscriptions((prev) =>
-      prev.map((s) =>
-        s.id === id
-          ? { ...s, status: s.status === 'active' ? ('paused' as const) : ('active' as const) }
-          : s,
-      ),
-    );
-  };
-
-  const handleUnsubscribe = (id: string) => {
-    setSubscriptions((prev) => prev.filter((s) => s.id !== id));
-  };
-
-  const handleSubscribe = (result: DiscoveryResult) => {
-    console.log(`[SubscriptionPanel] subscribe: ${result.url}`);
-    setDiscoveryResults((prev) => prev.filter((r) => r.url !== result.url));
-  };
-
-  const kindColor = (kind: Subscription['kind']) => {
-    switch (kind) {
-      case 'rss':
-        return 'accent' as const;
-      case 'site-watch':
-        return 'warning' as const;
-      case 'channel':
-        return 'success' as const;
+  const handleToggle = (sub: Subscription) => {
+    if (sub.syncStatus === 'paused') {
+      resumeSubscription(sub.id);
+    } else {
+      pauseSubscription(sub.id);
     }
   };
 
-  const kindLabel = (kind: Subscription['kind']) => {
-    switch (kind) {
-      case 'rss':
-        return 'RSS';
-      case 'site-watch':
-        return '网站监测';
-      case 'channel':
-        return '频道';
+  const handleUnsubscribe = (id: string) => {
+    deleteSubscription(id);
+  };
+
+  const handleSubscribe = (result: DiscoveryResult) => {
+    createSubscription({
+      title: result.title,
+      endpointType: 'rss',
+      url: result.url,
+      feedUrl: result.url,
+    });
+    setDiscoveryResults((prev) => prev.filter((r) => r.url !== result.url));
+  };
+
+  const typeColor = (type: string) => {
+    switch (type) {
+      case 'rss': return 'accent' as const;
+      case 'youtube': return 'danger' as const;
+      case 'podcast': return 'success' as const;
+      default: return 'warning' as const;
     }
   };
 
@@ -124,30 +114,30 @@ export function SubscriptionPanel(): ReactElement {
           <Card key={sub.id}>
             <Card.Header>
               <div className="flex items-center gap-2">
-                <Chip size="sm" variant="soft" color={kindColor(sub.kind)}>
-                  {kindLabel(sub.kind)}
+                <Chip size="sm" variant="soft" color={typeColor(sub.endpointType)}>
+                  {sub.endpointType.toUpperCase()}
                 </Chip>
                 <Chip
                   size="sm"
                   variant="soft"
-                  color={sub.status === 'active' ? 'success' : 'default'}
+                  color={sub.syncStatus === 'paused' ? 'default' : 'success'}
                 >
-                  {sub.status === 'active' ? '运行中' : '已暂停'}
+                  {sub.syncStatus === 'paused' ? '已暂停' : '运行中'}
                 </Chip>
               </div>
             </Card.Header>
             <Card.Title>{sub.title}</Card.Title>
             <Card.Description>
-              {sub.fetchInterval} · {sub.articleCount} 篇文章
+              {sub.fetchIntervalMinutes}分钟/次 · {sub.totalItems} 篇文章
             </Card.Description>
             <Card.Footer>
               <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onPress={() => handleToggle(sub.id)}
+                  onPress={() => handleToggle(sub)}
                 >
-                  {sub.status === 'active' ? (
+                  {sub.syncStatus !== 'paused' ? (
                     <><Pause size={14} /> 暂停</>
                   ) : (
                     <><Play size={14} /> 恢复</>

@@ -26,6 +26,7 @@ import {
   TrendingUp,
   ExternalLink,
   Trash2,
+  Database,
 } from 'lucide-react';
 
 import {
@@ -56,6 +57,9 @@ import {
   type FetchedFeed,
   type RouteResult,
 } from '@orbit/reader-resolvers';
+
+import { useReaderMutations } from '../../data/use-reader-mutations';
+import { useSubscriptionMutations } from '../../data/use-subscription-mutations';
 
 // ── Proxied fetch for CORS ─────────────────────────────────
 
@@ -133,6 +137,7 @@ function UrlParsePanel(): ReactElement {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ParseResult[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { saveArticleFromUrl } = useReaderMutations();
 
   const handleParse = useCallback(async () => {
     if (!url.trim()) return;
@@ -193,7 +198,15 @@ function UrlParsePanel(): ReactElement {
 
       {/* Results */}
       {results.map((r) => (
-        <ParseResultCard key={r.id} result={r} />
+        <ParseResultCard key={r.id} result={r} onSave={() => {
+          saveArticleFromUrl({
+            title: r.title ?? r.url,
+            sourceUrl: r.url,
+            author: r.author,
+            summary: r.summary,
+            mediaType: r.type === 'video' ? 'youtube' : r.type === 'podcast' ? 'podcast' : 'web_article',
+          });
+        }} />
       ))}
     </div>
   );
@@ -206,7 +219,8 @@ const EXAMPLE_URLS = [
   { label: 'GitHub Blog', url: 'https://github.blog/engineering/' },
 ];
 
-function ParseResultCard({ result }: { result: ParseResult }): ReactElement {
+function ParseResultCard({ result, onSave }: { result: ParseResult; onSave: () => void }): ReactElement {
+  const [saved, setSaved] = useState(false);
   const typeConfig = {
     article: { icon: <FileText size={14} />, label: '网页文章', color: 'accent' as const },
     video: { icon: <Video size={14} />, label: '视频', color: 'danger' as const },
@@ -252,6 +266,16 @@ function ParseResultCard({ result }: { result: ParseResult }): ReactElement {
           )}
         </div>
       </Card.Description>
+      <Card.Footer>
+        <Button
+          variant={saved ? 'ghost' : 'primary'}
+          size="sm"
+          isDisabled={saved}
+          onPress={() => { onSave(); setSaved(true); }}
+        >
+          {saved ? <><CheckCircle2 size={12} /> 已保存</> : <><Database size={12} /> 保存到阅读库</>}
+        </Button>
+      </Card.Footer>
     </Card>
   );
 }
@@ -265,6 +289,7 @@ function SubscribePanel(): ReactElement {
   const [loading, setLoading] = useState(false);
   const [subscriptions, setSubscriptions] = useState<SubscriptionItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { createSubscription, deleteSubscription } = useSubscriptionMutations();
 
   const handleSubscribe = useCallback(async () => {
     if (!url.trim()) return;
@@ -288,6 +313,13 @@ function SubscribePanel(): ReactElement {
       setSubscriptions((prev) =>
         prev.map((s) => (s.id === subId ? { ...s, ...resolved, status: 'active' as const } : s)),
       );
+      // Persist to DB
+      createSubscription({
+        title: resolved.title ?? url.trim(),
+        endpointType: resolved.kind ?? 'rss',
+        url: url.trim(),
+        feedUrl: resolved.feedUrl ?? undefined,
+      });
     } catch (err) {
       setSubscriptions((prev) =>
         prev.map((s) =>

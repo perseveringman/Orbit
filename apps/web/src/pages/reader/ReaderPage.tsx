@@ -1,8 +1,7 @@
 import { useState, type ReactElement } from 'react';
 import { Button, Separator } from '@heroui/react';
 import { Plus, BookOpenText } from 'lucide-react';
-import type { Article } from './mock-data';
-import { MOCK_ARTICLES, MOCK_PODCASTS, MOCK_VIDEOS, MOCK_BOOKS } from './mock-data';
+import { useArticle } from '../../data/use-reader';
 import { ReaderView } from './ReaderView';
 import { PodcastPlayerView } from './PodcastPlayerView';
 import { VideoPlayerView } from './VideoPlayerView';
@@ -11,6 +10,8 @@ import { SubscriptionPanel } from './SubscriptionPanel';
 import { ReaderRouter, type ReaderRoute } from './ReaderRouter';
 import { ContentListPage } from './ContentListPage';
 import { AddContentModal } from './AddContentModal';
+import { MOCK_PODCASTS, MOCK_VIDEOS, MOCK_BOOKS } from './mock-data';
+import { useReaderMutations } from '../../data/use-reader-mutations';
 
 type ViewMode = 'library' | 'reading';
 
@@ -37,22 +38,24 @@ function renderContentView(route: ReaderRoute, onBack: () => void): ReactElement
 
 export function ReaderPage(): ReactElement {
   const [view, setView] = useState<ViewMode>('library');
-  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [showSubscriptions, setShowSubscriptions] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const selectedArticle = useArticle(view === 'reading' ? selectedArticleId : null);
+  const { saveArticleFromUrl } = useReaderMutations();
 
-  const handleSelectArticle = (article: Article) => {
-    setSelectedArticle(article);
+  const handleSelectArticle = (id: string) => {
+    setSelectedArticleId(id);
     setView('reading');
   };
 
   const handleBackToLibrary = () => {
     setView('library');
-    setSelectedArticle(null);
+    setSelectedArticleId(null);
   };
 
   const handleAddContent = (url: string) => {
-    console.log('[ReaderPage] add content:', url);
+    saveArticleFromUrl({ title: url, sourceUrl: url });
   };
 
   if (view === 'reading' && selectedArticle) {
@@ -97,13 +100,9 @@ export function ReaderPage(): ReactElement {
                   contentType={contentType}
                   onContentTypeChange={setContentType}
                   onSelectItem={(type, id) => {
-                    // For articles, use the existing ReaderView
                     if (type === 'article') {
-                      const article = MOCK_ARTICLES.find((a) => a.id === id || `c-${a.id}` === id);
-                      if (article) {
-                        handleSelectArticle(article);
-                        return;
-                      }
+                      handleSelectArticle(id);
+                      return;
                     }
                     navigate({ type, id });
                   }}

@@ -2,10 +2,10 @@ import { useState, useMemo, type ReactElement } from 'react';
 import { Tabs, Card, Chip, Button, ProgressBar, Input } from '@heroui/react';
 import { FileText, Headphones, PlayCircle, BookOpen, Search, ArrowUpDown } from 'lucide-react';
 import type { ReaderContentType } from './ReaderRouter';
-import type { ContentItem, ContentStatus } from './mock-data';
-import { MOCK_CONTENT_ITEMS } from './mock-data';
+import { useArticleList, type ReaderArticle } from '../../data/use-reader';
 
 type SortKey = 'updated' | 'progress' | 'published';
+type ContentStatus = 'unread' | 'reading' | 'archived';
 
 interface ContentListPageProps {
   contentType: ReaderContentType | 'all';
@@ -27,6 +27,15 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'published', label: '发布日期' },
 ];
 
+function mediaTypeToContentType(mediaType: string): ReaderContentType {
+  switch (mediaType) {
+    case 'podcast': return 'podcast';
+    case 'youtube': return 'video';
+    case 'book': return 'book';
+    default: return 'article';
+  }
+}
+
 function typeIcon(type: ReaderContentType): ReactElement {
   switch (type) {
     case 'article': return <FileText size={14} className="shrink-0" />;
@@ -39,8 +48,7 @@ function typeIcon(type: ReaderContentType): ReactElement {
 function statusLabel(status: ContentStatus): string {
   switch (status) {
     case 'unread': return '未读';
-    case 'in_progress': return '进行中';
-    case 'done': return '已完成';
+    case 'reading': return '进行中';
     case 'archived': return '已归档';
   }
 }
@@ -48,25 +56,25 @@ function statusLabel(status: ContentStatus): string {
 function statusColor(status: ContentStatus) {
   switch (status) {
     case 'unread': return 'accent' as const;
-    case 'in_progress': return 'warning' as const;
-    case 'done': return 'success' as const;
+    case 'reading': return 'warning' as const;
     case 'archived': return 'default' as const;
   }
 }
 
-function sortItems(items: ContentItem[], key: SortKey): ContentItem[] {
+function sortArticles(items: ReaderArticle[], key: SortKey): ReaderArticle[] {
   const sorted = [...items];
   switch (key) {
     case 'updated':
-      return sorted.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+      return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     case 'progress':
-      return sorted.sort((a, b) => b.progress - a.progress);
+      return sorted.sort((a, b) => (b.readingProgress ?? 0) - (a.readingProgress ?? 0));
     case 'published':
-      return sorted.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+      return sorted.sort((a, b) => new Date(b.publishedAt ?? b.createdAt).getTime() - new Date(a.publishedAt ?? a.createdAt).getTime());
   }
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string | null): string {
+  if (!iso) return '';
   return new Date(iso).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
 }
 
@@ -77,23 +85,24 @@ export function ContentListPage({
 }: ContentListPageProps): ReactElement {
   const [sortKey, setSortKey] = useState<SortKey>('updated');
   const [searchQuery, setSearchQuery] = useState('');
+  const { articles } = useArticleList();
 
   const filtered = useMemo(() => {
-    let items = MOCK_CONTENT_ITEMS;
+    let items = articles;
     if (contentType !== 'all') {
-      items = items.filter((item) => item.type === contentType);
+      items = items.filter((a) => mediaTypeToContentType(a.mediaType) === contentType);
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       items = items.filter(
-        (item) =>
-          item.title.toLowerCase().includes(q) ||
-          item.author.toLowerCase().includes(q) ||
-          item.source.toLowerCase().includes(q),
+        (a) =>
+          a.title.toLowerCase().includes(q) ||
+          (a.author ?? '').toLowerCase().includes(q) ||
+          (a.sourceUrl ?? '').toLowerCase().includes(q),
       );
     }
-    return sortItems(items, sortKey);
-  }, [contentType, sortKey, searchQuery]);
+    return sortArticles(items, sortKey);
+  }, [articles, contentType, sortKey, searchQuery]);
 
   return (
     <div className="flex flex-col h-full">
@@ -147,47 +156,45 @@ export function ContentListPage({
           </div>
         )}
 
-        {filtered.map((item) => (
-          <Card
-            key={item.id}
-            className="cursor-pointer"
-            onClick={() => onSelectItem(item.type, item.id)}
-          >
-            <Card.Header>
-              <div className="flex items-center gap-2">
-                {typeIcon(item.type)}
-                <Chip size="sm" variant="soft" color={statusColor(item.status)}>
-                  {statusLabel(item.status)}
-                </Chip>
-              </div>
-            </Card.Header>
-            <Card.Title>{item.title}</Card.Title>
-            <Card.Description>
-              {item.author} · {item.source} · {formatDate(item.publishedAt)}
-            </Card.Description>
-            {item.progress > 0 && item.progress < 100 && (
-              <Card.Content>
-                <ProgressBar
-                  aria-label="进度"
-                  value={item.progress}
-                  size="sm"
-                  className="w-full"
-                >
-                  <ProgressBar.Track className="h-1">
-                    <ProgressBar.Fill />
-                  </ProgressBar.Track>
-                </ProgressBar>
-              </Card.Content>
-            )}
-            <Card.Footer>
-              <div className="flex flex-wrap gap-1">
-                {item.tags.map((tag) => (
-                  <Chip key={tag} size="sm" variant="soft">{tag}</Chip>
-                ))}
-              </div>
-            </Card.Footer>
-          </Card>
-        ))}
+        {filtered.map((item) => {
+          const cType = mediaTypeToContentType(item.mediaType);
+          const progress = (item.readingProgress ?? 0) * 100;
+
+          return (
+            <Card
+              key={item.id}
+              className="cursor-pointer"
+              onClick={() => onSelectItem(cType, item.id)}
+            >
+              <Card.Header>
+                <div className="flex items-center gap-2">
+                  {typeIcon(cType)}
+                  <Chip size="sm" variant="soft" color={statusColor(item.status)}>
+                    {statusLabel(item.status)}
+                  </Chip>
+                </div>
+              </Card.Header>
+              <Card.Title>{item.title}</Card.Title>
+              <Card.Description>
+                {item.author ?? '未知'} · {formatDate(item.publishedAt)}
+              </Card.Description>
+              {progress > 0 && progress < 100 && (
+                <Card.Content>
+                  <ProgressBar
+                    aria-label="进度"
+                    value={progress}
+                    size="sm"
+                    className="w-full"
+                  >
+                    <ProgressBar.Track className="h-1">
+                      <ProgressBar.Fill />
+                    </ProgressBar.Track>
+                  </ProgressBar>
+                </Card.Content>
+              )}
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

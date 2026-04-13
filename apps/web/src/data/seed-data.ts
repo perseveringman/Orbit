@@ -127,6 +127,83 @@ export function seedDatabase(db: DatabasePort): void {
       );
     }
 
+    // ── Source Endpoints (Subscriptions) ─────────────────────────────────
+    const endpoints = [
+      { id: 'ep-hn', title: 'Hacker News', endpointType: 'rss', url: 'https://news.ycombinator.com', feedUrl: 'https://rsshub.app/hackernews/best', description: 'Top stories from HN', syncStatus: 'idle', totalItems: 5, createdAt: '2026-03-01T10:00:00Z' },
+      { id: 'ep-github', title: 'GitHub Trending', endpointType: 'rss', url: 'https://github.com/trending', feedUrl: 'https://rsshub.app/github/trending/daily', description: 'Daily trending repos', syncStatus: 'idle', totalItems: 3, createdAt: '2026-03-05T10:00:00Z' },
+      { id: 'ep-lex', title: 'Lex Fridman Podcast', endpointType: 'podcast', url: 'https://lexfridman.com/podcast', feedUrl: 'https://lexfridman.com/feed/podcast/', description: 'Conversations about intelligence', syncStatus: 'idle', totalItems: 4, createdAt: '2026-03-10T10:00:00Z' },
+      { id: 'ep-fireship', title: 'Fireship (YouTube)', endpointType: 'youtube', url: 'https://www.youtube.com/@Fireship', feedUrl: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA', description: 'High-intensity code tutorials', syncStatus: 'paused', totalItems: 2, createdAt: '2026-03-15T10:00:00Z' },
+      { id: 'ep-xiaoyuzhou', title: '不合时宜', endpointType: 'podcast', url: 'https://www.xiaoyuzhoufm.com/podcast/6013f9f58e2f7ee375cf4216', feedUrl: null, description: '关于当下的文化观察与思考', syncStatus: 'idle', totalItems: 0, createdAt: '2026-03-20T10:00:00Z' },
+    ];
+
+    for (const ep of endpoints) {
+      db.run(
+        `INSERT INTO source_endpoints (id, title, endpoint_type, url, feed_url, description, icon_url, language, fetch_interval_minutes, sync_status, quality_score, total_items, confirmed_items, consecutive_errors, created_at, updated_at, deleted_flg)
+         VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, 60, ?, 0.5, ?, 0, 0, ?, ?, 0)`,
+        [ep.id, ep.title, ep.endpointType, ep.url, ep.feedUrl, ep.description, ep.syncStatus, ep.totalItems, ep.createdAt, now],
+      );
+      db.run(
+        `INSERT INTO object_index (object_uid, object_type, object_id, canonical_table, layer, title, summary, status, origin, visibility, version_token, created_at, updated_at, deleted_flg)
+         VALUES (?, 'source_endpoint', ?, 'source_endpoints', 'system', ?, ?, 'active', 'human', 'private', ?, ?, ?, 0)`,
+        [`source_endpoint:${ep.id}`, ep.id, ep.title, ep.description, `seed-${ep.id}`, ep.createdAt, now],
+      );
+    }
+
+    // ── Articles ─────────────────────────────────────────────────────────
+    const articles = [
+      { id: 'art-1', title: 'Attention Is All You Need', sourceUrl: 'https://arxiv.org/abs/1706.03762', author: 'Vaswani et al.', mediaType: 'web_article', status: 'reading', readingProgress: 0.45, origin: 'user_save', summary: 'The seminal Transformer paper', publishedAt: '2017-06-12T00:00:00Z', createdAt: '2026-04-01T08:00:00Z', endpointId: null },
+      { id: 'art-2', title: 'How to Build a Second Brain', sourceUrl: 'https://fortelabs.com/blog/basboverview/', author: 'Tiago Forte', mediaType: 'web_article', status: 'unread', readingProgress: null, origin: 'user_save', summary: 'A proven method to organise your digital life', publishedAt: '2019-02-20T00:00:00Z', createdAt: '2026-04-02T09:00:00Z', endpointId: null },
+      { id: 'art-3', title: 'The Bitter Lesson', sourceUrl: 'http://www.incompleteideas.net/IncIdeas/BitterLesson.html', author: 'Rich Sutton', mediaType: 'web_article', status: 'archived', readingProgress: 1.0, origin: 'user_save', summary: 'Computation > human knowledge in AI', publishedAt: '2019-03-13T00:00:00Z', createdAt: '2026-04-03T10:00:00Z', endpointId: null },
+      { id: 'art-4', title: 'Lex Fridman #400: Elon Musk', sourceUrl: 'https://lexfridman.com/elon-musk-4', author: 'Lex Fridman', mediaType: 'podcast', status: 'unread', readingProgress: null, origin: 'feed_auto', summary: 'War, AI, aliens, politics, physics, video games, and humanity', publishedAt: '2023-12-28T00:00:00Z', createdAt: '2026-04-05T11:00:00Z', endpointId: 'ep-lex' },
+      { id: 'art-5', title: 'React Server Components Explained', sourceUrl: 'https://www.youtube.com/watch?v=TQQPAU21ZUw', author: 'Fireship', mediaType: 'youtube', status: 'reading', readingProgress: 0.7, origin: 'feed_auto', summary: 'RSC in 100 seconds + deep dive', publishedAt: '2024-01-15T00:00:00Z', createdAt: '2026-04-06T12:00:00Z', endpointId: 'ep-fireship' },
+      { id: 'art-6', title: 'SQLite is not a toy database', sourceUrl: 'https://antonz.org/sqlite-is-not-a-toy-database/', author: 'Anton Zhiyanov', mediaType: 'web_article', status: 'unread', readingProgress: null, origin: 'feed_auto', summary: 'Why SQLite deserves more respect', publishedAt: '2024-02-10T00:00:00Z', createdAt: '2026-04-07T08:00:00Z', endpointId: 'ep-hn' },
+    ];
+
+    for (const a of articles) {
+      db.run(
+        `INSERT INTO articles (id, content_item_id, source_endpoint_id, title, source_url, author, media_type, language, summary, status, reading_progress, origin, published_at, fetched_at, created_at, updated_at, deleted_flg)
+         VALUES (?, NULL, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+        [a.id, a.endpointId, a.title, a.sourceUrl, a.author, a.mediaType, a.summary, a.status, a.readingProgress, a.origin, a.publishedAt, a.createdAt, a.createdAt, now],
+      );
+      db.run(
+        `INSERT INTO object_index (object_uid, object_type, object_id, canonical_table, layer, title, summary, status, origin, visibility, version_token, created_at, updated_at, deleted_flg)
+         VALUES (?, 'article', ?, 'articles', 'sources', ?, ?, ?, ?, 'private', ?, ?, ?, 0)`,
+        [`article:${a.id}`, a.id, a.title, a.summary, a.status, a.origin, `seed-${a.id}`, a.createdAt, now],
+      );
+    }
+
+    // ── Content Items ────────────────────────────────────────────────────
+    const contentItems = [
+      { id: 'ci-1', endpointId: 'ep-hn', externalId: 'hn-39901234', title: 'Show HN: I built a local-first personal OS', status: 'pending', rawJson: '{"url":"https://example.com/localfirst-os","points":342}' },
+      { id: 'ci-2', endpointId: 'ep-hn', externalId: 'hn-39901235', title: 'Why I moved from Postgres to SQLite', status: 'pending', rawJson: '{"url":"https://example.com/pg-to-sqlite","points":218}' },
+      { id: 'ci-3', endpointId: 'ep-github', externalId: 'gh-trending-1', title: 'juspay/hyperswitch — Open source payments switch', status: 'pending', rawJson: '{"url":"https://github.com/juspay/hyperswitch","stars":10500}' },
+      { id: 'ci-4', endpointId: 'ep-lex', externalId: 'lex-401', title: '#401: Sam Altman on the Future of AI', status: 'promoted', rawJson: '{"url":"https://lexfridman.com/sam-altman-2","duration":"3:14:22"}' },
+      { id: 'ci-5', endpointId: 'ep-fireship', externalId: 'yt-fw1234', title: 'Bun 1.0 — The Node.js Killer?', status: 'pending', rawJson: '{"url":"https://www.youtube.com/watch?v=abc123","duration":"12:05"}' },
+    ];
+
+    for (const ci of contentItems) {
+      db.run(
+        `INSERT INTO content_items (id, source_endpoint_id, external_id, title, content_type, raw_json, origin, processing_depth, status, created_at, updated_at, deleted_flg)
+         VALUES (?, ?, ?, ?, NULL, ?, 'feed_auto', 'lightweight', ?, ?, ?, 0)`,
+        [ci.id, ci.endpointId, ci.externalId, ci.title, ci.rawJson, ci.status, now, now],
+      );
+    }
+
+    // ── Highlights ───────────────────────────────────────────────────────
+    const highlights = [
+      { id: 'hl-1', articleId: 'art-1', quoteText: 'Attention mechanisms have become an integral part of compelling sequence modeling.', color: 'yellow', note: '核心论点', kind: 'highlight' },
+      { id: 'hl-2', articleId: 'art-1', quoteText: 'The Transformer is the first transduction model relying entirely on self-attention.', color: 'blue', note: null, kind: 'highlight' },
+      { id: 'hl-3', articleId: 'art-3', quoteText: 'The biggest lesson that can be read from 70 years of AI research is that general methods that leverage computation are ultimately the most effective.', color: 'green', note: '这就是 Bitter Lesson 的核心', kind: 'highlight' },
+    ];
+
+    for (const h of highlights) {
+      db.run(
+        `INSERT INTO highlights (id, source_object_type, source_object_id, anchor_json, quote_text, color, note, highlight_kind, created_by, created_at, updated_at, deleted_flg)
+         VALUES (?, 'article', ?, '{}', ?, ?, ?, ?, 'manual', ?, ?, 0)`,
+        [h.id, h.articleId, h.quoteText, h.color, h.note, h.kind, now, now],
+      );
+    }
+
     // ── FTS entries for search ──────────────────────────────────────────
     for (const t of tasks) {
       db.run(
@@ -147,6 +224,20 @@ export function seedDatabase(db: DatabasePort): void {
         `INSERT OR REPLACE INTO object_search_fts (object_uid, title, summary, keywords)
          VALUES (?, ?, ?, '')`,
         [`milestone:${m.id}`, m.title, m.description],
+      );
+    }
+    for (const a of articles) {
+      db.run(
+        `INSERT OR REPLACE INTO object_search_fts (object_uid, title, summary, keywords)
+         VALUES (?, ?, ?, ?)`,
+        [`article:${a.id}`, a.title, a.summary, a.author ?? ''],
+      );
+    }
+    for (const ep of endpoints) {
+      db.run(
+        `INSERT OR REPLACE INTO object_search_fts (object_uid, title, summary, keywords)
+         VALUES (?, ?, ?, ?)`,
+        [`source_endpoint:${ep.id}`, ep.title, ep.description, ep.endpointType],
       );
     }
   });
