@@ -1,6 +1,6 @@
 import { useState, type ReactElement } from 'react';
 import { Button, Chip, Tabs } from '@heroui/react';
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, SidebarOpen, PanelRightOpen, Languages } from 'lucide-react';
 import type { PodcastReaderViewModel } from '../../../data/use-podcast-reader';
 import { useReaderMutations } from '../../../data/use-reader-mutations';
 import { PodcastTimelineSidebar } from './PodcastTimelineSidebar';
@@ -25,6 +25,7 @@ export function PodcastReaderShell({ podcast, onBack }: PodcastReaderShellProps)
   const [playbackRate, setPlaybackRate] = useState(1);
   const [timelineCollapsed, setTimelineCollapsed] = useState(false);
   const [detailCollapsed, setDetailCollapsed] = useState(false);
+  const [translationVisible, setTranslationVisible] = useState(false);
 
   const mutations = useReaderMutations();
 
@@ -43,9 +44,9 @@ export function PodcastReaderShell({ podcast, onBack }: PodcastReaderShellProps)
   const handleTimeUpdate = (seconds: number) => {
     setCurrentTime(seconds);
 
-    // Persist playback position
+    // Persist playback position (0-1 fraction as expected by updateReadingProgress)
     const progress = podcast.episode?.durationSeconds
-      ? (seconds / podcast.episode.durationSeconds) * 100
+      ? seconds / podcast.episode.durationSeconds
       : 0;
     mutations.updateReadingProgress(podcast.articleId, progress, { currentTime: seconds });
   };
@@ -54,7 +55,7 @@ export function PodcastReaderShell({ podcast, onBack }: PodcastReaderShellProps)
     setPlaybackRate(rate);
   };
 
-  const handleHighlightClick = (highlight: any) => {
+  const handleHighlightClick = (highlight: PodcastReaderViewModel['highlights'][number]) => {
     if (highlight.timestampSeconds !== null) {
       handleSeek(highlight.timestampSeconds);
     }
@@ -74,6 +75,42 @@ export function PodcastReaderShell({ podcast, onBack }: PodcastReaderShellProps)
           <Chip size="sm" variant="soft">
             {podcast.show.title}
           </Chip>
+        )}
+      </div>
+
+      {/* Micro-toolbar controls */}
+      <div className="flex items-center gap-1 px-4 py-1.5 border-b border-border bg-surface">
+        <Button
+          variant="ghost"
+          size="sm"
+          onPress={() => setTimelineCollapsed(!timelineCollapsed)}
+          aria-label={timelineCollapsed ? 'Show timeline' : 'Hide timeline'}
+          className="h-7 px-2 text-xs"
+        >
+          <SidebarOpen size={14} />
+          <span className="ml-1">Outline</span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onPress={() => setDetailCollapsed(!detailCollapsed)}
+          aria-label={detailCollapsed ? 'Show details' : 'Hide details'}
+          className="h-7 px-2 text-xs"
+        >
+          <PanelRightOpen size={14} />
+          <span className="ml-1">Details</span>
+        </Button>
+        {podcast.translation && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onPress={() => setTranslationVisible(!translationVisible)}
+            aria-label={translationVisible ? 'Hide translation' : 'Show translation'}
+            className={`h-7 px-2 text-xs ${translationVisible ? 'bg-primary-100 dark:bg-primary-900/30' : ''}`}
+          >
+            <Languages size={14} />
+            <span className="ml-1">Translation</span>
+          </Button>
         )}
       </div>
 
@@ -138,24 +175,68 @@ export function PodcastReaderShell({ podcast, onBack }: PodcastReaderShellProps)
             </Tabs.List>
 
             <Tabs.Panel id="about">
-              <div className="flex-1 overflow-hidden">
-                <PodcastAboutTab showNotes={podcast.episode?.showNotes ?? null} />
+              <div className="flex-1 overflow-hidden relative">
+                <PodcastAboutTab showNotes={podcast.episode?.showNotes ?? null} onSeek={handleSeek} />
+                {translationVisible && podcast.translation?.translatedText && (
+                  <div className="absolute inset-0 bg-surface/95 backdrop-blur-sm p-4 overflow-y-auto">
+                    <div className="max-w-3xl mx-auto">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-semibold text-foreground">
+                          Translation ({podcast.translation.targetLocale})
+                        </h3>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onPress={() => setTranslationVisible(false)}
+                          aria-label="Close translation"
+                        >
+                          <ChevronLeft size={14} />
+                        </Button>
+                      </div>
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <p className="whitespace-pre-wrap">{podcast.translation.translatedText}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </Tabs.Panel>
 
             <Tabs.Panel id="summary">
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden relative">
                 <PodcastSummaryTab
                   status={podcast.summary.status}
                   progress={podcast.summary.progress}
                   summaryText={podcast.summary.summaryText}
                   keyPoints={podcast.summary.keyPoints}
                 />
+                {translationVisible && podcast.translation?.translatedText && (
+                  <div className="absolute inset-0 bg-surface/95 backdrop-blur-sm p-4 overflow-y-auto">
+                    <div className="max-w-3xl mx-auto">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-semibold text-foreground">
+                          Translation ({podcast.translation.targetLocale})
+                        </h3>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onPress={() => setTranslationVisible(false)}
+                          aria-label="Close translation"
+                        >
+                          <ChevronLeft size={14} />
+                        </Button>
+                      </div>
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <p className="whitespace-pre-wrap">{podcast.translation.translatedText}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </Tabs.Panel>
 
             <Tabs.Panel id="transcript">
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden relative">
                 <PodcastTranscriptTab
                   status={podcast.transcript.status}
                   progress={podcast.transcript.progress}
@@ -164,6 +245,28 @@ export function PodcastReaderShell({ podcast, onBack }: PodcastReaderShellProps)
                   onSeek={handleSeek}
                   highlights={podcast.highlights}
                 />
+                {translationVisible && podcast.translation?.translatedText && (
+                  <div className="absolute inset-0 bg-surface/95 backdrop-blur-sm p-4 overflow-y-auto">
+                    <div className="max-w-3xl mx-auto">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-semibold text-foreground">
+                          Translation ({podcast.translation.targetLocale})
+                        </h3>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onPress={() => setTranslationVisible(false)}
+                          aria-label="Close translation"
+                        >
+                          <ChevronLeft size={14} />
+                        </Button>
+                      </div>
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <p className="whitespace-pre-wrap">{podcast.translation.translatedText}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </Tabs.Panel>
           </Tabs>
