@@ -83,6 +83,7 @@ export interface PodcastReaderViewModel {
 // ── Pure Mapper Functions ──────────────────────────────────────────────────
 
 type DerivativeAssetStatus = 'pending' | 'processing' | 'completed' | 'failed';
+type ArticleStatus = 'unread' | 'reading' | 'archived';
 
 /**
  * Validates and normalizes status strings from DB to typed union values.
@@ -94,6 +95,18 @@ function normalizeDerivativeStatus(status: unknown): DerivativeAssetStatus {
     return status;
   }
   return 'pending';
+}
+
+/**
+ * Validates and normalizes article status strings from DB to typed union values.
+ * Falls back to 'unread' for any invalid or null status.
+ */
+function normalizeArticleStatus(status: unknown): ArticleStatus {
+  if (typeof status === 'string' && 
+      (status === 'unread' || status === 'reading' || status === 'archived')) {
+    return status;
+  }
+  return 'unread';
 }
 
 export function getEpisodeMetadata(contentItemRow: Record<string, unknown> | null): PodcastEpisodeMetadata | null {
@@ -327,7 +340,7 @@ export function mapPodcastArticleToReader(
     title: article.title as string,
     author: (article.author as string) ?? null,
     sourceUrl: (article.source_url as string) ?? null,
-    status: ((article.status as string) || 'unread') as PodcastReaderViewModel['status'],
+    status: normalizeArticleStatus(article.status),
     readingProgress: typeof article.reading_progress === 'number' ? article.reading_progress : 0,
     publishedAt: (article.published_at as string) ?? null,
     createdAt: article.created_at as string,

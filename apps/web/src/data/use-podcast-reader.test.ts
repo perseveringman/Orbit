@@ -359,6 +359,44 @@ describe('use-podcast-reader — Pure mappers', () => {
   });
 
   describe('mapPodcastArticleToReader', () => {
+    it('normalizes invalid article status to "unread"', () => {
+      const article = {
+        id: 'art-1',
+        title: 'Episode',
+        author: null,
+        source_url: 'https://example.com/ep',
+        media_type: 'podcast',
+        status: 'invalid_db_status',
+        reading_progress: 0,
+        last_read_position: null,
+        published_at: null,
+        created_at: '2026-04-05T00:00:00Z',
+        updated_at: '2026-04-05T00:00:00Z',
+      };
+
+      const result = mapPodcastArticleToReader(article, null, null, [], []);
+      expect(result.status).toBe('unread');
+    });
+
+    it('normalizes null article status to "unread"', () => {
+      const article = {
+        id: 'art-1',
+        title: 'Episode',
+        author: null,
+        source_url: 'https://example.com/ep',
+        media_type: 'podcast',
+        status: null,
+        reading_progress: 0,
+        last_read_position: null,
+        published_at: null,
+        created_at: '2026-04-05T00:00:00Z',
+        updated_at: '2026-04-05T00:00:00Z',
+      };
+
+      const result = mapPodcastArticleToReader(article, null, null, [], []);
+      expect(result.status).toBe('unread');
+    });
+
     it('assembles complete podcast reader VM from rows', () => {
       const article = {
         id: 'art-1',
