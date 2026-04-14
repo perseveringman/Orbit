@@ -85,11 +85,13 @@ export function useReaderMutations() {
       if (!ready || !db) return;
       const now = new Date().toISOString();
 
-      db.run('UPDATE articles SET status = ?, updated_at = ? WHERE id = ?', [newStatus, now, articleId]);
-      db.run(
-        'UPDATE object_index SET status = ?, updated_at = ? WHERE object_id = ? AND object_type = ?',
-        [newStatus, now, articleId, 'article'],
-      );
+      db.transaction(() => {
+        db.run('UPDATE articles SET status = ?, updated_at = ? WHERE id = ?', [newStatus, now, articleId]);
+        db.run(
+          'UPDATE object_index SET status = ?, updated_at = ? WHERE object_id = ? AND object_type = ?',
+          [newStatus, now, articleId, 'article'],
+        );
+      });
 
       invalidate();
     },
@@ -97,12 +99,26 @@ export function useReaderMutations() {
   );
 
   const updateReadingProgress = useCallback(
-    (articleId: string, progress: number) => {
+    (articleId: string, progress: number, playbackPosition?: { currentTime: number }) => {
       if (!ready || !db) return;
       const now = new Date().toISOString();
       const clamped = Math.max(0, Math.min(1, progress));
 
-      db.run('UPDATE articles SET reading_progress = ?, updated_at = ? WHERE id = ?', [clamped, now, articleId]);
+      db.transaction(() => {
+        if (playbackPosition) {
+          const positionJson = JSON.stringify({
+            currentTime: playbackPosition.currentTime,
+            lastUpdated: now,
+          });
+          db.run(
+            'UPDATE articles SET reading_progress = ?, last_read_position = ?, updated_at = ? WHERE id = ?',
+            [clamped, positionJson, now, articleId]
+          );
+        } else {
+          db.run('UPDATE articles SET reading_progress = ?, updated_at = ? WHERE id = ?', [clamped, now, articleId]);
+        }
+      });
+
       invalidate();
     },
     [db, invalidate, ready],

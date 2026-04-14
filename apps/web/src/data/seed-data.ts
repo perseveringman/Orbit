@@ -151,19 +151,19 @@ export function seedDatabase(db: DatabasePort): void {
 
     // ── Articles ─────────────────────────────────────────────────────────
     const articles = [
-      { id: 'art-1', title: 'Attention Is All You Need', sourceUrl: 'https://arxiv.org/abs/1706.03762', author: 'Vaswani et al.', mediaType: 'web_article', status: 'reading', readingProgress: 0.45, origin: 'user_save', summary: 'The seminal Transformer paper', publishedAt: '2017-06-12T00:00:00Z', createdAt: '2026-04-01T08:00:00Z', endpointId: null },
-      { id: 'art-2', title: 'How to Build a Second Brain', sourceUrl: 'https://fortelabs.com/blog/basboverview/', author: 'Tiago Forte', mediaType: 'web_article', status: 'unread', readingProgress: null, origin: 'user_save', summary: 'A proven method to organise your digital life', publishedAt: '2019-02-20T00:00:00Z', createdAt: '2026-04-02T09:00:00Z', endpointId: null },
-      { id: 'art-3', title: 'The Bitter Lesson', sourceUrl: 'http://www.incompleteideas.net/IncIdeas/BitterLesson.html', author: 'Rich Sutton', mediaType: 'web_article', status: 'archived', readingProgress: 1.0, origin: 'user_save', summary: 'Computation > human knowledge in AI', publishedAt: '2019-03-13T00:00:00Z', createdAt: '2026-04-03T10:00:00Z', endpointId: null },
-      { id: 'art-4', title: 'Lex Fridman #400: Elon Musk', sourceUrl: 'https://lexfridman.com/elon-musk-4', author: 'Lex Fridman', mediaType: 'podcast', status: 'unread', readingProgress: null, origin: 'feed_auto', summary: 'War, AI, aliens, politics, physics, video games, and humanity', publishedAt: '2023-12-28T00:00:00Z', createdAt: '2026-04-05T11:00:00Z', endpointId: 'ep-lex' },
-      { id: 'art-5', title: 'React Server Components Explained', sourceUrl: 'https://www.youtube.com/watch?v=TQQPAU21ZUw', author: 'Fireship', mediaType: 'youtube', status: 'reading', readingProgress: 0.7, origin: 'feed_auto', summary: 'RSC in 100 seconds + deep dive', publishedAt: '2024-01-15T00:00:00Z', createdAt: '2026-04-06T12:00:00Z', endpointId: 'ep-fireship' },
-      { id: 'art-6', title: 'SQLite is not a toy database', sourceUrl: 'https://antonz.org/sqlite-is-not-a-toy-database/', author: 'Anton Zhiyanov', mediaType: 'web_article', status: 'unread', readingProgress: null, origin: 'feed_auto', summary: 'Why SQLite deserves more respect', publishedAt: '2024-02-10T00:00:00Z', createdAt: '2026-04-07T08:00:00Z', endpointId: 'ep-hn' },
+      { id: 'art-1', contentItemId: null, title: 'Attention Is All You Need', sourceUrl: 'https://arxiv.org/abs/1706.03762', author: 'Vaswani et al.', mediaType: 'web_article', status: 'reading', readingProgress: 0.45, lastReadPosition: null, origin: 'user_save', summary: 'The seminal Transformer paper', publishedAt: '2017-06-12T00:00:00Z', createdAt: '2026-04-01T08:00:00Z', endpointId: null },
+      { id: 'art-2', contentItemId: null, title: 'How to Build a Second Brain', sourceUrl: 'https://fortelabs.com/blog/basboverview/', author: 'Tiago Forte', mediaType: 'web_article', status: 'unread', readingProgress: null, lastReadPosition: null, origin: 'user_save', summary: 'A proven method to organise your digital life', publishedAt: '2019-02-20T00:00:00Z', createdAt: '2026-04-02T09:00:00Z', endpointId: null },
+      { id: 'art-3', contentItemId: null, title: 'The Bitter Lesson', sourceUrl: 'http://www.incompleteideas.net/IncIdeas/BitterLesson.html', author: 'Rich Sutton', mediaType: 'web_article', status: 'archived', readingProgress: 1.0, lastReadPosition: null, origin: 'user_save', summary: 'Computation > human knowledge in AI', publishedAt: '2019-03-13T00:00:00Z', createdAt: '2026-04-03T10:00:00Z', endpointId: null },
+      { id: 'art-4', contentItemId: 'ci-podcast-lex-400', title: 'Lex Fridman #400: Elon Musk', sourceUrl: 'https://lexfridman.com/elon-musk-4', author: 'Lex Fridman', mediaType: 'podcast', status: 'reading', readingProgress: 0.25, lastReadPosition: JSON.stringify({ currentTime: 1245, lastUpdated: '2026-04-09T14:30:00Z' }), origin: 'feed_auto', summary: 'War, AI, aliens, politics, physics, video games, and humanity', publishedAt: '2023-12-28T00:00:00Z', createdAt: '2026-04-05T11:00:00Z', endpointId: 'ep-lex' },
+      { id: 'art-5', contentItemId: null, title: 'React Server Components Explained', sourceUrl: 'https://www.youtube.com/watch?v=TQQPAU21ZUw', author: 'Fireship', mediaType: 'youtube', status: 'reading', readingProgress: 0.7, lastReadPosition: null, origin: 'feed_auto', summary: 'RSC in 100 seconds + deep dive', publishedAt: '2024-01-15T00:00:00Z', createdAt: '2026-04-06T12:00:00Z', endpointId: 'ep-fireship' },
+      { id: 'art-6', contentItemId: null, title: 'SQLite is not a toy database', sourceUrl: 'https://antonz.org/sqlite-is-not-a-toy-database/', author: 'Anton Zhiyanov', mediaType: 'web_article', status: 'unread', readingProgress: null, lastReadPosition: null, origin: 'feed_auto', summary: 'Why SQLite deserves more respect', publishedAt: '2024-02-10T00:00:00Z', createdAt: '2026-04-07T08:00:00Z', endpointId: 'ep-hn' },
     ];
 
     for (const a of articles) {
       db.run(
-        `INSERT INTO articles (id, content_item_id, source_endpoint_id, title, source_url, author, media_type, language, summary, status, reading_progress, origin, published_at, fetched_at, created_at, updated_at, deleted_flg)
-         VALUES (?, NULL, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
-        [a.id, a.endpointId, a.title, a.sourceUrl, a.author, a.mediaType, a.summary, a.status, a.readingProgress, a.origin, a.publishedAt, a.createdAt, a.createdAt, now],
+        `INSERT INTO articles (id, content_item_id, source_endpoint_id, title, source_url, author, media_type, language, summary, status, reading_progress, last_read_position, origin, published_at, fetched_at, created_at, updated_at, deleted_flg)
+         VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+        [a.id, a.contentItemId, a.endpointId, a.title, a.sourceUrl, a.author, a.mediaType, a.summary, a.status, a.readingProgress, a.lastReadPosition, a.origin, a.publishedAt, a.createdAt, a.createdAt, now],
       );
       db.run(
         `INSERT INTO object_index (object_uid, object_type, object_id, canonical_table, layer, title, summary, status, origin, visibility, version_token, created_at, updated_at, deleted_flg)
@@ -179,6 +179,20 @@ export function seedDatabase(db: DatabasePort): void {
       { id: 'ci-3', endpointId: 'ep-github', externalId: 'gh-trending-1', title: 'juspay/hyperswitch — Open source payments switch', status: 'pending', rawJson: '{"url":"https://github.com/juspay/hyperswitch","stars":10500}' },
       { id: 'ci-4', endpointId: 'ep-lex', externalId: 'lex-401', title: '#401: Sam Altman on the Future of AI', status: 'promoted', rawJson: '{"url":"https://lexfridman.com/sam-altman-2","duration":"3:14:22"}' },
       { id: 'ci-5', endpointId: 'ep-fireship', externalId: 'yt-fw1234', title: 'Bun 1.0 — The Node.js Killer?', status: 'pending', rawJson: '{"url":"https://www.youtube.com/watch?v=abc123","duration":"12:05"}' },
+      { 
+        id: 'ci-podcast-lex-400', 
+        endpointId: 'ep-lex', 
+        externalId: 'lex-400-elon', 
+        title: 'Lex Fridman #400: Elon Musk', 
+        status: 'promoted', 
+        rawJson: JSON.stringify({
+          audioUrl: 'https://lexfridman.com/audio/elon-musk-4.mp3',
+          duration: '1:23:45',
+          durationSeconds: 5025,
+          artwork: 'https://lexfridman.com/artwork/lex-400.jpg',
+          showNotes: '<h2>00:00 - Introduction</h2><p>Discussion about the state of AI and humanity.</p><h2>15:30 - Mars colony</h2><p>Plans for Mars colonization and SpaceX progress.</p><h2>45:12 - AI safety</h2><p>Concerns about artificial general intelligence.</p>',
+        })
+      },
     ];
 
     for (const ci of contentItems) {
@@ -189,18 +203,81 @@ export function seedDatabase(db: DatabasePort): void {
       );
     }
 
+    // ── Derivative Assets ────────────────────────────────────────────────
+    const derivativeAssets = [
+      {
+        id: 'da-transcript-art4',
+        sourceObjectId: 'art-4',
+        assetType: 'transcript',
+        targetLocale: null,
+        provider: 'whisper',
+        status: 'completed',
+        progress: 1.0,
+        contentJson: JSON.stringify({
+          segments: [
+            { start: 0, end: 8, text: "Welcome to the Lex Fridman podcast. I'm here with Elon Musk." },
+            { start: 8, end: 15, text: "Elon, thanks for coming back on the podcast. It's great to be here." },
+            { start: 930, end: 945, text: "Mars is essential for the long-term survival of consciousness." },
+            { start: 2712, end: 2730, text: "AI safety is something we need to take very seriously as a civilization." },
+          ],
+          fullText: "Welcome to the Lex Fridman podcast. I'm here with Elon Musk. Elon, thanks for coming back on the podcast. It's great to be here. [... full transcript ...] Mars is essential for the long-term survival of consciousness. [... more content ...] AI safety is something we need to take very seriously as a civilization.",
+        }),
+      },
+      {
+        id: 'da-summary-art4',
+        sourceObjectId: 'art-4',
+        assetType: 'summary',
+        targetLocale: null,
+        provider: 'gpt-4',
+        status: 'completed',
+        progress: 1.0,
+        contentJson: JSON.stringify({
+          summaryText: 'Elon Musk discusses the future of humanity, AI safety concerns, Mars colonization plans, and the role of technology in preserving consciousness. Key topics include SpaceX progress, Tesla developments, and philosophical perspectives on existential risk.',
+          keyPoints: [
+            'Mars colonization is critical for species survival',
+            'AI safety requires proactive regulation and oversight',
+            'SpaceX aims for human Mars landing by 2029',
+            'Consciousness and free will are fundamental mysteries',
+            "Technology must serve humanity's long-term interests",
+          ],
+        }),
+      },
+      {
+        id: 'da-translation-art4',
+        sourceObjectId: 'art-4',
+        assetType: 'translation',
+        targetLocale: 'zh',
+        provider: 'deepl',
+        status: 'completed',
+        progress: 1.0,
+        contentJson: JSON.stringify({
+          translatedText: '欢迎来到Lex Fridman播客。我在这里和Elon Musk一起。Elon，感谢你再次来到播客。很高兴来到这里。[...] 火星对于意识的长期生存至关重要。[...] 人工智能安全是我们作为文明需要非常认真对待的事情。',
+        }),
+      },
+    ];
+
+    for (const da of derivativeAssets) {
+      db.run(
+        `INSERT INTO derivative_assets (id, source_object_id, asset_type, target_locale, provider, generation_config_json, content_json, file_path, status, progress, quality_score, created_at, updated_at, deleted_flg)
+         VALUES (?, ?, ?, ?, ?, NULL, ?, NULL, ?, ?, NULL, ?, ?, 0)`,
+        [da.id, da.sourceObjectId, da.assetType, da.targetLocale, da.provider, da.contentJson, da.status, da.progress, now, now],
+      );
+    }
+
     // ── Highlights ───────────────────────────────────────────────────────
     const highlights = [
-      { id: 'hl-1', articleId: 'art-1', quoteText: 'Attention mechanisms have become an integral part of compelling sequence modeling.', color: 'yellow', note: '核心论点', kind: 'highlight' },
-      { id: 'hl-2', articleId: 'art-1', quoteText: 'The Transformer is the first transduction model relying entirely on self-attention.', color: 'blue', note: null, kind: 'highlight' },
-      { id: 'hl-3', articleId: 'art-3', quoteText: 'The biggest lesson that can be read from 70 years of AI research is that general methods that leverage computation are ultimately the most effective.', color: 'green', note: '这就是 Bitter Lesson 的核心', kind: 'highlight' },
+      { id: 'hl-1', articleId: 'art-1', quoteText: 'Attention mechanisms have become an integral part of compelling sequence modeling.', anchorJson: '{}', color: 'yellow', note: '核心论点', kind: 'highlight' },
+      { id: 'hl-2', articleId: 'art-1', quoteText: 'The Transformer is the first transduction model relying entirely on self-attention.', anchorJson: '{}', color: 'blue', note: null, kind: 'highlight' },
+      { id: 'hl-3', articleId: 'art-3', quoteText: 'The biggest lesson that can be read from 70 years of AI research is that general methods that leverage computation are ultimately the most effective.', anchorJson: '{}', color: 'green', note: '这就是 Bitter Lesson 的核心', kind: 'highlight' },
+      { id: 'hl-4', articleId: 'art-4', quoteText: 'Mars is essential for the long-term survival of consciousness.', anchorJson: JSON.stringify({ timestampSeconds: 930 }), color: 'yellow', note: 'Key insight about Mars', kind: 'highlight' },
+      { id: 'hl-5', articleId: 'art-4', quoteText: 'AI safety is something we need to take very seriously as a civilization.', anchorJson: JSON.stringify({ timestampSeconds: 2712 }), color: 'red', note: 'Critical warning', kind: 'highlight' },
     ];
 
     for (const h of highlights) {
       db.run(
         `INSERT INTO highlights (id, source_object_type, source_object_id, anchor_json, quote_text, color, note, highlight_kind, created_by, created_at, updated_at, deleted_flg)
-         VALUES (?, 'article', ?, '{}', ?, ?, ?, ?, 'manual', ?, ?, 0)`,
-        [h.id, h.articleId, h.quoteText, h.color, h.note, h.kind, now, now],
+         VALUES (?, 'article', ?, ?, ?, ?, ?, ?, 'manual', ?, ?, 0)`,
+        [h.id, h.articleId, h.anchorJson, h.quoteText, h.color, h.note, h.kind, now, now],
       );
     }
 
