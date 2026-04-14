@@ -59,4 +59,7 @@ export default defineConfig({
     exclude: ['sql.js'],
   },
   assetsInclude: ['**/*.wasm'],
+  test: {
+    environment: 'jsdom',
+  },
 });
