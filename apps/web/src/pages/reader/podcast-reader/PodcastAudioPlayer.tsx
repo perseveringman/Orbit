@@ -11,6 +11,7 @@ interface PodcastAudioPlayerProps {
 }
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3] as const;
+const AUDIO_SEEK_EPSILON_SECONDS = 0.25;
 
 function formatTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -30,9 +31,18 @@ export function PodcastAudioPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const onTimeUpdateRef = useRef(onTimeUpdate);
 
   useEffect(() => {
-    if (!audioUrl) return;
+    onTimeUpdateRef.current = onTimeUpdate;
+  }, [onTimeUpdate]);
+
+  useEffect(() => {
+    if (!audioUrl) {
+      audioRef.current = null;
+      setIsPlaying(false);
+      return;
+    }
 
     const audio = new Audio(audioUrl);
     audioRef.current = audio;
@@ -41,7 +51,7 @@ export function PodcastAudioPlayer({
     audio.playbackRate = playbackRate;
 
     const handleTimeUpdate = () => {
-      onTimeUpdate(audio.currentTime);
+      onTimeUpdateRef.current(audio.currentTime);
     };
 
     const handleEnded = () => {
@@ -61,6 +71,9 @@ export function PodcastAudioPlayer({
 
   useEffect(() => {
     if (!audioRef.current) return;
+    if (Math.abs(audioRef.current.currentTime - currentTime) <= AUDIO_SEEK_EPSILON_SECONDS) {
+      return;
+    }
     audioRef.current.currentTime = currentTime;
   }, [currentTime]);
 

@@ -11,14 +11,33 @@ import { SubscriptionPanel } from './SubscriptionPanel';
 import { ReaderRouter, type ReaderRoute } from './ReaderRouter';
 import { ContentListPage } from './ContentListPage';
 import { AddContentModal } from './AddContentModal';
-import { MOCK_PODCASTS, MOCK_VIDEOS, MOCK_BOOKS } from './mock-data';
+import { MOCK_PODCASTS, MOCK_VIDEOS, MOCK_BOOKS, type PodcastEpisode } from './mock-data';
 import { useReaderMutations } from '../../data/use-reader-mutations';
 
 type ViewMode = 'library' | 'reading';
 
+function storedArticleToPodcastEpisode(article: ReaderArticle): PodcastEpisode {
+  return {
+    id: article.id,
+    title: article.title,
+    podcastName: article.author ?? 'Podcast',
+    duration: 0,
+    publishedAt: article.publishedAt ?? article.createdAt,
+    audioUrl: article.sourceUrl ?? '',
+    status: article.status,
+    readingProgress: article.readingProgress ?? 0,
+    url: article.sourceUrl ?? undefined,
+    description: article.summary ?? undefined,
+  };
+}
+
 function renderStoredArticleView(article: ReaderArticle, onBack: () => void): ReactElement {
   if (article.mediaType === 'youtube') {
     return <YouTubeVideoReaderView article={article} onBack={onBack} />;
+  }
+
+  if (article.mediaType === 'podcast') {
+    return <PodcastPlayerView episode={storedArticleToPodcastEpisode(article)} onBack={onBack} />;
   }
 
   return <ReaderView article={article} onBack={onBack} />;

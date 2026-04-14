@@ -65,7 +65,13 @@ export function PodcastTranscriptView({
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 space-y-4">
         <p className="text-sm text-muted text-center">Processing transcript...</p>
-        <ProgressBar value={progress} size="md" color="accent" className="w-64">
+        <ProgressBar
+          aria-label="Transcript processing progress"
+          value={progress}
+          size="md"
+          color="accent"
+          className="w-64"
+        >
           <ProgressBar.Track>
             <ProgressBar.Fill />
           </ProgressBar.Track>

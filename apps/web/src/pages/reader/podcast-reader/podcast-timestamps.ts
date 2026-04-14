@@ -1,5 +1,10 @@
-const LEADING_TIMESTAMP_RE = /^\s*(?:[-*•]\s*)?(?:\[(\d{1,2}[:：]\d{2}(?:[:：]\d{2})?)\]|(\d{1,2}[:：]\d{2}(?:[:：]\d{2})?))(?:\s*[-–—:：]\s*|\s+)?(.*)$/;
-const LEADING_TIMESTAMP_PREFIX_RE = /^\s*(?:[-*•]\s*)?(?:\[(\d{1,2}[:：]\d{2}(?:[:：]\d{2})?)\]|(\d{1,2}[:：]\d{2}(?:[:：]\d{2})?))(?:\s*[-–—:：]\s*|\s+)?/;
+const TIMESTAMP_TOKEN = '(\\d+[:：]\\d{2}(?:[:：]\\d{2})?)(?![:：]\\d)';
+const LEADING_TIMESTAMP_RE = new RegExp(
+  `^\\s*(?:[-*•]\\s*)?(?:\\[${TIMESTAMP_TOKEN}\\]|${TIMESTAMP_TOKEN})(?:\\s*[-–—:：]\\s*|\\s+)?(.*)$`,
+);
+const LEADING_TIMESTAMP_PREFIX_RE = new RegExp(
+  `^\\s*(?:[-*•]\\s*)?(?:\\[${TIMESTAMP_TOKEN}\\]|${TIMESTAMP_TOKEN})(?:\\s*[-–—:：]\\s*|\\s+)?`,
+);
 const HTML_TAG_RE = /<\/?[a-z][\w:-]*(?:\s[^<>]*)?>/i;
 
 export interface ParsedPodcastContentLine {
