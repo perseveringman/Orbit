@@ -284,6 +284,10 @@ export interface PodcastEpisode {
   audioUrl: string;
   status: ArticleStatus;
   readingProgress: number;
+  // Optional fields for compatibility
+  url?: string;
+  coverUrl?: string;
+  description?: string;
 }
 
 export const MOCK_PODCASTS: PodcastEpisode[] = [

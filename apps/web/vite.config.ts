@@ -61,5 +61,6 @@ export default defineConfig({
   assetsInclude: ['**/*.wasm'],
   test: {
     environment: 'jsdom',
+    setupFiles: ['./src/test-setup.ts'],
   },
 });

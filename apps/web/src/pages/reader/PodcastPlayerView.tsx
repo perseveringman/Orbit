@@ -1,141 +1,73 @@
-import { useState, useCallback, type ReactElement } from 'react';
-import { Button, Chip, ProgressBar } from '@heroui/react';
-import {
-  ArrowLeft,
-  Play,
-  Pause,
-  SkipBack,
-  SkipForward,
-  Gauge,
-} from 'lucide-react';
+import { useState, type ReactElement } from 'react';
 import type { PodcastEpisode } from './mock-data';
-import { MOCK_TRANSCRIPT, MOCK_SPEAKERS } from './mock-data';
-import { TranscriptView } from './TranscriptView';
-import { ReaderContextPanel } from './ReaderContextPanel';
-import { ReadingExitBar } from './ReadingExitBar';
+import { PodcastReaderShell } from './podcast-reader/PodcastReaderShell';
+import { usePodcastReader } from '../../data/use-podcast-reader';
+import type { PodcastReaderViewModel } from '../../data/use-podcast-reader';
 
 interface PodcastPlayerViewProps {
   episode: PodcastEpisode;
   onBack: () => void;
 }
 
-const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3] as const;
-
-function formatTime(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
+/**
+ * Temporary compatibility shim for PodcastPlayerView.
+ * This component bridges the old mock-based PodcastEpisode interface
+ * to the new PodcastReaderViewModel from usePodcastReader.
+ * 
+ * In Task 4, this will be removed in favor of direct PodcastReaderShell usage.
+ */
 export function PodcastPlayerView({ episode, onBack }: PodcastPlayerViewProps): ReactElement {
-  const [currentTime, setCurrentTime] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  // Try to use the real data adapter if we have an article ID
+  const { podcast, loading } = usePodcastReader(episode.id, undefined);
 
-  const progress = episode.duration > 0 ? (currentTime / episode.duration) * 100 : 0;
+  // If we have real podcast data from the database, use the new shell
+  if (podcast && !loading) {
+    return <PodcastReaderShell podcast={podcast} onBack={onBack} />;
+  }
 
-  const cycleSpeed = () => {
-    const idx = SPEED_OPTIONS.indexOf(playbackSpeed as (typeof SPEED_OPTIONS)[number]);
-    const nextIdx = idx === -1 ? 0 : (idx + 1) % SPEED_OPTIONS.length;
-    setPlaybackSpeed(SPEED_OPTIONS[nextIdx]);
+  // Otherwise, create a mock view model from the episode data
+  const mockPodcast: PodcastReaderViewModel = {
+    articleId: episode.id,
+    title: episode.title,
+    author: null,
+    sourceUrl: episode.url ?? null,
+    status: 'reading',
+    readingProgress: 0,
+    publishedAt: episode.publishedAt ?? null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    show: {
+      id: 'mock-show',
+      title: episode.podcastName,
+      url: null,
+      description: null,
+    },
+    episode: {
+      audioUrl: episode.audioUrl,
+      duration: episode.duration.toString(),
+      durationSeconds: episode.duration,
+      artwork: episode.coverUrl ?? null,
+      showNotes: episode.description ?? null,
+    },
+    playback: {
+      currentTime: 0,
+      lastUpdated: null,
+    },
+    transcript: {
+      status: 'pending',
+      progress: 0,
+      segments: null,
+      fullText: null,
+    },
+    translation: null,
+    summary: {
+      status: 'pending',
+      progress: 0,
+      summaryText: null,
+      keyPoints: null,
+    },
+    highlights: [],
   };
 
-  const skip = (delta: number) => {
-    setCurrentTime((prev) => Math.max(0, Math.min(episode.duration, prev + delta)));
-  };
-
-  const handleSeek = useCallback((time: number) => {
-    setCurrentTime(time);
-  }, []);
-
-  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCurrentTime(Number(e.target.value));
-  };
-
-  return (
-    <div className="flex flex-col h-full">
-      {/* Top bar */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-surface">
-        <Button variant="ghost" size="sm" onPress={onBack}>
-          <ArrowLeft size={16} /> 返回
-        </Button>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-sm font-semibold text-foreground truncate">{episode.title}</h1>
-        </div>
-        <Chip size="sm" variant="soft">{episode.podcastName}</Chip>
-      </div>
-
-      <div className="flex flex-1 overflow-hidden">
-        {/* Main content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Player section */}
-          <div className="px-6 py-4 border-b border-border bg-surface-secondary">
-            {/* Progress slider */}
-            <input
-              type="range"
-              min={0}
-              max={episode.duration}
-              value={currentTime}
-              onChange={handleSliderChange}
-              className="w-full h-1.5 rounded-full appearance-none bg-border cursor-pointer accent-accent"
-            />
-            <div className="flex items-center justify-between text-xs text-muted mt-1 mb-3">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(episode.duration)}</span>
-            </div>
-
-            {/* Controls */}
-            <div className="flex items-center justify-center gap-3">
-              <Button variant="ghost" size="sm" onPress={() => skip(-15)}>
-                <SkipBack size={16} />
-                <span className="text-xs">15s</span>
-              </Button>
-              <Button
-                variant="primary"
-                size="md"
-                onPress={() => setIsPlaying(!isPlaying)}
-              >
-                {isPlaying ? <Pause size={20} /> : <Play size={20} />}
-              </Button>
-              <Button variant="ghost" size="sm" onPress={() => skip(15)}>
-                <span className="text-xs">15s</span>
-                <SkipForward size={16} />
-              </Button>
-              <Button variant="ghost" size="sm" onPress={cycleSpeed}>
-                <Gauge size={14} />
-                <span className="text-xs font-mono">{playbackSpeed}x</span>
-              </Button>
-            </div>
-
-            {/* Mini progress bar */}
-            <ProgressBar aria-label="播放进度" value={progress} size="sm" color="accent" className="mt-3">
-              <ProgressBar.Track className="h-0.5 rounded-full">
-                <ProgressBar.Fill />
-              </ProgressBar.Track>
-            </ProgressBar>
-          </div>
-
-          {/* Transcript panel */}
-          <div className="flex-1 overflow-hidden">
-            <TranscriptView
-              segments={MOCK_TRANSCRIPT}
-              currentTime={currentTime}
-              onSeek={handleSeek}
-              speakers={MOCK_SPEAKERS}
-            />
-          </div>
-        </div>
-
-        {/* Right context panel */}
-        <aside className="w-72 border-l border-border bg-surface shrink-0 overflow-hidden">
-          <ReaderContextPanel articleId={episode.id} />
-        </aside>
-      </div>
-
-      {/* Bottom exit bar */}
-      <ReadingExitBar />
-    </div>
-  );
+  return <PodcastReaderShell podcast={mockPodcast} onBack={onBack} />;
 }

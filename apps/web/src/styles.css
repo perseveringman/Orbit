@@ -34,3 +34,14 @@ body {
 .streaming-cursor {
   animation: streaming-blink 0.8s steps(1) infinite;
 }
+
+/* Podcast timestamp line styling */
+.podcast-timestamp-line {
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.podcast-timestamp-line:hover {
+  background-color: var(--surface-secondary);
+}
