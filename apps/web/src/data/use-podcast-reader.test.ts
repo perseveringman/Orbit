@@ -151,6 +151,46 @@ describe('use-podcast-reader — Pure mappers', () => {
         fullText: null,
       });
     });
+
+    it('normalizes invalid status values to "pending"', () => {
+      const assets = [
+        {
+          id: 'da-1',
+          asset_type: 'transcript',
+          status: 'invalid_status_from_db',
+          progress: 0.5,
+          content_json: null,
+        },
+      ];
+
+      const result = extractTranscriptState(assets);
+      expect(result).toEqual({
+        status: 'pending',
+        progress: 0.5,
+        segments: null,
+        fullText: null,
+      });
+    });
+
+    it('normalizes null status to "pending"', () => {
+      const assets = [
+        {
+          id: 'da-1',
+          asset_type: 'transcript',
+          status: null,
+          progress: 0,
+          content_json: null,
+        },
+      ];
+
+      const result = extractTranscriptState(assets);
+      expect(result).toEqual({
+        status: 'pending',
+        progress: 0,
+        segments: null,
+        fullText: null,
+      });
+    });
   });
 
   describe('extractTranslationState', () => {
@@ -209,6 +249,27 @@ describe('use-podcast-reader — Pure mappers', () => {
         translatedText: null,
       });
     });
+
+    it('normalizes invalid status values to "pending"', () => {
+      const assets = [
+        {
+          id: 'da-1',
+          asset_type: 'translation',
+          target_locale: 'en',
+          status: 'weird_status',
+          progress: 0.3,
+          content_json: null,
+        },
+      ];
+
+      const result = extractTranslationState(assets, 'en');
+      expect(result).toEqual({
+        status: 'pending',
+        progress: 0.3,
+        targetLocale: 'en',
+        translatedText: null,
+      });
+    });
   });
 
   describe('extractSummaryState', () => {
@@ -242,6 +303,26 @@ describe('use-podcast-reader — Pure mappers', () => {
         progress: 1.0,
         summaryText: 'This is a summary',
         keyPoints: ['Point 1', 'Point 2', 'Point 3'],
+      });
+    });
+
+    it('normalizes invalid status values to "pending"', () => {
+      const assets = [
+        {
+          id: 'da-1',
+          asset_type: 'summary',
+          status: 'unknown_state',
+          progress: 0.7,
+          content_json: null,
+        },
+      ];
+
+      const result = extractSummaryState(assets);
+      expect(result).toEqual({
+        status: 'pending',
+        progress: 0.7,
+        summaryText: null,
+        keyPoints: null,
       });
     });
   });

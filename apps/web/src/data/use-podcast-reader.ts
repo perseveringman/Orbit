@@ -82,6 +82,20 @@ export interface PodcastReaderViewModel {
 
 // ── Pure Mapper Functions ──────────────────────────────────────────────────
 
+type DerivativeAssetStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+/**
+ * Validates and normalizes status strings from DB to typed union values.
+ * Falls back to 'pending' for any invalid or null status.
+ */
+function normalizeDerivativeStatus(status: unknown): DerivativeAssetStatus {
+  if (typeof status === 'string' && 
+      (status === 'pending' || status === 'processing' || status === 'completed' || status === 'failed')) {
+    return status;
+  }
+  return 'pending';
+}
+
 export function getEpisodeMetadata(contentItemRow: Record<string, unknown> | null): PodcastEpisodeMetadata | null {
   if (!contentItemRow) return null;
   
@@ -116,14 +130,14 @@ export function extractTranscriptState(derivativeAssets: Record<string, unknown>
     };
   }
   
-  const status = (transcriptAsset.status as string) || 'pending';
+  const status = normalizeDerivativeStatus(transcriptAsset.status);
   const progress = typeof transcriptAsset.progress === 'number' ? transcriptAsset.progress : 0;
   
   try {
     const contentJson = transcriptAsset.content_json as string | null;
     if (!contentJson) {
       return {
-        status: status as PodcastTranscriptState['status'],
+        status,
         progress,
         segments: null,
         fullText: null,
@@ -132,14 +146,14 @@ export function extractTranscriptState(derivativeAssets: Record<string, unknown>
     
     const parsed = JSON.parse(contentJson);
     return {
-      status: status as PodcastTranscriptState['status'],
+      status,
       progress,
       segments: parsed.segments ?? null,
       fullText: parsed.fullText ?? null,
     };
   } catch {
     return {
-      status: status as PodcastTranscriptState['status'],
+      status,
       progress,
       segments: null,
       fullText: null,
@@ -164,14 +178,14 @@ export function extractTranslationState(
     };
   }
   
-  const status = (translationAsset.status as string) || 'pending';
+  const status = normalizeDerivativeStatus(translationAsset.status);
   const progress = typeof translationAsset.progress === 'number' ? translationAsset.progress : 0;
   
   try {
     const contentJson = translationAsset.content_json as string | null;
     if (!contentJson) {
       return {
-        status: status as PodcastTranslationState['status'],
+        status,
         progress,
         targetLocale,
         translatedText: null,
@@ -180,14 +194,14 @@ export function extractTranslationState(
     
     const parsed = JSON.parse(contentJson);
     return {
-      status: status as PodcastTranslationState['status'],
+      status,
       progress,
       targetLocale,
       translatedText: parsed.translatedText ?? null,
     };
   } catch {
     return {
-      status: status as PodcastTranslationState['status'],
+      status,
       progress,
       targetLocale,
       translatedText: null,
@@ -209,14 +223,14 @@ export function extractSummaryState(derivativeAssets: Record<string, unknown>[])
     };
   }
   
-  const status = (summaryAsset.status as string) || 'pending';
+  const status = normalizeDerivativeStatus(summaryAsset.status);
   const progress = typeof summaryAsset.progress === 'number' ? summaryAsset.progress : 0;
   
   try {
     const contentJson = summaryAsset.content_json as string | null;
     if (!contentJson) {
       return {
-        status: status as PodcastSummaryState['status'],
+        status,
         progress,
         summaryText: null,
         keyPoints: null,
@@ -225,14 +239,14 @@ export function extractSummaryState(derivativeAssets: Record<string, unknown>[])
     
     const parsed = JSON.parse(contentJson);
     return {
-      status: status as PodcastSummaryState['status'],
+      status,
       progress,
       summaryText: parsed.summaryText ?? null,
       keyPoints: parsed.keyPoints ?? null,
     };
   } catch {
     return {
-      status: status as PodcastSummaryState['status'],
+      status,
       progress,
       summaryText: null,
       keyPoints: null,

@@ -129,11 +129,13 @@ export function useReaderMutations() {
       if (!ready || !db) return;
       const now = new Date().toISOString();
 
-      db.run('UPDATE articles SET deleted_flg = 1, updated_at = ? WHERE id = ?', [now, articleId]);
-      db.run(
-        'UPDATE object_index SET deleted_flg = 1, updated_at = ? WHERE object_id = ? AND object_type = ?',
-        [now, articleId, 'article'],
-      );
+      db.transaction(() => {
+        db.run('UPDATE articles SET deleted_flg = 1, updated_at = ? WHERE id = ?', [now, articleId]);
+        db.run(
+          'UPDATE object_index SET deleted_flg = 1, updated_at = ? WHERE object_id = ? AND object_type = ?',
+          [now, articleId, 'article'],
+        );
+      });
 
       invalidate();
     },
