@@ -2,7 +2,7 @@ import { useState, type ReactElement } from 'react';
 import { Card, Chip, Button, Spinner } from '@heroui/react';
 import { Check, AlertTriangle, Pencil, X } from 'lucide-react';
 import type { StatusColor } from './mock-data';
-import { useTaskMutations } from '../../data';
+import { useProjectList, useTaskMutations } from '../../data';
 
 interface ParseResult {
   suggestedTitle: string;
@@ -107,6 +107,7 @@ export function IntentParsePreview({
 
 export function QuickCaptureInput(): ReactElement {
   const { createTask } = useTaskMutations();
+  const { projects } = useProjectList();
   const [value, setValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
@@ -128,7 +129,13 @@ export function QuickCaptureInput(): ReactElement {
 
   const handleConfirm = async () => {
     if (parseResult) {
-      await createTask({ title: parseResult.suggestedTitle });
+      const matchedProject = parseResult.suggestedProject
+        ? projects.find((project) => project.title === parseResult.suggestedProject)
+        : null;
+      await createTask({
+        title: parseResult.suggestedTitle,
+        projectId: matchedProject?.id,
+      });
     }
     setParseResult(null);
     setValue('');

@@ -58,8 +58,19 @@ export { fetchPageHtml, fetchJson, extractMetaContent as extractMeta, stripHtml 
 export type { PodcastEpisodeMeta } from './fetch-podcast-episode.js';
 export { isPodcastEpisodeUrl, fetchPodcastEpisodeMeta, parseIso8601Duration } from './fetch-podcast-episode.js';
 
-export type { YouTubeVideoMeta } from './fetch-youtube.js';
-export { fetchYouTubeVideoMeta, resolveYouTubeChannelFeed } from './fetch-youtube.js';
+export type {
+  YouTubeVideoMeta,
+  YouTubeComment,
+  YouTubeVideoDetails,
+  YouTubeTranscriptSegment,
+  YouTubeTranscript,
+} from './fetch-youtube.js';
+export {
+  fetchYouTubeVideoMeta,
+  fetchYouTubeVideoDetails,
+  fetchYouTubeTranscript,
+  resolveYouTubeChannelFeed,
+} from './fetch-youtube.js';
 
 export type { PodcastSearchResult, PodcastSearchType, PodcastDirectoryOptions, ItunesLookupResult } from './fetch-podcast-directory.js';
 export { searchPodcasts, itunesLookup } from './fetch-podcast-directory.js';

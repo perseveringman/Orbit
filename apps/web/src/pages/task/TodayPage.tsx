@@ -1,5 +1,5 @@
 import { useState, type ReactElement } from 'react';
-import { Card, Chip, Button, Tabs, Separator } from '@heroui/react';
+import { Card, Chip, Button, Separator } from '@heroui/react';
 import {
   Sparkles,
   Clock,
@@ -7,7 +7,6 @@ import {
   BatteryMedium,
   BatteryLow,
   AlertTriangle,
-  CalendarDays,
   FolderOpen,
 } from 'lucide-react';
 import {
@@ -17,8 +16,9 @@ import {
   type Task,
   type Project,
 } from './mock-data';
-import { useTodayPlan, useTaskList, useProjectList } from '../../data';
+import { useTodayPlan, useTaskList, useProjectList, useTaskMutations } from '../../data';
 import { NextThingCard } from './NextThingCard';
+import { formatChineseDay } from './date-utils';
 
 const ENERGY_OPTIONS: { level: EnergyLevel; label: string; icon: ReactElement }[] = [
   { level: 'high', label: '高', icon: <Battery size={16} /> },
@@ -31,10 +31,15 @@ export function TodayPage(): ReactElement {
   const plan = useTodayPlan();
   const { tasks } = useTaskList();
   const { projects } = useProjectList();
+  const { updateTaskStatus } = useTaskMutations();
   const findTask = (id: string): Task | undefined => tasks.find(t => t.id === id);
   const findProject = (id: string): Project | undefined => projects.find(p => p.id === id);
+  const todayLabel = formatChineseDay(new Date());
 
-  const handleStartFocus = () => {
+  const handleStartFocus = async () => {
+    if (plan.primary.taskId) {
+      await updateTaskStatus(plan.primary.taskId, 'focused');
+    }
     window.dispatchEvent(new CustomEvent('orbit:navigate', { detail: { subPage: 'focus' } }));
   };
 
@@ -44,7 +49,7 @@ export function TodayPage(): ReactElement {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">今日计划</h2>
-          <p className="text-sm text-muted">2026-04-09 · 星期四</p>
+          <p className="text-sm text-muted">{todayLabel}</p>
         </div>
         {/* Energy selector */}
         <div className="flex items-center gap-1">

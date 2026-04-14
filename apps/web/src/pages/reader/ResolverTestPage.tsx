@@ -40,6 +40,7 @@ import {
   parseRssFeedXml,
   // Async fetchers
   fetchYouTubeVideoMeta,
+  fetchYouTubeVideoDetails,
   resolveYouTubeChannelFeed,
   fetchPodcastEpisodeMeta,
   resolvePodcastFeedUrl,
@@ -48,7 +49,6 @@ import {
   fetchRssFeed,
   fetchPageHtml,
   // Types
-  type FetchFn,
   type YouTubeVideoMeta,
   type PodcastEpisodeMeta,
   type ParsedArticle,
@@ -58,18 +58,14 @@ import {
   type RouteResult,
 } from '@orbit/reader-resolvers';
 
+import { useOrbitData } from '../../data/orbit-data-context';
+import { readerFetchOptions } from '../../data/proxied-fetch';
 import { useReaderMutations } from '../../data/use-reader-mutations';
 import { useSubscriptionMutations } from '../../data/use-subscription-mutations';
 
 // ── Proxied fetch for CORS ─────────────────────────────────
 
-const proxiedFetch: FetchFn = (input, init) => {
-  const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
-  const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
-  return globalThis.fetch(proxyUrl, init);
-};
-
-const fetchOptions = { fetchFn: proxiedFetch };
+const fetchOptions = readerFetchOptions;
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -137,6 +133,7 @@ function UrlParsePanel(): ReactElement {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ParseResult[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { ready } = useOrbitData();
   const { saveArticleFromUrl } = useReaderMutations();
 
   const handleParse = useCallback(async () => {
@@ -198,15 +195,20 @@ function UrlParsePanel(): ReactElement {
 
       {/* Results */}
       {results.map((r) => (
-        <ParseResultCard key={r.id} result={r} onSave={() => {
-          saveArticleFromUrl({
-            title: r.title ?? r.url,
-            sourceUrl: r.url,
-            author: r.author,
-            summary: r.summary,
-            mediaType: r.type === 'video' ? 'youtube' : r.type === 'podcast' ? 'podcast' : 'web_article',
-          });
-        }} />
+        <ParseResultCard
+          key={r.id}
+          result={r}
+          canSave={ready}
+          onSave={() =>
+            saveArticleFromUrl({
+              title: r.title ?? r.url,
+              sourceUrl: r.url,
+              author: r.author,
+              summary: r.summary,
+              mediaType: r.type === 'video' ? 'youtube' : r.type === 'podcast' ? 'podcast' : 'web_article',
+            })
+          }
+        />
       ))}
     </div>
   );
@@ -219,8 +221,17 @@ const EXAMPLE_URLS = [
   { label: 'GitHub Blog', url: 'https://github.blog/engineering/' },
 ];
 
-function ParseResultCard({ result, onSave }: { result: ParseResult; onSave: () => void }): ReactElement {
+function ParseResultCard({
+  result,
+  canSave,
+  onSave,
+}: {
+  result: ParseResult;
+  canSave: boolean;
+  onSave: () => string | null;
+}): ReactElement {
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const typeConfig = {
     article: { icon: <FileText size={14} />, label: '网页文章', color: 'accent' as const },
     video: { icon: <Video size={14} />, label: '视频', color: 'danger' as const },
@@ -240,7 +251,7 @@ function ParseResultCard({ result, onSave }: { result: ParseResult; onSave: () =
         </div>
       </Card.Header>
       <Card.Title>{result.title ?? '(无标题)'}</Card.Title>
-      <Card.Description>
+      <Card.Content>
         <div className="space-y-1">
           {result.author && <p className="text-xs">作者: {result.author}</p>}
           {result.duration != null && (
@@ -265,16 +276,39 @@ function ParseResultCard({ result, onSave }: { result: ParseResult; onSave: () =
             />
           )}
         </div>
-      </Card.Description>
+      </Card.Content>
       <Card.Footer>
-        <Button
-          variant={saved ? 'ghost' : 'primary'}
-          size="sm"
-          isDisabled={saved}
-          onPress={() => { onSave(); setSaved(true); }}
-        >
-          {saved ? <><CheckCircle2 size={12} /> 已保存</> : <><Database size={12} /> 保存到阅读库</>}
-        </Button>
+        <div className="flex flex-col items-start gap-2">
+          <Button
+            variant={saved ? 'ghost' : 'primary'}
+            size="sm"
+            isDisabled={saved || !canSave}
+            onPress={() => {
+              setSaveError(null);
+              const savedId = onSave();
+              if (savedId) {
+                setSaved(true);
+                return;
+              }
+              setSaveError('保存失败，阅读库还没有初始化完成。');
+            }}
+          >
+            {saved ? (
+              <>
+                <CheckCircle2 size={12} /> 已保存
+              </>
+            ) : !canSave ? (
+              <>
+                <Loader2 size={12} className="animate-spin" /> 阅读库初始化中...
+              </>
+            ) : (
+              <>
+                <Database size={12} /> 保存到阅读库
+              </>
+            )}
+          </Button>
+          {saveError && <p className="text-xs text-danger">{saveError}</p>}
+        </div>
       </Card.Footer>
     </Card>
   );
@@ -485,7 +519,7 @@ function SubscriptionCard({
         </div>
       </Card.Header>
       <Card.Title>{sub.title}</Card.Title>
-      <Card.Description>
+      <Card.Content>
         <div className="space-y-1 text-xs">
           <p className="text-muted truncate">{sub.sourceUrl}</p>
           {sub.feedUrl && <p className="text-accent truncate">Feed: {sub.feedUrl}</p>}
@@ -513,7 +547,7 @@ function SubscriptionCard({
             </div>
           )}
         </div>
-      </Card.Description>
+      </Card.Content>
       <Card.Footer>
         <div className="flex gap-1">
           {sub.feedUrl && (
@@ -595,7 +629,7 @@ function PodcastSearchPanel(): ReactElement {
                 <span>{podcast.title}</span>
               </div>
             </Card.Title>
-            <Card.Description>
+            <Card.Content>
               <div className="text-xs space-y-1">
                 {podcast.author && <p>作者: {podcast.author}</p>}
                 {podcast.feedUrl && (
@@ -612,7 +646,7 @@ function PodcastSearchPanel(): ReactElement {
                   </a>
                 )}
               </div>
-            </Card.Description>
+            </Card.Content>
           </Card>
         ))}
         {results.length === 0 && query && !loading && (
@@ -638,17 +672,28 @@ async function parseUrl(url: string): Promise<ParseResult> {
   if (isYouTubeUrl(url)) {
     const videoId = extractYouTubeVideoId(url);
     if (videoId) {
-      const meta = await fetchYouTubeVideoMeta(videoId);
+      const [meta, details] = await Promise.all([
+        fetchYouTubeVideoMeta(videoId, fetchOptions),
+        fetchYouTubeVideoDetails(videoId, fetchOptions),
+      ]);
       return {
         id,
         url,
         type: 'video',
-        title: meta?.title ?? null,
-        author: meta?.author ?? null,
-        thumbnail: meta?.thumbnail ?? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-        summary: null,
-        duration: meta?.duration ?? null,
-        meta: { videoId, routeResult: routeResult.resolverType },
+        title: details?.title ?? meta?.title ?? null,
+        author: details?.channelName ?? meta?.author ?? null,
+        thumbnail:
+          details?.thumbnail ??
+          meta?.thumbnail ??
+          `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+        summary: details?.description ?? null,
+        duration: details?.duration ?? meta?.duration ?? null,
+        meta: {
+          videoId,
+          commentCount: details?.commentCount ?? null,
+          viewCount: details?.viewCount ?? null,
+          routeResult: routeResult.resolverType,
+        },
         timestamp,
       };
     }

@@ -4,7 +4,6 @@ import { FolderOpen, Plus, X, Check } from 'lucide-react';
 import {
   PROJECT_STATUS_LABELS,
   PROJECT_STATUS_COLORS,
-  type Project,
 } from './mock-data';
 import { useProjectList, useTaskList, useTaskMutations } from '../../data';
 import { ProjectDetailView } from './ProjectDetailView';
@@ -101,10 +100,18 @@ export function ProjectsPage(): ReactElement {
             tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
 
           return (
-            <button
+            <div
               key={p.id}
               className="w-full text-left"
+              role="button"
+              tabIndex={0}
               onClick={() => setSelectedProject(p.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setSelectedProject(p.id);
+                }
+              }}
             >
             <Card
               className="cursor-pointer hover:bg-surface-secondary transition-colors group"
@@ -120,6 +127,7 @@ export function ProjectsPage(): ReactElement {
                     {PROJECT_STATUS_LABELS[p.status]}
                   </Chip>
                   <button
+                    type="button"
                     className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-danger"
                     onClick={(e) => handleDeleteProject(e, p.id)}
                     title="删除项目"
@@ -151,7 +159,7 @@ export function ProjectsPage(): ReactElement {
                 </div>
               </Card.Content>
             </Card>
-            </button>
+            </div>
           );
         })}
       </div>

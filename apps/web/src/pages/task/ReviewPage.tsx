@@ -1,5 +1,5 @@
-import { useState, type ReactElement } from 'react';
-import { Card, Chip, Button, Tabs, Separator } from '@heroui/react';
+import { useEffect, useState, type ReactElement } from 'react';
+import { Card, Chip, Button, Tabs } from '@heroui/react';
 import {
   Check,
   ArrowRight,
@@ -13,32 +13,49 @@ import {
 import {
   STATUS_LABELS,
   STATUS_COLORS,
-  type Task,
-  type Project,
 } from './mock-data';
-import { useTaskList, useProjectList, useTasksForProject, useMilestoneList } from '../../data';
+import {
+  useTaskList,
+  useProjectList,
+  useTasksForProject,
+  useMilestoneList,
+  useDailyReview,
+  useProjectReview,
+  useTaskMutations,
+} from '../../data';
+import { toDayKey } from './date-utils';
 
 // ─── Daily Review ────────────────────────────────────────────────────
 
 function DailyReview(): ReactElement {
   const { tasks } = useTaskList();
   const { projects } = useProjectList();
+  const { saveDailyReview } = useTaskMutations();
+  const todayKey = toDayKey(new Date());
+  const savedReview = useDailyReview(todayKey);
   const [decision, setDecision] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [validationMsg, setValidationMsg] = useState('');
 
+  useEffect(() => {
+    setDecision(savedReview?.body ?? '');
+    setSubmitted(Boolean(savedReview?.body));
+    setValidationMsg('');
+  }, [savedReview?.id, savedReview?.body]);
+
   const completedToday = tasks.filter(
-    (t) => t.completedAt && t.completedAt.startsWith('2026-04-09'),
+    (t) => t.completedAt && t.completedAt.startsWith(todayKey),
   );
   const carryForward = tasks.filter(
-    (t) => t.status !== 'done' && t.status !== 'dropped' && t.dueDate && t.dueDate <= '2026-04-09',
+    (t) => t.status !== 'done' && t.status !== 'dropped' && t.dueDate && t.dueDate <= todayKey,
   );
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!decision.trim()) {
       setValidationMsg('请至少记录一条决策或反思');
       return;
     }
+    await saveDailyReview({ date: todayKey, body: decision.trim() });
     setValidationMsg('');
     setSubmitted(true);
   };
@@ -129,6 +146,7 @@ function DailyReview(): ReactElement {
               value={decision}
               onChange={(e) => {
                 setDecision(e.target.value);
+                if (submitted) setSubmitted(false);
                 if (validationMsg) setValidationMsg('');
               }}
             />
@@ -238,6 +256,7 @@ function WeeklyReview(): ReactElement {
 function ProjectRetrospective(): ReactElement {
   const { projects } = useProjectList();
   const { milestones: allMilestones } = useMilestoneList();
+  const { saveProjectReview } = useTaskMutations();
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [decision, setDecision] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -245,15 +264,29 @@ function ProjectRetrospective(): ReactElement {
 
   const activeProjectId = selectedProject ?? (projects.length > 0 ? projects[0].id : null);
   const project = activeProjectId ? projects.find(p => p.id === activeProjectId) ?? null : null;
+  const savedReview = useProjectReview(activeProjectId);
   const milestones = allMilestones.filter(m => m.projectId === activeProjectId);
   const tasks = useTasksForProject(activeProjectId ?? '');
   const blockedItems = tasks.filter((t) => t.status === 'blocked');
 
-  const handleSubmit = () => {
+  useEffect(() => {
+    setDecision(savedReview?.body ?? '');
+    setSubmitted(Boolean(savedReview?.body));
+    setValidationMsg('');
+  }, [activeProjectId, savedReview?.id, savedReview?.body]);
+
+  const handleSubmit = async () => {
     if (!decision.trim()) {
       setValidationMsg('请至少记录一条决策');
       return;
     }
+    if (!project) return;
+    await saveProjectReview({
+      projectId: project.id,
+      projectTitle: project.title,
+      date: toDayKey(new Date()),
+      body: decision.trim(),
+    });
     setValidationMsg('');
     setSubmitted(true);
   };
@@ -372,6 +405,7 @@ function ProjectRetrospective(): ReactElement {
                   value={decision}
                   onChange={(e) => {
                     setDecision(e.target.value);
+                    if (submitted) setSubmitted(false);
                     if (validationMsg) setValidationMsg('');
                   }}
                 />

@@ -5,7 +5,6 @@ import {
   CalendarDays,
   ClipboardList,
   Crosshair,
-  Plus,
 } from 'lucide-react';
 import {
   STATUS_LABELS,
@@ -17,6 +16,7 @@ import {
 import { useTaskList, useProjectList } from '../../data';
 import { QuickCaptureInput } from './QuickCaptureInput';
 import { TaskDetailPanel } from './TaskDetailPanel';
+import { addDays, toDayKey } from './date-utils';
 
 // Statuses to display as grouped sections
 const GROUPED_STATUSES: TaskStatus[] = [
@@ -110,13 +110,16 @@ function StatusGroupedView({
   filter: { status: TaskStatus | 'all'; project: string | 'all'; dueDate: string | 'all' };
   onSelectTask: (id: string) => void;
 }) {
+  const todayKey = toDayKey(new Date());
+  const weekKey = toDayKey(addDays(new Date(), 7));
+
   const filtered = tasks.filter((t) => {
     if (filter.status !== 'all' && t.status !== filter.status) return false;
     if (filter.project !== 'all' && t.projectId !== filter.project) return false;
-    if (filter.dueDate === 'overdue' && (!t.dueDate || t.dueDate > '2026-04-09'))
+    if (filter.dueDate === 'overdue' && (!t.dueDate || t.dueDate >= todayKey))
       return false;
-    if (filter.dueDate === 'today' && t.dueDate !== '2026-04-09') return false;
-    if (filter.dueDate === 'week' && (!t.dueDate || t.dueDate > '2026-04-16'))
+    if (filter.dueDate === 'today' && t.dueDate !== todayKey) return false;
+    if (filter.dueDate === 'week' && (!t.dueDate || t.dueDate < todayKey || t.dueDate > weekKey))
       return false;
     return true;
   });

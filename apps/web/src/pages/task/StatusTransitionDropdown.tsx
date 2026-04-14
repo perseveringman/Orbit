@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from 'react';
+import { type ReactElement } from 'react';
 import { Button, Chip, Dropdown } from '@heroui/react';
 import { ChevronDown } from 'lucide-react';
 import {
@@ -18,18 +18,16 @@ export function StatusTransitionDropdown({
   currentStatus,
   onTransition,
 }: StatusTransitionDropdownProps): ReactElement {
-  const [status, setStatus] = useState(currentStatus);
-  const validNext = VALID_TRANSITIONS[status];
+  const validNext = VALID_TRANSITIONS[currentStatus];
 
   const handleTransition = (newStatus: TaskStatus) => {
-    setStatus(newStatus);
     onTransition(newStatus);
   };
 
   if (validNext.length === 0) {
     return (
-      <Chip variant="soft" color={STATUS_COLORS[status]}>
-        {STATUS_LABELS[status]}
+      <Chip variant="soft" color={STATUS_COLORS[currentStatus]}>
+        {STATUS_LABELS[currentStatus]}
       </Chip>
     );
   }
@@ -38,8 +36,8 @@ export function StatusTransitionDropdown({
     <Dropdown>
       <Dropdown.Trigger>
         <Button variant="ghost" size="sm">
-          <Chip variant="soft" color={STATUS_COLORS[status]}>
-            {STATUS_LABELS[status]}
+          <Chip variant="soft" color={STATUS_COLORS[currentStatus]}>
+            {STATUS_LABELS[currentStatus]}
           </Chip>
           <ChevronDown size={14} />
         </Button>

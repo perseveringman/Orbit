@@ -39,6 +39,18 @@ export function ProjectDetailView({
     milestones.length > 0
       ? Math.round((doneMilestones / milestones.length) * 100)
       : 0;
+  const taskStatsByMilestone = Object.fromEntries(
+    milestones.map((milestone) => {
+      const milestoneTasks = allTasks.filter((task) => task.milestoneId === milestone.id);
+      return [
+        milestone.id,
+        {
+          total: milestoneTasks.length,
+          done: milestoneTasks.filter((task) => task.status === 'done').length,
+        },
+      ];
+    }),
+  );
 
   const [showAddTask, setShowAddTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -95,7 +107,10 @@ export function ProjectDetailView({
           <h3 className="text-base font-semibold text-foreground mb-4">
             里程碑
           </h3>
-          <MilestoneTimeline milestones={milestones} />
+          <MilestoneTimeline
+            milestones={milestones}
+            taskStatsByMilestone={taskStatsByMilestone}
+          />
         </div>
 
         <Separator />

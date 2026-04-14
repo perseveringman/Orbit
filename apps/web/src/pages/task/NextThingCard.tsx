@@ -1,5 +1,5 @@
 import { useState, type ReactElement } from 'react';
-import { Card, Chip, Button, Tabs } from '@heroui/react';
+import { Card, Chip, Button } from '@heroui/react';
 import { Sparkles, FolderOpen, Milestone as MsIcon, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 import { type TodayRecommendation } from './mock-data';
 import { useTask, useProject, useMilestoneList } from '../../data';
@@ -83,7 +83,11 @@ export function NextThingCard({
         </div>
       </Card.Content>
       <Card.Footer>
-        <Button variant="primary" onPress={onStartFocus}>
+        <Button
+          variant="primary"
+          onPress={onStartFocus}
+          isDisabled={!task || !onStartFocus}
+        >
           <Zap size={16} /> 开始专注
         </Button>
       </Card.Footer>

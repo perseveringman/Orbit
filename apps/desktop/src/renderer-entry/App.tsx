@@ -9,13 +9,13 @@ import { AgentDevTools } from './agent-devtools/AgentDevTools';
 import { AgentHub } from './agent-hub/AgentHub';
 
 import { IconRail, ContextSidebar, TopBar } from '../../../web/src/components/layout';
+import { OrbitDataProvider } from '../../../web/src/data/orbit-data-context';
 import { InboxPage } from '../../../web/src/pages/inbox';
 import { VisionPage } from '../../../web/src/pages/vision';
 import { ReaderPage } from '../../../web/src/pages/reader';
 import { ResolverTestPage } from '../../../web/src/pages/reader/ResolverTestPage';
 import { JournalPage } from '../../../web/src/pages/journal';
-import { TodayPage, FocusPage, ReviewPage } from '../../../web/src/pages/task';
-import { TasksPage, ProjectsPage } from '../../../web/src/pages/project';
+import { TasksPage, ProjectsPage, TodayPage, FocusPage, ReviewPage } from '../../../web/src/pages/task';
 
 import { OverviewPage as AgentOverviewPage } from './agent-hub/pages/OverviewPage';
 import { ChatPage as AgentChatPage } from './agent-hub/pages/ChatPage';
@@ -61,7 +61,12 @@ function renderPage(section: string, subPage: string): ReactElement {
       case 'tasks-review':
       case 'tasks-done':
         return <TasksPage />;
+      case 'today': return <TodayPage />;
+      case 'focus': return <FocusPage />;
+      case 'review': return <ReviewPage />;
       case 'projects': return <ProjectsPage />;
+      case 'settings': return <Placeholder name="设置" />;
+      case 'help': return <Placeholder name="帮助与支持" />;
       case 'clients': return <Placeholder name="Clients" />;
       case 'templates': return <Placeholder name="Templates" />;
       case 'notes': return <Placeholder name="Notes" />;
@@ -140,6 +145,20 @@ export function App() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { section, subPage } = (e as CustomEvent).detail ?? {};
+      if (section) {
+        setActiveSection(section);
+        setActiveSubPage(subPage ?? DEFAULT_SUB_PAGE[section] ?? 'dashboard');
+      } else if (subPage) {
+        setActiveSubPage(subPage);
+      }
+    };
+    window.addEventListener('orbit:navigate', handler);
+    return () => window.removeEventListener('orbit:navigate', handler);
+  }, []);
+
   const handleCloseDevTools = useCallback(() => setShowDevTools(false), []);
   const handleCloseAgentHub = useCallback(() => setShowAgentHub(false), []);
 
@@ -153,57 +172,59 @@ export function App() {
   }
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      {/* ===== AGENT DEVTOOLS PANEL ===== */}
-      {showDevTools && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            right: 0,
-            width: 520,
-            height: '100vh',
-            zIndex: 9999,
-            boxShadow: '-4px 0 24px rgba(0,0,0,0.4)',
-          }}
-        >
-          <AgentDevTools onClose={handleCloseDevTools} />
-        </div>
-      )}
-
-      {/* ===== ICON RAIL (1st column) ===== */}
-      <IconRail activeSection={activeSection} onSectionChange={handleSectionChange} />
-
-      {/* ===== CONTEXT SIDEBAR (2nd column) ===== */}
-      {sidebarCollapsed ? (
-        <div className="flex items-start pt-3 shrink-0">
-          <Button
-            variant="ghost"
-            isIconOnly
-            size="sm"
-            onPress={() => setSidebarCollapsed(false)}
-            className="text-muted"
+    <OrbitDataProvider>
+      <div className="flex h-screen bg-background text-foreground">
+        {/* ===== AGENT DEVTOOLS PANEL ===== */}
+        {showDevTools && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              right: 0,
+              width: 520,
+              height: '100vh',
+              zIndex: 9999,
+              boxShadow: '-4px 0 24px rgba(0,0,0,0.4)',
+            }}
           >
-            <ChevronRight size={16} />
-          </Button>
-        </div>
-      ) : (
-        <ContextSidebar
-          activeSection={activeSection}
-          activeSubPage={activeSubPage}
-          onSubPageChange={setActiveSubPage}
-          collapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(true)}
-        />
-      )}
+            <AgentDevTools onClose={handleCloseDevTools} />
+          </div>
+        )}
 
-      {/* ===== MAIN CONTENT ===== */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <TopBar />
-        <div className="flex-1 overflow-y-auto">
-          {renderPage(activeSection, activeSubPage)}
-        </div>
-      </main>
-    </div>
+        {/* ===== ICON RAIL (1st column) ===== */}
+        <IconRail activeSection={activeSection} onSectionChange={handleSectionChange} />
+
+        {/* ===== CONTEXT SIDEBAR (2nd column) ===== */}
+        {sidebarCollapsed ? (
+          <div className="flex items-start pt-3 shrink-0">
+            <Button
+              variant="ghost"
+              isIconOnly
+              size="sm"
+              onPress={() => setSidebarCollapsed(false)}
+              className="text-muted"
+            >
+              <ChevronRight size={16} />
+            </Button>
+          </div>
+        ) : (
+          <ContextSidebar
+            activeSection={activeSection}
+            activeSubPage={activeSubPage}
+            onSubPageChange={setActiveSubPage}
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(true)}
+          />
+        )}
+
+        {/* ===== MAIN CONTENT ===== */}
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <TopBar />
+          <div className="flex-1 overflow-y-auto">
+            {renderPage(activeSection, activeSubPage)}
+          </div>
+        </main>
+      </div>
+    </OrbitDataProvider>
   );
 }

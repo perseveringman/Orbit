@@ -4,11 +4,11 @@ import { Check, Circle, Zap, X } from 'lucide-react';
 import {
   type Milestone,
   type MilestoneStatus,
-  getTasksForMilestone,
 } from './mock-data';
 
 interface MilestoneTimelineProps {
   milestones: Milestone[];
+  taskStatsByMilestone?: Record<string, { total: number; done: number }>;
 }
 
 const MILESTONE_ICON: Record<MilestoneStatus, ReactElement> = {
@@ -34,6 +34,7 @@ const MILESTONE_DOT_COLORS: Record<MilestoneStatus, string> = {
 
 export function MilestoneTimeline({
   milestones,
+  taskStatsByMilestone = {},
 }: MilestoneTimelineProps): ReactElement {
   return (
     <div className="relative pl-6">
@@ -42,9 +43,11 @@ export function MilestoneTimeline({
 
       <div className="space-y-4">
         {milestones.map((ms) => {
-          const tasks = getTasksForMilestone(ms.id);
-          const doneCount = tasks.filter((t) => t.status === 'done').length;
-          const pct = tasks.length > 0 ? Math.round((doneCount / tasks.length) * 100) : 0;
+          const stats = taskStatsByMilestone[ms.id] ?? {
+            total: ms.taskIds.length,
+            done: 0,
+          };
+          const pct = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0;
 
           return (
             <div key={ms.id} className="relative">
@@ -87,7 +90,7 @@ export function MilestoneTimeline({
                   </p>
                   <div className="flex items-center gap-2 text-xs text-muted">
                     <span>
-                      {doneCount}/{tasks.length} 任务
+                      {stats.done}/{stats.total} 任务
                     </span>
                     <div className="flex-1 h-1.5 bg-surface-secondary rounded-full overflow-hidden">
                       <div

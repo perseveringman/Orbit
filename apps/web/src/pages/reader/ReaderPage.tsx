@@ -1,11 +1,12 @@
 import { useState, type ReactElement } from 'react';
 import { Button, Separator } from '@heroui/react';
 import { Plus, BookOpenText } from 'lucide-react';
-import { useArticle } from '../../data/use-reader';
+import { useArticle, type ReaderArticle } from '../../data/use-reader';
 import { ReaderView } from './ReaderView';
 import { PodcastPlayerView } from './PodcastPlayerView';
 import { VideoPlayerView } from './VideoPlayerView';
 import { BookReaderView } from './BookReaderView';
+import { YouTubeVideoReaderView } from './YouTubeVideoReaderView';
 import { SubscriptionPanel } from './SubscriptionPanel';
 import { ReaderRouter, type ReaderRoute } from './ReaderRouter';
 import { ContentListPage } from './ContentListPage';
@@ -14,6 +15,14 @@ import { MOCK_PODCASTS, MOCK_VIDEOS, MOCK_BOOKS } from './mock-data';
 import { useReaderMutations } from '../../data/use-reader-mutations';
 
 type ViewMode = 'library' | 'reading';
+
+function renderStoredArticleView(article: ReaderArticle, onBack: () => void): ReactElement {
+  if (article.mediaType === 'youtube') {
+    return <YouTubeVideoReaderView article={article} onBack={onBack} />;
+  }
+
+  return <ReaderView article={article} onBack={onBack} />;
+}
 
 function renderContentView(route: ReaderRoute, onBack: () => void): ReactElement | null {
   switch (route.type) {
@@ -34,6 +43,89 @@ function renderContentView(route: ReaderRoute, onBack: () => void): ReactElement
     }
   }
   return null;
+}
+
+interface ReaderLibraryShellProps {
+  currentRoute: ReaderRoute | null;
+  navigate: (route: ReaderRoute | null) => void;
+  contentType: ReaderRoute['type'] | 'all';
+  setContentType: (type: ReaderRoute['type'] | 'all') => void;
+  showSubscriptions: boolean;
+  setShowSubscriptions: (value: boolean) => void;
+  setShowAddModal: (value: boolean) => void;
+  handleSelectArticle: (id: string) => void;
+}
+
+function ReaderLibraryShell({
+  currentRoute,
+  navigate,
+  contentType,
+  setContentType,
+  showSubscriptions,
+  setShowSubscriptions,
+  setShowAddModal,
+  handleSelectArticle,
+}: ReaderLibraryShellProps): ReactElement {
+  const routedArticle = useArticle(currentRoute?.id ?? null);
+
+  if (currentRoute && routedArticle) {
+    return renderStoredArticleView(routedArticle, () => navigate(null));
+  }
+
+  if (currentRoute) {
+    const contentView = renderContentView(currentRoute, () => navigate(null));
+    if (contentView) return contentView;
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-3 border-b border-border">
+        <div className="flex items-center gap-2">
+          <BookOpenText size={20} className="text-accent" />
+          <h1 className="text-lg font-semibold text-foreground">阅读</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onPress={() => setShowSubscriptions(!showSubscriptions)}
+          >
+            {showSubscriptions ? '隐藏订阅' : '管理订阅'}
+          </Button>
+          <Button variant="primary" size="sm" onPress={() => setShowAddModal(true)}>
+            <Plus size={14} /> 添加
+          </Button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden">
+          <ContentListPage
+            contentType={contentType}
+            onContentTypeChange={setContentType}
+            onSelectItem={(type, id) => {
+              if (type === 'article') {
+                handleSelectArticle(id);
+                return;
+              }
+              navigate({ type, id });
+            }}
+          />
+        </div>
+
+        {showSubscriptions && (
+          <>
+            <Separator orientation="vertical" />
+            <aside className="w-80 border-l border-border bg-surface overflow-y-auto shrink-0">
+              <SubscriptionPanel />
+            </aside>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function ReaderPage(): ReactElement {
@@ -59,74 +151,31 @@ export function ReaderPage(): ReactElement {
   };
 
   if (view === 'reading' && selectedArticle) {
-    return <ReaderView article={selectedArticle} onBack={handleBackToLibrary} />;
+    return renderStoredArticleView(selectedArticle, handleBackToLibrary);
   }
 
   return (
     <ReaderRouter>
-      {({ currentRoute, navigate, contentType, setContentType }) => {
-        // Render content-specific views when a non-article route is active
-        if (currentRoute) {
-          const contentView = renderContentView(currentRoute, () => navigate(null));
-          if (contentView) return contentView;
-        }
+      {({ currentRoute, navigate, contentType, setContentType }) => (
+        <>
+          <ReaderLibraryShell
+            currentRoute={currentRoute}
+            navigate={navigate}
+            contentType={contentType}
+            setContentType={setContentType}
+            showSubscriptions={showSubscriptions}
+            setShowSubscriptions={setShowSubscriptions}
+            setShowAddModal={setShowAddModal}
+            handleSelectArticle={handleSelectArticle}
+          />
 
-        return (
-          <div className="flex flex-col h-full">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-3 border-b border-border">
-              <div className="flex items-center gap-2">
-                <BookOpenText size={20} className="text-accent" />
-                <h1 className="text-lg font-semibold text-foreground">阅读</h1>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onPress={() => setShowSubscriptions(!showSubscriptions)}
-                >
-                  {showSubscriptions ? '隐藏订阅' : '管理订阅'}
-                </Button>
-                <Button variant="primary" size="sm" onPress={() => setShowAddModal(true)}>
-                  <Plus size={14} /> 添加
-                </Button>
-              </div>
-            </div>
-
-            {/* Body */}
-            <div className="flex flex-1 overflow-hidden">
-              <div className="flex-1 overflow-hidden">
-                <ContentListPage
-                  contentType={contentType}
-                  onContentTypeChange={setContentType}
-                  onSelectItem={(type, id) => {
-                    if (type === 'article') {
-                      handleSelectArticle(id);
-                      return;
-                    }
-                    navigate({ type, id });
-                  }}
-                />
-              </div>
-
-              {showSubscriptions && (
-                <>
-                  <Separator orientation="vertical" />
-                  <aside className="w-80 border-l border-border bg-surface overflow-y-auto shrink-0">
-                    <SubscriptionPanel />
-                  </aside>
-                </>
-              )}
-            </div>
-
-            <AddContentModal
-              isOpen={showAddModal}
-              onClose={() => setShowAddModal(false)}
-              onSubmit={handleAddContent}
-            />
-          </div>
-        );
-      }}
+          <AddContentModal
+            isOpen={showAddModal}
+            onClose={() => setShowAddModal(false)}
+            onSubmit={handleAddContent}
+          />
+        </>
+      )}
     </ReaderRouter>
   );
 }

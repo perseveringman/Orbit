@@ -5,6 +5,8 @@ import {
   extractYouTubeChannelId,
   getYouTubeChannelFeedUrl,
   resolveYouTubeUrl,
+  fetchYouTubeVideoDetails,
+  fetchYouTubeTranscript,
   isPodcastUrl,
   extractApplePodcastId,
   extractSpotifyShowId,
@@ -123,6 +125,221 @@ describe('resolveYouTubeUrl', () => {
     const result = resolveYouTubeUrl('https://vimeo.com/12345');
     expect(result.ok).toBe(false);
     expect(result.error).toBe('Not a YouTube URL');
+  });
+});
+
+describe('fetchYouTubeVideoDetails', () => {
+  it('extracts details and top comments from the watch page HTML', async () => {
+    const playerResponse = {
+      videoDetails: {
+        title: 'Orbit reader demo',
+        author: 'Orbit Channel',
+        shortDescription: 'Video description body',
+        viewCount: '12345',
+        lengthSeconds: '105',
+        thumbnail: {
+          thumbnails: [
+            { url: 'https://example.com/thumb-small.jpg' },
+            { url: 'https://example.com/thumb-large.jpg' },
+          ],
+        },
+      },
+      microformat: {
+        playerMicroformatRenderer: {
+          uploadDate: '2026-04-13',
+        },
+      },
+    };
+
+    const initialData = {
+      contents: {
+        twoColumnWatchNextResults: {
+          results: {
+            results: {
+              contents: [
+                {
+                  videoSecondaryInfoRenderer: {
+                    owner: {
+                      videoOwnerRenderer: {
+                        title: { runs: [{ text: 'Orbit Channel' }] },
+                        thumbnail: {
+                          thumbnails: [
+                            { url: 'https://example.com/channel-small.jpg' },
+                            { url: 'https://example.com/channel-large.jpg' },
+                          ],
+                        },
+                        subscriberCountText: { simpleText: '12.3万位订阅者' },
+                      },
+                    },
+                  },
+                },
+                {
+                  itemSectionRenderer: {
+                    contents: [
+                      {
+                        commentThreadRenderer: {
+                          comment: {
+                            commentRenderer: {
+                              authorText: { simpleText: 'Alice' },
+                              contentText: { runs: [{ text: 'Great walkthrough.' }] },
+                              voteCount: { simpleText: '5' },
+                              publishedTimeText: { runs: [{ text: '2 days ago' }] },
+                              authorThumbnail: {
+                                thumbnails: [{ url: 'https://example.com/alice.jpg' }],
+                              },
+                            },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+      engagementPanels: [
+        {
+          commentsHeaderRenderer: {
+            countText: { simpleText: '1' },
+          },
+        },
+      ],
+    };
+
+    const html = `
+      <html>
+        <script>var ytInitialPlayerResponse = ${JSON.stringify(playerResponse)};</script>
+        <script>var ytInitialData = ${JSON.stringify(initialData)};</script>
+      </html>
+    `;
+
+    const fetchFn: typeof fetch = async (input) => {
+      const url =
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
+
+      if (url.startsWith('https://www.youtube.com/watch?v=test-video-details')) {
+        return new Response(html, {
+          status: 200,
+          headers: { 'Content-Type': 'text/html' },
+        });
+      }
+
+      throw new Error(`Unexpected URL: ${url}`);
+    };
+
+    const result = await fetchYouTubeVideoDetails('test-video-details', { fetchFn });
+
+    expect(result).toMatchObject({
+      title: 'Orbit reader demo',
+      description: 'Video description body',
+      viewCount: 12345,
+      commentCount: 1,
+      uploadDate: '2026-04-13',
+      channelName: 'Orbit Channel',
+      channelThumbnail: 'https://example.com/channel-large.jpg',
+      subscriberCount: '12.3万位订阅者',
+      duration: 105,
+      thumbnail: 'https://example.com/thumb-large.jpg',
+    });
+    expect(result?.comments).toHaveLength(1);
+    expect(result?.comments[0]).toMatchObject({
+      author: 'Alice',
+      text: 'Great walkthrough.',
+      likeCount: 5,
+      publishedText: '2 days ago',
+      authorThumbnail: 'https://example.com/alice.jpg',
+    });
+  });
+});
+
+describe('fetchYouTubeTranscript', () => {
+  it('selects a preferred caption track and parses json3 transcript events', async () => {
+    const playerResponse = {
+      videoDetails: {
+        title: 'Orbit reader demo',
+      },
+      captions: {
+        playerCaptionsTracklistRenderer: {
+          captionTracks: [
+            {
+              baseUrl: 'https://example.com/captions?lang=en',
+              languageCode: 'en',
+              name: { simpleText: 'English' },
+            },
+            {
+              baseUrl: 'https://example.com/captions?lang=zh',
+              languageCode: 'zh-Hans',
+              kind: 'asr',
+              name: { simpleText: '中文（自动生成）' },
+            },
+          ],
+        },
+      },
+    };
+
+    const html = `
+      <html>
+        <script>var ytInitialPlayerResponse = ${JSON.stringify(playerResponse)};</script>
+      </html>
+    `;
+
+    const transcriptPayload = {
+      events: [
+        {
+          tStartMs: 0,
+          dDurationMs: 1500,
+          segs: [{ utf8: 'Hello ' }, { utf8: 'world' }],
+        },
+        {
+          tStartMs: 1500,
+          dDurationMs: 2000,
+          segs: [{ utf8: 'Second sentence.' }],
+        },
+      ],
+    };
+
+    const fetchFn: typeof fetch = async (input) => {
+      const url =
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
+
+      if (url.startsWith('https://www.youtube.com/watch?v=test-video-transcript')) {
+        return new Response(html, {
+          status: 200,
+          headers: { 'Content-Type': 'text/html' },
+        });
+      }
+
+      if (url.startsWith('https://example.com/captions')) {
+        expect(new URL(url).searchParams.get('fmt')).toBe('json3');
+        return new Response(JSON.stringify(transcriptPayload), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      throw new Error(`Unexpected URL: ${url}`);
+    };
+
+    const result = await fetchYouTubeTranscript('test-video-transcript', { fetchFn });
+
+    expect(result).toMatchObject({
+      language: 'en',
+      isAutoGenerated: false,
+    });
+    expect(result?.segments).toEqual([
+      { startTime: 0, endTime: 1.5, text: 'Hello world' },
+      { startTime: 1.5, endTime: 3.5, text: 'Second sentence.' },
+    ]);
   });
 });
 

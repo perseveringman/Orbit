@@ -58,6 +58,8 @@ function renderPage(section: string, subPage: string): ReactElement {
       case 'focus': return <FocusPage />;
       case 'review': return <ReviewPage />;
       case 'projects': return <ProjectsPage />;
+      case 'settings': return <Placeholder name="设置" />;
+      case 'help': return <Placeholder name="帮助与支持" />;
       case 'clients': return <Placeholder name="Clients" />;
       case 'templates': return <Placeholder name="Templates" />;
       case 'notes': return <Placeholder name="Notes" />;

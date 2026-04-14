@@ -1,18 +1,23 @@
 import type { DatabasePort, SqlRow, SqlRunResult, DatabaseConnection } from '@orbit/platform-contracts';
 import initSqlJs, { type Database } from 'sql.js';
+import sqlWasmBrowserUrl from 'sql.js/dist/sql-wasm-browser.wasm?url';
+import sqlWasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
 
 /**
  * Creates a DatabasePort backed by sql.js (WASM SQLite in the browser).
  * The database is in-memory — data persists until page refresh.
  *
- * WASM is loaded from /sql-wasm.wasm (bundled in public/) with a CDN fallback.
+ * WASM is loaded from a Vite-managed asset URL so it works in both web and
+ * desktop renderer builds.
  */
 export async function createBrowserDatabasePort(): Promise<DatabasePort> {
   const SQL = await initSqlJs({
     locateFile: (file: string) => {
-      // Try local copy first (public/), fallback to CDN
-      if (file === 'sql-wasm.wasm') {
-        return '/sql-wasm.wasm';
+      if (file === 'sql-wasm-browser.wasm' || file === 'sql-wasm-browser-debug.wasm') {
+        return sqlWasmBrowserUrl;
+      }
+      if (file === 'sql-wasm.wasm' || file === 'sql-wasm-debug.wasm') {
+        return sqlWasmUrl;
       }
       return `https://sql.js.org/dist/${file}`;
     },

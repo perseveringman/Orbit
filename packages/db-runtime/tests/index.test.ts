@@ -30,9 +30,11 @@ interface CallRecord {
 
 function createMockDatabasePort(overrides?: {
   queryResults?: Map<string, SqlRow[]>;
+  execErrors?: Map<string, Error>;
 }): DatabasePort & { calls: CallRecord[] } {
   const calls: CallRecord[] = [];
   const queryResults = overrides?.queryResults ?? new Map<string, SqlRow[]>();
+  const execErrors = overrides?.execErrors ?? new Map<string, Error>();
 
   return {
     calls,
@@ -54,6 +56,9 @@ function createMockDatabasePort(overrides?: {
     },
     exec(sql: string): void {
       calls.push({ method: 'exec', sql });
+      for (const [pattern, error] of execErrors) {
+        if (sql.includes(pattern)) throw error;
+      }
     },
     transaction<T>(fn: () => T): T {
       calls.push({ method: 'transaction' });
@@ -160,14 +165,15 @@ describe('bootstrap', () => {
       expect(execCalls.length).toBeGreaterThanOrEqual(2);
       // First exec should be the migration tracking table
       expect(execCalls[0]!.sql).toContain('schema_migrations');
-      // Second exec should be the bootstrap DDL
-      expect(execCalls[1]!.sql).toContain('PRAGMA');
+      // One of the later execs should be the bootstrap DDL
+      expect(execCalls.some((call) => call.sql?.includes('PRAGMA'))).toBe(true);
 
-      // Should have inserted v1 migration record
+      // Fresh bootstrap should record all known migrations as applied
       const runCalls = db.calls.filter((c) => c.method === 'run');
-      expect(runCalls.length).toBe(1);
+      expect(runCalls.length).toBe(2);
       expect(runCalls[0]!.sql).toContain('INSERT INTO schema_migrations');
       expect(runCalls[0]!.params).toEqual([1, 'initial_schema']);
+      expect(runCalls[1]!.params).toEqual([2, 'add_reading_system_fields']);
     });
 
     it('skips bootstrap if already initialized', () => {
@@ -183,6 +189,22 @@ describe('bootstrap', () => {
       const execCalls = db.calls.filter((c) => c.method === 'exec');
       expect(execCalls.length).toBe(1);
       expect(execCalls[0]!.sql).toContain('schema_migrations');
+    });
+
+    it('falls back to plain search tables when FTS5 is unavailable', () => {
+      const db = createMockDatabasePort({
+        execErrors: new Map([
+          ['__orbit_fts5_probe', new Error('no such module: fts5')],
+        ]),
+      });
+
+      bootstrapDatabase(db);
+
+      const execCalls = db.calls.filter((c) => c.method === 'exec');
+      const bootstrapCall = execCalls[execCalls.length - 1]!;
+      expect(bootstrapCall.sql).toContain('CREATE TABLE IF NOT EXISTS object_search_fts');
+      expect(bootstrapCall.sql).toContain('CREATE TABLE IF NOT EXISTS object_chunks_fts');
+      expect(bootstrapCall.sql).not.toContain('CREATE VIRTUAL TABLE IF NOT EXISTS object_search_fts USING fts5');
     });
   });
 
@@ -214,6 +236,42 @@ describe('bootstrap', () => {
 
       const count = runMigrations(db);
       expect(count).toBe(0);
+    });
+
+    it('marks migration applied when schema already has the migrated columns', () => {
+      const db = createMockDatabasePort({
+        queryResults: new Map([
+          ['SELECT version FROM schema_migrations ORDER BY version', [{ version: 1 }]],
+          ['PRAGMA table_info(content_items)', [{ name: 'origin' }, { name: 'processing_depth' }]],
+          [
+            'PRAGMA table_info(articles)',
+            [
+              { name: 'origin' },
+              { name: 'proposed_link_count' },
+              { name: 'active_link_count' },
+              { name: 'source_endpoint_quality' },
+            ],
+          ],
+          [
+            'PRAGMA table_info(source_endpoints)',
+            [
+              { name: 'quality_score' },
+              { name: 'total_items' },
+              { name: 'confirmed_items' },
+              { name: 'consecutive_errors' },
+              { name: 'last_error_at' },
+            ],
+          ],
+        ]),
+      });
+
+      const count = runMigrations(db);
+
+      expect(count).toBe(1);
+      const execCalls = db.calls.filter((c) => c.method === 'exec');
+      expect(execCalls.some((call) => call.sql?.includes('ALTER TABLE articles ADD COLUMN origin'))).toBe(false);
+      const runCalls = db.calls.filter((c) => c.method === 'run');
+      expect(runCalls[0]!.params).toEqual([2, 'add_reading_system_fields']);
     });
   });
 
@@ -487,18 +545,26 @@ describe('SqliteEventRepository', () => {
 describe('SqliteSearchRepository', () => {
   describe('query', () => {
     it('uses FTS5 MATCH syntax', async () => {
-      const db = createMockDatabasePort();
+      const db = createMockDatabasePort({
+        queryResults: new Map([
+          ['SELECT sql FROM sqlite_master', [{ sql: 'CREATE VIRTUAL TABLE object_search_fts USING fts5(title, summary, keywords)' }]],
+        ]),
+      });
       const repo = new SqliteSearchRepository(db);
 
       await repo.query('hello world');
 
       const queryCalls = db.calls.filter((c) => c.method === 'query');
-      expect(queryCalls[0]!.sql).toContain('object_search_fts MATCH ?');
-      expect(queryCalls[0]!.params![0]).toBe('hello world');
+      expect(queryCalls[1]!.sql).toContain('object_search_fts MATCH ?');
+      expect(queryCalls[1]!.params![0]).toBe('hello world');
     });
 
     it('applies scope filters', async () => {
-      const db = createMockDatabasePort();
+      const db = createMockDatabasePort({
+        queryResults: new Map([
+          ['SELECT sql FROM sqlite_master', [{ sql: 'CREATE VIRTUAL TABLE object_search_fts USING fts5(title, summary, keywords)' }]],
+        ]),
+      });
       const repo = new SqliteSearchRepository(db);
 
       await repo.query('test', {
@@ -508,10 +574,30 @@ describe('SqliteSearchRepository', () => {
       });
 
       const queryCalls = db.calls.filter((c) => c.method === 'query');
-      const sql = queryCalls[0]!.sql!;
+      const sql = queryCalls[1]!.sql!;
       expect(sql).toContain('oi.object_type IN');
       expect(sql).toContain('oi.layer IN');
       expect(sql).toContain('oi.updated_at >');
+    });
+
+    it('falls back to LIKE queries when FTS5 is unavailable', async () => {
+      const db = createMockDatabasePort({
+        queryResults: new Map([
+          ['SELECT sql FROM sqlite_master', [{ sql: 'CREATE TABLE object_search_fts (object_uid TEXT PRIMARY KEY, title TEXT, summary TEXT, keywords TEXT)' }]],
+        ]),
+      });
+      const repo = new SqliteSearchRepository(db);
+
+      await repo.query('hello world');
+
+      const queryCalls = db.calls.filter((c) => c.method === 'query');
+      expect(queryCalls[1]!.sql).toContain('fts.title LIKE ?');
+      expect(queryCalls[1]!.sql).toContain('ORDER BY oi.updated_at DESC');
+      expect(queryCalls[1]!.params!.slice(0, 3)).toEqual([
+        '%hello world%',
+        '%hello world%',
+        '%hello world%',
+      ]);
     });
 
     it('returns empty for blank text', async () => {
